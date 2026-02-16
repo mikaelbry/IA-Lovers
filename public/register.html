@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registro</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">IA-<span class="highlight">Lovers</span></div>
+    <div id="nav-auth"></div>
+</nav>
+
+<h2 style="text-align:center;margin-top:50px;">Registro</h2>
+
+<form onsubmit="register(event)" style="max-width:400px;margin:auto;">
+    <input type="text" id="username" placeholder="Usuario" required><br><br>
+    <input type="email" id="email" placeholder="Email" required><br><br>
+    <input type="password" id="password" placeholder="Password" required><br><br>
+    <button class="btn-primary">Crear cuenta</button>
+</form>
+
+<script src="assets/js/header.js"></script>
+<script src="assets/js/auth.js"></script>
+
+</body>
+</html>
