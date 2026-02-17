@@ -1,3 +1,6 @@
+const API_BASE = "/IA-Lovers/api/index.php";
+
+
 async function register(event) {
     event.preventDefault();
 
@@ -7,15 +10,21 @@ async function register(event) {
         password: document.getElementById("password").value
     };
 
-    const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    });
+    try {
+        const res = await fetch(API_BASE + "/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
 
-    const json = await res.json();
+        const json = await res.json();
 
-    alert(json.message || json.error);
+        alert(json.message || json.error);
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión con la API");
+    }
 }
 
 async function login(event) {
@@ -26,19 +35,25 @@ async function login(event) {
         password: document.getElementById("password").value
     };
 
-    const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    });
+    try {
+        const res = await fetch(API_BASE + "/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
 
-    const json = await res.json();
+        const json = await res.json();
 
-    if (json.token) {
-        localStorage.setItem("token", json.token);
-        localStorage.setItem("user", JSON.stringify(json.user));
-        window.location.href = "index.html";
-    } else {
-        alert(json.error);
+        if (json.token) {
+            localStorage.setItem("token", json.token);
+            localStorage.setItem("user", JSON.stringify(json.user));
+            window.location.href = "index.html";
+        } else {
+            alert(json.error);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión con la API");
     }
 }

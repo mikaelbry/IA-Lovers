@@ -1,26 +1,33 @@
+const BASE_PATH = "/IA-Lovers/public/";
+
 document.addEventListener("DOMContentLoaded", () => {
 
     const user = JSON.parse(localStorage.getItem("user"));
-
     const nav = document.getElementById("nav-auth");
 
+    let links = `
+        <a href="${BASE_PATH}index.html">Inicio</a>
+        <a href="${BASE_PATH}explorar.html">Explorar</a>
+    `;
+
     if (user) {
-        nav.innerHTML = `
-            <span>Hola, ${user.username}</span>
+        links += `
+            <a href="${BASE_PATH}profile.html">Perfil</a>
             <a href="#" id="logout">Cerrar sesión</a>
         `;
-
-        document.getElementById("logout").addEventListener("click", () => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            location.reload();
-        });
-
     } else {
-        nav.innerHTML = `
-            <a href="login.html">Iniciar sesión</a>
-            <a href="register.html" class="btn-primary">Registro</a>
+        links += `
+            <a href="${BASE_PATH}login.html">Login</a>
+            <a href="${BASE_PATH}register.html">Registro</a>
         `;
     }
 
+    nav.innerHTML = links;
+
+    if (user) {
+        document.getElementById("logout").addEventListener("click", () => {
+            localStorage.clear();
+            window.location.href = BASE_PATH + "index.html";
+        });
+    }
 });

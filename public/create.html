@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crear Post</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<h2>Crear nuevo Post</h2>
+
+<form id="postForm">
+    <input type="text" name="title" placeholder="Título" required><br><br>
+    <textarea name="description" placeholder="Descripción"></textarea><br><br>
+    <input type="file" name="image" required><br><br>
+    <button>Publicar</button>
+</form>
+
+<script>
+document.getElementById("postForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData(this);
+
+    const res = await fetch("/IA-Lovers/api/index.php/posts/create", {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + token
+        },
+        body: formData
+    });
+
+    const json = await res.json();
+    alert(json.message || json.error);
+});
+</script>
+
+</body>
+</html>

@@ -16,12 +16,12 @@ class Router {
 
         $uri = parse_url($uri, PHP_URL_PATH);
 
-        // quitar /api del inicio
-        if (strpos($uri, '/api') === 0) {
-            $uri = substr($uri, 4);
+        // obtener solo lo que viene después de index.php
+        if (strpos($uri, 'index.php') !== false) {
+            $uri = substr($uri, strpos($uri, 'index.php') + 9);
         }
 
-        if ($uri === '') {
+        if ($uri === '' || $uri === false) {
             $uri = '/';
         }
 
@@ -31,6 +31,7 @@ class Router {
         }
 
         http_response_code(404);
-        echo json_encode(['error' => 'Ruta no encontrada']);
+        header("Content-Type: application/json");
+        echo json_encode(['error' => 'Ruta no encontrada: ' . $uri]);
     }
 }

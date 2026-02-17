@@ -29,7 +29,8 @@ class AuthController {
     }
 
     public static function login() {
-
+        
+        RateLimiter::check('login_attempts', 5, 60);
         $input = file_get_contents("php://input");
         $data = json_decode($input, true);
 

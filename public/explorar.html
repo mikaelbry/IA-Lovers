@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Explorar</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">IA-<span class="highlight">Lovers</span></div>
+    <div id="nav-auth"></div>
+</nav>
+
+<h2 style="text-align:center;margin-top:40px;">Explorar contenido</h2>
+
+<section id="posts" class="posts"></section>
+
+<script>
+fetch("/IA-Lovers/api/index.php/posts/latest")
+.then(res => res.json())
+.then(posts => {
+    const container = document.getElementById("posts");
+    posts.forEach(post => {
+        container.innerHTML += `
+            <div class="card">
+                <h3>${post.title}</h3>
+                <img src="${post.file_path}" width="300">
+                <p>${post.description ?? ''}</p>
+                <p>Autor: ${post.username}</p>
+            </div>
+        `;
+    });
+});
+</script>
+
+<script src="assets/js/header.js"></script>
+
+</body>
+</html>

@@ -1,27 +1,23 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-    try {
-        const response = await fetch("/api/posts/latest");
-        const posts = await response.json();
+    const container = document.getElementById("posts");
 
-        const container = document.getElementById("posts");
+    const res = await fetch("/IA-Lovers/api/index.php/posts/latest");
+    const posts = await res.json();
 
-        posts.forEach(post => {
-            const div = document.createElement("div");
+    posts.forEach(post => {
 
-            div.innerHTML = `
-                <h3>${post.title}</h3>
-                <p>${post.description ?? ''}</p>
-                <p>Por: ${post.username}</p>
-                <p>Likes: ${post.likes_count}</p>
-                <hr>
-            `;
+        const div = document.createElement("div");
+        div.className = "card";
 
-            container.appendChild(div);
-        });
+        div.innerHTML = `
+            <h3>${post.title}</h3>
+            <p>${post.description ?? ''}</p>
+            <p>Por: ${post.username}</p>
+            <img src="${post.file_path}" width="300">
+        `;
 
-    } catch (error) {
-        console.error("Error cargando posts:", error);
-    }
+        container.appendChild(div);
+    });
 
 });

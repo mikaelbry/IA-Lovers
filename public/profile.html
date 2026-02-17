@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Perfil</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">IA-<span class="highlight">Lovers</span></div>
+    <div id="nav-auth"></div>
+</nav>
+
+<h2 style="text-align:center;margin-top:40px;">Mi Perfil</h2>
+
+<div id="profileData" class="posts"></div>
+
+<script>
+const token = localStorage.getItem("token");
+
+fetch("/IA-Lovers/api/index.php/user/profile", {
+    headers: {
+        "Authorization": "Bearer " + token
+    }
+})
+.then(res => res.json())
+.then(data => {
+
+    const container = document.getElementById("profileData");
+
+    container.innerHTML = `
+        <div class="card">
+            <h3>${data.user.username}</h3>
+            <p>Email: ${data.user.email}</p>
+            <p>Miembro desde: ${data.user.created_at}</p>
+            <a href="profile_settings.html" class="btn-primary">Editar Perfil</a>
+        </div>
+        <h3>Mis publicaciones</h3>
+    `;
+
+    data.posts.forEach(post => {
+        container.innerHTML += `
+            <div class="card">
+                <h4>${post.title}</h4>
+                <img src="${post.file_path}" width="250">
+            </div>
+        `;
+    });
+});
+</script>
+
+<script src="assets/js/header.js"></script>
+
+</body>
+</html>
