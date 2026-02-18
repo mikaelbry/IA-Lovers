@@ -1,5 +1,8 @@
-const API_BASE = "/IA-Lovers/api/index.php";
 
+function getRedirectUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("redirect") || "index.html";
+}
 
 async function register(event) {
     event.preventDefault();
@@ -10,20 +13,19 @@ async function register(event) {
         password: document.getElementById("password").value
     };
 
-    try {
-        const res = await fetch(API_BASE + "/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
+    const res = await fetch("../api/index.php/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
 
-        const json = await res.json();
+    const json = await res.json();
 
-        alert(json.message || json.error);
-
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión con la API");
+    if (res.ok) {
+        // login automático tras registro
+        await autoLogin(data.email, data.password);
+    } else {
+        alert(json.error || "Error");
     }
 }
 
@@ -35,25 +37,26 @@ async function login(event) {
         password: document.getElementById("password").value
     };
 
-    try {
-        const res = await fetch(API_BASE + "/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
+    await autoLogin(data.email, data.password);
+}
 
-        const json = await res.json();
+async function autoLogin(email, password) {
 
-        if (json.token) {
-            localStorage.setItem("token", json.token);
-            localStorage.setItem("user", JSON.stringify(json.user));
-            window.location.href = "index.html";
-        } else {
-            alert(json.error);
-        }
+    const res = await fetch("../api/index.php/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+    });
 
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión con la API");
+    const json = await res.json();
+
+    if (!res.ok) {
+        alert(json.error || "Error");
+        return;
     }
+
+    localStorage.setItem("token", json.token);
+    localStorage.setItem("user", JSON.stringify(json.user));
+
+    window.location.href = getRedirectUrl();
 }

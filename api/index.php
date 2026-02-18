@@ -11,6 +11,10 @@ require_once __DIR__ . '/core/Response.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/PostController.php';
 require_once __DIR__ . '/controllers/UserController.php';
+require_once __DIR__ . '/controllers/CartController.php';
+require_once __DIR__ . '/controllers/FollowController.php';
+require_once __DIR__ . '/controllers/NotificationController.php';
+
 
 $router = new Router();
 
@@ -37,5 +41,13 @@ $router->post('/register', function() {
 $router->post('/login', function() {
     AuthController::login();
 });
+
+$router->get('/notifications', fn() => NotificationController::get());
+
+$router->post('/posts/like', fn() => PostController::like());
+
+$router->post('/follow', fn() => FollowController::follow());
+$router->get('/posts/following', fn() => FollowController::followingPosts());
+
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

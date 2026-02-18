@@ -23,6 +23,15 @@ class AuthController {
             Response::json(['error' => 'Email ya registrado'], 400);
         }
 
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            Response::json(['error' => 'Email inválido'], 400);
+        }
+
+        if (strlen($data['password']) < 6) {
+            Response::json(['error' => 'Password demasiado corta'], 400);
+        }
+
+
         User::create($data['username'], $data['email'], $data['password']);
 
         Response::json(['message' => 'Usuario creado correctamente']);

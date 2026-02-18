@@ -63,6 +63,37 @@ class PostController {
         Response::json(['message' => 'Post creado']);
     }
 
+    public static function like() {
+
+        $user = Auth::user();
+        $data = json_decode(file_get_contents("php://input"), true);
+        $post_id = $data['post_id'];
+
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("
+            INSERT IGNORE INTO likes (user_id, post_id)
+            VALUES (?, ?)
+        ");
+
+        $stmt->execute([$user['id'], $post_id]);
+
+        // obtener autor del post
+        $author = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
+        $author->execute([$post_id]);
+        $author_id = $author->fetchColumn();
+
+        if ($author_id != $user['id']) {
+            $pdo->prepare("
+                INSERT INTO notifications (user_id, type, from_user_id, post_id)
+                VALUES (?, 'like', ?, ?)
+            ")->execute([$author_id, $user['id'], $post_id]);
+        }
+
+        Response::json(['message' => 'Like añadido']);
+    }
+
+
 
     public static function latest() {
         $posts = Post::getLatest();

@@ -1,33 +1,35 @@
-const BASE_PATH = "/IA-Lovers/public/";
-
 document.addEventListener("DOMContentLoaded", () => {
 
-    const user = JSON.parse(localStorage.getItem("user"));
     const nav = document.getElementById("nav-auth");
+    const user = JSON.parse(localStorage.getItem("user"));
 
-    let links = `
-        <a href="${BASE_PATH}index.html">Inicio</a>
-        <a href="${BASE_PATH}explorar.html">Explorar</a>
+    let html = `
+        <a href="index.html">Inicio</a>
+        <a href="explorar.html">Explorar</a>
+        <a href="cart.html">Carrito</a>
     `;
 
     if (user) {
-        links += `
-            <a href="${BASE_PATH}profile.html">Perfil</a>
-            <a href="#" id="logout">Cerrar sesión</a>
+        html += `
+            <a href="following.html">Siguiendo</a>
+            <a href="notifications.html">🔔</a>
+            <a href="profile.html">${user.username}</a>
+            <a href="#" id="logout">Salir</a>
         `;
     } else {
-        links += `
-            <a href="${BASE_PATH}login.html">Login</a>
-            <a href="${BASE_PATH}register.html">Registro</a>
+        const current = window.location.pathname.split("/").pop();
+        html += `
+            <a href="login.html?redirect=${current}">Login</a>
+            <a href="register.html?redirect=${current}" class="btn-primary">Registro</a>
         `;
     }
 
-    nav.innerHTML = links;
+    nav.innerHTML = html;
 
     if (user) {
         document.getElementById("logout").addEventListener("click", () => {
             localStorage.clear();
-            window.location.href = BASE_PATH + "index.html";
+            window.location.href = "index.html";
         });
     }
 });

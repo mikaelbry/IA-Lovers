@@ -1,0 +1,22 @@
+<section id="feed"></section>
+
+<script>
+const token = localStorage.getItem("token");
+
+fetch("../api/index.php/posts/following", {
+    headers: { "Authorization": "Bearer " + token }
+})
+.then(r => r.json())
+.then(posts => {
+    const feed = document.getElementById("feed");
+    posts.forEach(p => {
+        feed.innerHTML += `
+            <div class="card">
+                <h3>${p.title}</h3>
+                <img src="${p.file_path}" width="300">
+                <p>${p.username}</p>
+            </div>
+        `;
+    });
+});
+</script>
