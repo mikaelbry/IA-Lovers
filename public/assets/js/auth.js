@@ -1,4 +1,3 @@
-
 function getRedirectUrl() {
     const params = new URLSearchParams(window.location.search);
     return params.get("redirect") || "index.html";
@@ -7,42 +6,58 @@ function getRedirectUrl() {
 async function register(event) {
     event.preventDefault();
 
+    const btn = event.target.querySelector("button");
+    btn.disabled = true;
+
     const data = {
-        username: document.getElementById("username").value,
-        email: document.getElementById("email").value,
+        username: document.getElementById("username").value.trim(),
+        email: document.getElementById("email").value.trim(),
         password: document.getElementById("password").value
     };
 
-    const res = await fetch("../api/index.php/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    });
+    try {
+        const res = await fetch("../api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
 
-    const json = await res.json();
+        const json = await res.json();
 
-    if (res.ok) {
-        // login automático tras registro
+        if (!res.ok) {
+            throw new Error(json.error || "Error");
+        }
+
         await autoLogin(data.email, data.password);
-    } else {
-        alert(json.error || "Error");
+
+    } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
     }
 }
 
 async function login(event) {
     event.preventDefault();
 
+    const btn = event.target.querySelector("button");
+    btn.disabled = true;
+
     const data = {
-        email: document.getElementById("email").value,
+        email: document.getElementById("email").value.trim(),
         password: document.getElementById("password").value
     };
 
-    await autoLogin(data.email, data.password);
+    try {
+        await autoLogin(data.email, data.password);
+    } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+    }
 }
 
 async function autoLogin(email, password) {
 
-    const res = await fetch("../api/index.php/login", {
+    const res = await fetch("../api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -51,8 +66,7 @@ async function autoLogin(email, password) {
     const json = await res.json();
 
     if (!res.ok) {
-        alert(json.error || "Error");
-        return;
+        throw new Error(json.error || "Error");
     }
 
     localStorage.setItem("token", json.token);

@@ -16,12 +16,12 @@ class Router {
 
         $uri = parse_url($uri, PHP_URL_PATH);
 
-        // obtener solo lo que viene después de index.php
-        if (strpos($uri, 'index.php') !== false) {
-            $uri = substr($uri, strpos($uri, 'index.php') + 9);
-        }
+        // eliminar nombre del proyecto
+        $uri = str_replace('/IA-Lovers/api', '', $uri);
+        $uri = str_replace('/api', '', $uri);
+        $uri = str_replace('/index.php', '', $uri);
 
-        if ($uri === '' || $uri === false) {
+        if ($uri === '') {
             $uri = '/';
         }
 
@@ -31,7 +31,8 @@ class Router {
         }
 
         http_response_code(404);
-        header("Content-Type: application/json");
+        header("Content-Type: application/json; charset=utf-8");
         echo json_encode(['error' => 'Ruta no encontrada: ' . $uri]);
+        exit;
     }
 }

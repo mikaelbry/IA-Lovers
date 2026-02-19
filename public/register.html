@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Registro</title>
+    <meta charset="UTF-8">
+    <title>Registro - IA Lovers</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -11,14 +12,30 @@
     <div id="nav-auth"></div>
 </nav>
 
-<h2 style="text-align:center;margin-top:50px;">Registro</h2>
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Crear cuenta</h2>
+        <p>Únete a la comunidad IA</p>
 
-<form onsubmit="register(event)" style="max-width:400px;margin:auto;">
-    <input type="text" id="username" placeholder="Usuario" required><br><br>
-    <input type="email" id="email" placeholder="Email" required><br><br>
-    <input type="password" id="password" placeholder="Password" required><br><br>
-    <button class="btn-primary">Crear cuenta</button>
-</form>
+        <form onsubmit="register(event)">
+            <input type="text" id="username" placeholder="Usuario" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button class="btn-primary">Registrarse</button>
+        </form>
+
+        <div class="auth-footer">
+            ¿Ya tienes cuenta?
+            <a id="login-link">Iniciar sesión</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const redirect = params.get("redirect") || "index.html";
+document.getElementById("login-link").href = "login.html?redirect=" + redirect;
+</script>
 
 <script src="assets/js/header.js"></script>
 <script src="assets/js/auth.js"></script>
