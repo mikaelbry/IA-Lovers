@@ -3,12 +3,13 @@
 require_once __DIR__ . '/../models/Post.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Auth.php';
+require_once __DIR__ . '/../core/Middleware.php';
 
 class PostController {
 
     public static function create() {
+        $user = Middleware::auth();
 
-        $user = Auth::user();
 
         if (!isset($_FILES['image'])) {
             Response::json(['error' => 'Imagen requerida'], 400);
@@ -51,7 +52,7 @@ class PostController {
 
         move_uploaded_file($file['tmp_name'], $targetPath);
 
-        $file_path = 'http://localhost/IA-Lovers/api/storage/uploads/' . $filename;
+        $file_path = '/IA-Lovers/storage/uploads/' . $filename;
 
         Post::create(
             $user['id'],
@@ -65,7 +66,7 @@ class PostController {
 
     public static function like() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
         $post_id = $data['post_id'];
 

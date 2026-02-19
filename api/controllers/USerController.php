@@ -4,12 +4,12 @@ require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/Post.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
+require_once __DIR__ . '/../core/Middleware.php';
 
 class UserController {
 
     public static function profile() {
-
-        $user = Auth::user();
+        $user = Middleware::auth();
 
         $userData = User::findById($user['id']);
 
@@ -35,4 +35,35 @@ class UserController {
 
         Response::json(['message' => 'Perfil actualizado']);
     }
+
+    public static function publicProfile() {
+
+        $user_id = $_GET['id'] ?? null;
+
+        if (!$user_id) {
+            Response::json(['error' => 'ID requerido'], 400);
+        }
+
+        $userData = User::findById($user_id);
+
+        if (!$userData) {
+            Response::json(['error' => 'Usuario no encontrado'], 404);
+        }
+
+        $posts = Post::getByUser($user_id);
+
+        $pdo = Database::getConnection();
+
+        $followers = $pdo->prepare("
+            SELECT COUNT(*) FROM follows WHERE following_id = ?
+        ");
+        $followers->execute([$user_id]);
+
+        Response::json([
+            'user' => $userData,
+            'posts' => $posts,
+            'followers' => $followers->fetchColumn()
+        ]);
+    }
+
 }

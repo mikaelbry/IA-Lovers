@@ -1,22 +1,58 @@
-<section id="feed"></section>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Siguiendo</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+<div class="logo">IA-<span class="highlight">Lovers</span></div>
+<div id="nav-auth"></div>
+</nav>
+
+<section class="feed-container">
+<h2>Siguiendo</h2>
+<div id="feed" class="feed-grid"></div>
+</section>
+
+<script src="assets/js/header.js"></script>
 
 <script>
 const token = localStorage.getItem("token");
 
-fetch("../api/index.php/posts/following", {
+if (!token) {
+    window.location.href = "login.html?redirect=following.html";
+}
+
+fetch("../api/posts/following", {
     headers: { "Authorization": "Bearer " + token }
 })
 .then(r => r.json())
 .then(posts => {
+
     const feed = document.getElementById("feed");
+
     posts.forEach(p => {
         feed.innerHTML += `
-            <div class="card">
-                <h3>${p.title}</h3>
-                <img src="${p.file_path}" width="300">
-                <p>${p.username}</p>
+            <div class="post-card">
+                <div class="post-header">
+                    <a href="profile.html?user=${p.user_id}" class="author">
+                        ${p.username}
+                    </a>
+                </div>
+
+                <img src="${p.file_path}" class="post-image">
+
+                <div class="post-footer">
+                    ❤️ ${p.likes_count}
+                </div>
             </div>
         `;
     });
 });
 </script>
+
+</body>
+</html>

@@ -23,7 +23,10 @@ class Post {
         $offset = ($page - 1) * $limit;
 
         $stmt = $pdo->prepare("
-            SELECT posts.*, usuarios.username
+            SELECT 
+                posts.*,
+                usuarios.username,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count
             FROM posts
             JOIN usuarios ON usuarios.id = posts.user_id
             ORDER BY posts.created_at DESC
@@ -36,6 +39,7 @@ class Post {
 
         return $stmt->fetchAll();
     }
+
 
 
     public static function getByUser($user_id) {

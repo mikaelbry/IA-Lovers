@@ -1,40 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Explorar</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<title>Explorar</title>
+<link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">IA-<span class="highlight">Lovers</span></div>
-    <div id="nav-auth"></div>
+<div class="logo">IA-<span class="highlight">Lovers</span></div>
+<div id="nav-auth"></div>
 </nav>
 
-<h2 style="text-align:center;margin-top:40px;">Explorar contenido</h2>
+<section class="feed">
+    <h2>Explorar</h2>
+    <div id="posts"></div>
+</section>
 
-<section id="posts" class="posts"></section>
+<script src="assets/js/header.js"></script>
 
 <script>
-fetch("/IA-Lovers/api/index.php/posts/latest")
+fetch("../api/index.php/posts/latest")
 .then(res => res.json())
 .then(posts => {
+
     const container = document.getElementById("posts");
+
     posts.forEach(post => {
         container.innerHTML += `
-            <div class="card">
-                <h3>${post.title}</h3>
-                <img src="${post.file_path}" width="300">
-                <p>${post.description ?? ''}</p>
-                <p>Autor: ${post.username}</p>
+            <div class="post">
+                <div class="post-header">
+                    <a href="profile.html?user=${post.user_id}" class="username">
+                        ${post.username}
+                    </a>
+                </div>
+
+                <img src="${post.file_path}" class="post-image">
+
+                <div class="post-actions">
+                    <button onclick="likePost(${post.id})">
+                        ❤️ ${post.likes_count}
+                    </button>
+                </div>
             </div>
         `;
     });
 });
-</script>
 
-<script src="assets/js/header.js"></script>
+function likePost(id) {
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    fetch("../api/index.php/posts/like", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ post_id: id })
+    })
+    .then(() => location.reload());
+}
+</script>
 
 </body>
 </html>

@@ -3,12 +3,13 @@
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../core/Middleware.php';
 
 class FollowController {
 
     public static function follow() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
         $target = $data['user_id'];
 
@@ -32,7 +33,7 @@ class FollowController {
 
     public static function followingPosts() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("

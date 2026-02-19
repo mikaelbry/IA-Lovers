@@ -1,56 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Mi Perfil</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<title>Perfil</title>
+<link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">IA-<span class="highlight">Lovers</span></div>
-    <div id="nav-auth"></div>
+<div class="logo">IA-<span class="highlight">Lovers</span></div>
+<div id="nav-auth"></div>
 </nav>
 
-<h2 style="text-align:center;margin-top:40px;">Mi Perfil</h2>
+<section class="feed">
+    <div id="profile"></div>
+    <div id="posts"></div>
+</section>
 
-<div id="profileData" class="posts"></div>
+<script src="assets/js/header.js"></script>
 
 <script>
-const token = localStorage.getItem("token");
+const params = new URLSearchParams(window.location.search);
+const userId = params.get("user");
 
-fetch("/IA-Lovers/api/index.php/user/profile", {
-    headers: {
-        "Authorization": "Bearer " + token
-    }
-})
+fetch("../api/index.php/users/public?id=" + userId)
 .then(res => res.json())
 .then(data => {
 
-    const container = document.getElementById("profileData");
+    const profile = document.getElementById("profile");
 
-    container.innerHTML = `
-        <div class="card">
-            <h3>${data.user.username}</h3>
-            <p>Email: ${data.user.email}</p>
-            <p>Miembro desde: ${data.user.created_at}</p>
-            <a href="profile_settings.html" class="btn-primary">Editar Perfil</a>
-        </div>
-        <h3>Mis publicaciones</h3>
+    profile.innerHTML = `
+        <h2>${data.user.username}</h2>
+        <p>Seguidores: ${data.followers}</p>
+        <button onclick="followUser(${data.user.id})">
+            Seguir
+        </button>
+        <hr>
     `;
+
+    const container = document.getElementById("posts");
 
     data.posts.forEach(post => {
         container.innerHTML += `
-            <div class="card">
-                <h4>${post.title}</h4>
-                <img src="${post.file_path}" width="250">
+            <div class="post">
+                <img src="${post.file_path}" class="post-image">
             </div>
         `;
     });
 });
-</script>
 
-<script src="assets/js/header.js"></script>
+function followUser(id) {
+
+    const token = localStorage.getItem("token");
+
+    fetch("../api/index.php/follow", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({ user_id:id })
+    })
+    .then(()=>location.reload());
+}
+</script>
 
 </body>
 </html>

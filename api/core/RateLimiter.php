@@ -1,10 +1,14 @@
 <?php
 
+require_once __DIR__ . '/Response.php';
+
 class RateLimiter {
 
     public static function check($key, $limit = 10, $seconds = 60) {
 
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         if (!isset($_SESSION['rate'][$key])) {
             $_SESSION['rate'][$key] = [];
@@ -16,9 +20,7 @@ class RateLimiter {
         );
 
         if (count($_SESSION['rate'][$key]) >= $limit) {
-            http_response_code(429);
-            echo json_encode(['error' => 'Demasiadas solicitudes']);
-            exit;
+            Response::json(['error' => 'Demasiadas solicitudes'], 429);
         }
 
         $_SESSION['rate'][$key][] = time();

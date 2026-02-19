@@ -3,12 +3,13 @@
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../core/Middleware.php';
 
 class CartController {
 
     public static function add() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
         $post_id = $data['post_id'];
 
@@ -26,7 +27,7 @@ class CartController {
 
     public static function remove() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
         $post_id = $data['post_id'];
 
@@ -44,7 +45,7 @@ class CartController {
 
     public static function get() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("

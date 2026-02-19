@@ -3,12 +3,13 @@
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../core/Middleware.php';
 
 class NotificationController {
 
     public static function get() {
 
-        $user = Auth::user();
+        $user = Middleware::auth();
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
