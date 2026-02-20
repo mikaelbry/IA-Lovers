@@ -26,7 +26,7 @@ if (!token) {
     window.location.href = "login.html?redirect=following.html";
 }
 
-fetch("../api/posts/following", {
+fetch("../api/index.php/posts/following", {
     headers: { "Authorization": "Bearer " + token }
 })
 .then(r => r.json())
@@ -38,7 +38,7 @@ fetch("../api/posts/following", {
         feed.innerHTML += `
             <div class="post-card">
                 <div class="post-header">
-                    <a href="profile.html?user=${p.user_id}" class="author">
+                    <a href="user.html?user=${p.user_id}" class="author">
                         ${p.username}
                     </a>
                 </div>

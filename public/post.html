@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Post</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+<div class="logo">IA-<span class="highlight">Lovers</span></div>
+<div id="nav-auth"></div>
+</nav>
+
+<section class="feed">
+    <button class="back-btn" onclick="goBack()">← Volver</button>
+    <div id="post"></div>
+    <div id="comments"></div>
+    <div id="comment-form"></div>
+</section>
+
+<script src="assets/js/header.js"></script>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const postId = params.get("id");
+const token = localStorage.getItem("token");
+
+function goBack() {
+    window.history.back();
+}
+
+fetch("../api/index.php/posts/show?id=" + postId)
+.then(res => res.json())
+.then(data => {
+
+    const post = data.post;
+
+    document.getElementById("post").innerHTML = `
+        <h2>${post.username}</h2>
+        <img src="${post.file_path}" class="post-image">
+        <div class="post-actions">
+            <button onclick="toggleLike()">❤️ ${post.likes_count}</button>
+            <span>💬 ${post.comments_count}</span>
+        </div>
+        <hr>
+    `;
+
+    renderComments(data.comments);
+});
+
+function renderComments(comments) {
+
+    const container = document.getElementById("comments");
+    container.innerHTML = "";
+
+    comments.forEach(c => {
+
+        container.innerHTML += `
+            <div class="comment ${c.parent_id ? 'reply' : ''}">
+                <strong>${c.username}</strong>
+                <p>${c.content}</p>
+                <div class="comment-actions">
+                    <button onclick="replyTo(${c.id})">Responder</button>
+                    ${token ? `<button onclick="deleteComment(${c.id})">Eliminar</button>` : ''}
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById("comment-form").innerHTML = `
+        <textarea id="commentInput" placeholder="Escribe un comentario"></textarea>
+        <button onclick="addComment()">Comentar</button>
+    `;
+}
+
+function addComment(parentId = null) {
+
+    const content = document.getElementById("commentInput").value;
+
+    fetch("../api/index.php/comments/create", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({
+            post_id: postId,
+            content: content,
+            parent_id: parentId
+        })
+    })
+    .then(()=>location.reload());
+}
+
+function replyTo(commentId) {
+    addComment(commentId);
+}
+
+function deleteComment(id) {
+
+    fetch("../api/index.php/comments/delete", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({ comment_id:id })
+    })
+    .then(()=>location.reload());
+}
+
+function toggleLike() {
+
+    fetch("../api/index.php/posts/toggle-like", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({ post_id:postId })
+    })
+    .then(()=>location.reload());
+}
+</script>
+
+</body>
+</html>

@@ -28,9 +28,9 @@ fetch("../api/index.php/posts/latest")
 
     posts.forEach(post => {
         container.innerHTML += `
-            <div class="post">
+            <div class="post" onclick="goToPost(${post.id})">
                 <div class="post-header">
-                    <a href="profile.html?user=${post.user_id}" class="username">
+                    <a href="user.html?id=${post.user_id}" class="username">
                         ${post.username}
                     </a>
                 </div>
@@ -40,6 +40,9 @@ fetch("../api/index.php/posts/latest")
                 <div class="post-actions">
                     <button onclick="likePost(${post.id})">
                         ❤️ ${post.likes_count}
+                    </button>
+                    <button>
+                        💬 ${post.comments_count}
                     </button>
                 </div>
             </div>
@@ -65,6 +68,9 @@ function likePost(id) {
         body: JSON.stringify({ post_id: id })
     })
     .then(() => location.reload());
+}
+function goToPost(id) {
+    window.location.href = "post.html?id=" + id;
 }
 </script>
 

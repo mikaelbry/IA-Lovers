@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mi Perfil</title>
+<title>Usuario</title>
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -20,28 +20,19 @@
 <script src="assets/js/header.js"></script>
 
 <script>
-const token = localStorage.getItem("token");
+const params = new URLSearchParams(window.location.search);
+const userId = params.get("id");
 
-if (!token) {
-    window.location.href = "login.html";
-}
-
-fetch("../api/index.php/users/profile", {
-    headers: {
-        "Authorization": "Bearer " + token
-    }
-})
+fetch("../api/index.php/users/public?id=" + userId)
 .then(res => res.json())
 .then(data => {
 
-    if (!data.user) {
-        console.error(data);
-        return;
-    }
-
     document.getElementById("profile").innerHTML = `
-        <h2>${data.user.username} (Tú)</h2>
-        <p>Email: ${data.user.email}</p>
+        <h2>${data.user.username}</h2>
+        <p>Seguidores: ${data.followers}</p>
+        <button onclick="followUser(${data.user.id})">
+            Seguir
+        </button>
         <hr>
     `;
 
@@ -55,6 +46,26 @@ fetch("../api/index.php/users/profile", {
         `;
     });
 });
+
+function followUser(id) {
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    fetch("../api/index.php/follow", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({ user_id:id })
+    })
+    .then(()=>location.reload());
+}
 </script>
 
 </body>

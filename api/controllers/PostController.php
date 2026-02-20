@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/../models/Post.php';
+require_once __DIR__ . '/../models/Comment.php';
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Middleware.php';
@@ -64,7 +66,7 @@ class PostController {
         Response::json(['message' => 'Post creado']);
     }
 
-    public static function like() {
+    public static function toggleLike() {
 
         $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
@@ -72,26 +74,26 @@ class PostController {
 
         $pdo = Database::getConnection();
 
-        $stmt = $pdo->prepare("
-            INSERT IGNORE INTO likes (user_id, post_id)
-            VALUES (?, ?)
+        $check = $pdo->prepare("
+            SELECT id FROM likes WHERE user_id = ? AND post_id = ?
         ");
+        $check->execute([$user['id'], $post_id]);
 
-        $stmt->execute([$user['id'], $post_id]);
+        if ($check->fetch()) {
 
-        // obtener autor del post
-        $author = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
-        $author->execute([$post_id]);
-        $author_id = $author->fetchColumn();
-
-        if ($author_id != $user['id']) {
             $pdo->prepare("
-                INSERT INTO notifications (user_id, type, from_user_id, post_id)
-                VALUES (?, 'like', ?, ?)
-            ")->execute([$author_id, $user['id'], $post_id]);
+                DELETE FROM likes WHERE user_id = ? AND post_id = ?
+            ")->execute([$user['id'], $post_id]);
+
+            Response::json(['liked' => false]);
         }
 
-        Response::json(['message' => 'Like añadido']);
+        $pdo->prepare("
+            INSERT INTO likes (user_id, post_id)
+            VALUES (?, ?)
+        ")->execute([$user['id'], $post_id]);
+
+        Response::json(['liked' => true]);
     }
 
 
@@ -99,5 +101,44 @@ class PostController {
     public static function latest() {
         $posts = Post::getLatest();
         Response::json($posts);
+    }
+
+    public static function show() {
+
+        $post_id = $_GET['id'] ?? null;
+
+        if (!$post_id) {
+            Response::json(['error' => 'ID requerido'], 400);
+        }
+
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("
+            SELECT 
+                posts.*,
+                usuarios.username,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count
+            FROM posts
+            JOIN usuarios ON usuarios.id = posts.user_id
+            WHERE posts.id = ?
+        ");
+
+        $stmt->execute([$post_id]);
+
+        $post = $stmt->fetch();
+
+        if (!$post) {
+            Response::json(['error' => 'Post no encontrado'], 404);
+        }
+
+        require_once __DIR__ . '/../models/Comment.php';
+
+        $comments = Comment::getByPost($post_id);
+
+        Response::json([
+            'post' => $post,
+            'comments' => $comments
+        ]);
     }
 }

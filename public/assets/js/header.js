@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (user) {
         html += `
             <a href="following.html">Siguiendo</a>
+            <a href="create.html">Publicar</a>
             <a href="notifications.html">🔔</a>
             <a href="profile.html">${user.username}</a>
             <a href="#" id="logout">Salir</a>

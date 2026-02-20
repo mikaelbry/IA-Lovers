@@ -26,7 +26,8 @@ class Post {
             SELECT 
                 posts.*,
                 usuarios.username,
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count
             FROM posts
             JOIN usuarios ON usuarios.id = posts.user_id
             ORDER BY posts.created_at DESC

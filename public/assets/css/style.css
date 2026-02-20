@@ -200,5 +200,32 @@ body {
     text-decoration:none;
     color:#6c5ce7;
 }
+.back-btn {
+    margin-bottom:20px;
+    padding:8px 14px;
+    border:none;
+    background:#6c5ce7;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.comment {
+    padding:12px;
+    border-bottom:1px solid #eee;
+}
+
+.reply {
+    margin-left:30px;
+    background:#fafafa;
+}
+
+.comment-actions button {
+    margin-right:10px;
+    border:none;
+    background:none;
+    color:#6c5ce7;
+    cursor:pointer;
+}
 
 
