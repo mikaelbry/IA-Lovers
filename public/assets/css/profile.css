@@ -1,0 +1,20 @@
+#profile {
+    margin-bottom: 20px;
+}
+
+#profile h2 {
+    margin-bottom: 10px;
+}
+
+#profile button {
+    background: #6c5ce7;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#posts .post {
+    margin-bottom: 20px;
+}

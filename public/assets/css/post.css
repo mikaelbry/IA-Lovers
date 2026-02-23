@@ -1,0 +1,107 @@
+/* ===== POST CARD ===== */
+
+.post {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    padding: 15px;
+}
+
+.post-header a {
+    color: #6c5ce7;
+    font-weight: 600;
+}
+
+.post-image {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin-top: 10px;
+}
+
+.post-title {
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.post-description {
+    margin-top: 5px;
+    color: #555;
+}
+
+/* ===== ACTIONS ===== */
+
+.post-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 15px;
+}
+
+.like-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.like-btn.liked {
+    color: red;
+}
+
+.like-btn:not(.liked) {
+    color: black;
+}
+
+.like-btn:hover {
+    transform: scale(1.1);
+}
+
+.comment-count {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+/* ===== BACK BUTTON ===== */
+
+.back-btn {
+    margin-bottom: 20px;
+    padding: 8px 14px;
+    border: none;
+    background: #6c5ce7;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* ===== COMMENTS ===== */
+
+.comment {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.comment strong {
+    color: #6c5ce7;
+}
+
+.comment textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.comment button {
+    margin-top: 5px;
+    border: none;
+    background: #6c5ce7;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}

@@ -1,8 +1,20 @@
+/* ===== GLOBAL ===== */
+
 body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
     background: #f3f4f6;
 }
+
+h1, h2, h3, h4 {
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* ===== NAVBAR ===== */
 
 .navbar {
     background: white;
@@ -22,250 +34,41 @@ body {
     color: #4f46e5;
 }
 
-.nav-links a {
+.navbar a {
     margin-left: 20px;
-    text-decoration: none;
+    font-weight: 500;
     color: #333;
 }
+
+/* ===== BUTTON BASE ===== */
 
 .btn-primary {
     background: linear-gradient(to right,#4f46e5,#8b5cf6);
     color: white;
     padding: 10px 20px;
     border-radius: 25px;
-    text-decoration: none;
+    border: none;
+    cursor: pointer;
 }
 
+/* ===== HERO ===== */
+
 .hero {
-    text-align: center;
     padding: 100px 20px;
+    text-align: center;
+    background: linear-gradient(to right,#4f46e5,#8b5cf6);
+    color: white;
 }
 
-.posts {
-    max-width: 900px;
-    margin: auto;
-}
+/* ===== GENERIC CONTAINERS ===== */
 
-.card {
-    background: white;
-    padding: 20px;
-    margin: 20px 0;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-
-.navbar a {
-    margin-left:20px;
-    text-decoration:none;
-    font-weight:500;
-    color:#333;
-}
-
-.card {
-    background:white;
-    border-radius:12px;
-    padding:15px;
-    margin:20px auto;
-    max-width:600px;
-    box-shadow:0 5px 20px rgba(0,0,0,0.08);
-}
-
-.hero {
-    padding:100px 20px;
-    text-align:center;
-    background:linear-gradient(to right,#4f46e5,#8b5cf6);
-    color:white;
-}
-
-.auth-container {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:80vh;
-}
-
-.auth-card {
-    background:white;
-    padding:40px;
-    border-radius:16px;
-    width:400px;
-    box-shadow:0 20px 40px rgba(0,0,0,0.08);
-    text-align:center;
-}
-
-.auth-card h2 {
-    margin-bottom:10px;
-}
-
-.auth-card p {
-    margin-bottom:30px;
-    color:#666;
-}
-
-.auth-card input {
-    width:100%;
-    padding:12px;
-    margin-bottom:15px;
-    border:1px solid #ddd;
-    border-radius:8px;
-    font-size:14px;
-}
-
-.auth-card input:focus {
-    border-color:#6c5ce7;
-    outline:none;
-}
-
-.auth-footer {
-    margin-top:20px;
-    font-size:14px;
-}
-
-.auth-footer a {
-    color:#6c5ce7;
-    cursor:pointer;
-    font-weight:600;
-}
-
-.feed-container {
-    max-width:1200px;
-    margin:40px auto;
-    padding:0 20px;
-}
-
-.feed-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-    gap:20px;
-}
-
-.post-card {
-    background:#fff;
-    border-radius:16px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.08);
-    overflow:hidden;
-    transition:0.2s;
-}
-
-.post-card:hover {
-    transform:translateY(-5px);
-}
-
-.post-header {
-    padding:15px 20px;
-    font-weight:600;
-}
-
-.author {
-    text-decoration:none;
-    color:#6c5ce7;
-}
-
-.post-footer {
-    padding:15px;
-}
-
-.post-footer button {
-    border:none;
-    background:none;
-    font-size:16px;
-    cursor:pointer;
-}
 .feed {
     max-width: 600px;
     margin: 40px auto;
 }
-.post {
-    background: #fff;
-    border: 1px solid #e6e6e6;
-    border-radius: 12px;
-    margin-bottom: 25px;
-    padding: 15px;
-}
-.post-actions {
-    padding:15px 20px;
-}
-.post-actions button {
-    border:none;
-    background:none;
-    font-size:18px;
-    cursor:pointer;
-}
-.username {
-    text-decoration:none;
-    color:#6c5ce7;
-}
-.back-btn {
-    margin-bottom:20px;
-    padding:8px 14px;
-    border:none;
-    background:#6c5ce7;
-    color:white;
-    border-radius:8px;
-    cursor:pointer;
-}
 
-.comment {
-    padding:12px;
-    border-bottom:1px solid #eee;
+.feed-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
 }
-
-.reply {
-    margin-left:30px;
-    background:#fafafa;
-}
-
-.comment-actions button {
-    margin-right:10px;
-    border:none;
-    background:none;
-    color:#6c5ce7;
-    cursor:pointer;
-}
-.post-image {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    display: block;
-    margin-top: 10px;
-}
-
-.post-actions {
-    margin-top: 12px;
-    display: flex;
-    gap: 15px;
-}
-
-.like-btn {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.2s ease;
-}
-
-.like-btn.liked {
-    color: red;
-}
-
-.like-btn:not(.liked) {
-    color: black;
-}
-
-.like-btn:hover {
-    transform: scale(1.1);
-}
-.post-title {
-    margin-top: 10px;
-    font-weight: 600;
-}
-
-.comment-count {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: black;
-    font-size: 15px;
-}
-
-
