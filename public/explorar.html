@@ -20,58 +20,89 @@
 <script src="assets/js/header.js"></script>
 
 <script>
-fetch("../api/index.php/posts/latest")
-.then(res => res.json())
-.then(posts => {
-
-    const container = document.getElementById("posts");
-
-    posts.forEach(post => {
-        container.innerHTML += `
-            <div class="post" onclick="goToPost(${post.id})">
-                <div class="post-header">
-                    <a href="user.html?id=${post.user_id}" class="username">
-                        ${post.username}
-                    </a>
-                </div>
-
-                <img src="${post.file_path}" class="post-image">
-
-                <div class="post-actions">
-                    <button onclick="likePost(${post.id})">
-                        ❤️ ${post.likes_count}
-                    </button>
-                    <button>
-                        💬 ${post.comments_count}
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-});
-
-function likePost(id) {
-
     const token = localStorage.getItem("token");
 
-    if (!token) {
-        window.location.href = "login.html";
-        return;
+    fetch("../api/index.php/posts/latest", {
+        headers: token ? { "Authorization": "Bearer " + token } : {}
+    })
+    .then(res => res.json())
+    .then(posts => {
+
+        const container = document.getElementById("posts");
+        container.innerHTML = "";
+
+        posts.forEach(post => {
+
+            container.innerHTML += `
+                <div class="post">
+                    <div class="post-header">
+                        <a href="user.html?id=${post.user_id}"
+                        onclick="event.stopPropagation()">
+                            ${post.username}
+                        </a>
+                    </div>
+
+                    <img src="${post.file_path}"
+                        class="post-image"
+                        onclick="goToPost(${post.id})">
+
+                    <div class="post-title">
+                        ${post.title}
+                    </div>
+
+                    <div class="post-actions">
+                        <button 
+                            class="like-btn ${post.liked_by_user == 1 ? 'liked' : ''}"
+                            onclick="toggleLike(event, ${post.id}, this)">
+                            ❤️ <span>${post.likes_count}</span>
+                        </button>
+
+                        <button class="comment-count"
+                                onclick="goToPost(${post.id})">
+                            💬 ${post.comments_count}
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    });
+
+    function toggleLike(event, id, btn) {
+
+        event.stopPropagation();
+
+        if (!token) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        fetch("../api/index.php/posts/toggle-like", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ post_id: id })
+        })
+        .then(r => r.json())
+        .then(data => {
+
+            const span = btn.querySelector("span");
+            let count = parseInt(span.textContent);
+
+            if (data.liked) {
+                btn.classList.add("liked");
+                span.textContent = count + 1;
+            } else {
+                btn.classList.remove("liked");
+                span.textContent = count - 1;
+            }
+        });
     }
 
-    fetch("../api/index.php/posts/like", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({ post_id: id })
-    })
-    .then(() => location.reload());
-}
-function goToPost(id) {
-    window.location.href = "post.html?id=" + id;
-}
+    function goToPost(id) {
+        window.location.href = "post.html?id=" + id;
+    }
 </script>
 
 </body>

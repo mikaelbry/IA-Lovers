@@ -10,8 +10,8 @@ require_once __DIR__ . '/../core/Middleware.php';
 class PostController {
 
     public static function create() {
-        $user = Middleware::auth();
 
+        $user = Middleware::auth();
 
         if (!isset($_FILES['image'])) {
             Response::json(['error' => 'Imagen requerida'], 400);
@@ -70,7 +70,11 @@ class PostController {
 
         $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
-        $post_id = $data['post_id'];
+        $post_id = $data['post_id'] ?? null;
+
+        if (!$post_id) {
+            Response::json(['error' => 'ID requerido'], 400);
+        }
 
         $pdo = Database::getConnection();
 
@@ -96,11 +100,39 @@ class PostController {
         Response::json(['liked' => true]);
     }
 
-
-
     public static function latest() {
-        $posts = Post::getLatest();
-        Response::json($posts);
+
+        $pdo = Database::getConnection();
+        $user_id = null;
+
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            try {
+                $user = Middleware::auth();
+                $user_id = $user['id'];
+            } catch (Exception $e) {
+                $user_id = null;
+            }
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT 
+                posts.*,
+                usuarios.username,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+                EXISTS(
+                    SELECT 1 FROM likes 
+                    WHERE likes.post_id = posts.id 
+                    AND likes.user_id = ?
+                ) as liked_by_user
+            FROM posts
+            JOIN usuarios ON usuarios.id = posts.user_id
+            ORDER BY posts.created_at DESC
+        ");
+
+        $stmt->execute([$user_id]);
+
+        Response::json($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
     public static function show() {
@@ -112,27 +144,39 @@ class PostController {
         }
 
         $pdo = Database::getConnection();
+        $user_id = null;
+
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            try {
+                $user = Middleware::auth();
+                $user_id = $user['id'];
+            } catch (Exception $e) {
+                $user_id = null;
+            }
+        }
 
         $stmt = $pdo->prepare("
             SELECT 
                 posts.*,
                 usuarios.username,
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
-                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+                EXISTS(
+                    SELECT 1 FROM likes 
+                    WHERE likes.post_id = posts.id 
+                    AND likes.user_id = ?
+                ) as liked_by_user
             FROM posts
             JOIN usuarios ON usuarios.id = posts.user_id
             WHERE posts.id = ?
         ");
 
-        $stmt->execute([$post_id]);
-
-        $post = $stmt->fetch();
+        $stmt->execute([$user_id, $post_id]);
+        $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
             Response::json(['error' => 'Post no encontrado'], 404);
         }
-
-        require_once __DIR__ . '/../models/Comment.php';
 
         $comments = Comment::getByPost($post_id);
 

@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let html = `
         <a href="index.html">Inicio</a>
         <a href="explorar.html">Explorar</a>
-        <a href="cart.html">Carrito</a>
     `;
 
     if (user) {

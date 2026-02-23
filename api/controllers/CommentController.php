@@ -22,21 +22,24 @@ class CommentController {
 
         Comment::create($user['id'], $post_id, htmlspecialchars($content), $parent_id);
 
-        // NOTIFICACIÓN AL AUTOR DEL POST
         $pdo = Database::getConnection();
 
-        $stmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
-        $stmt->execute([$post_id]);
-        $post_owner = $stmt->fetchColumn();
+        // Obtener último comentario insertado
+        $stmt = $pdo->prepare("
+            SELECT comments.*, usuarios.username
+            FROM comments
+            JOIN usuarios ON usuarios.id = comments.user_id
+            WHERE comments.id = LAST_INSERT_ID()
+        ");
+        $stmt->execute();
+        $newComment = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($post_owner && $post_owner != $user['id']) {
-            $pdo->prepare("
-                INSERT INTO notifications (user_id, type, from_user_id, post_id)
-                VALUES (?, 'comment', ?, ?)
-            ")->execute([$post_owner, $user['id'], $post_id]);
-        }
+        $count = Comment::countByPost($post_id);
 
-        Response::json(['message' => 'Comentario añadido']);
+        Response::json([
+            'comment' => $newComment,
+            'comments_count' => $count
+        ]);
     }
 
     public static function delete() {
@@ -52,6 +55,6 @@ class CommentController {
 
         Comment::delete($comment_id, $user['id']);
 
-        Response::json(['message' => 'Comentario eliminado']);
+        Response::json(['deleted' => true]);
     }
 }

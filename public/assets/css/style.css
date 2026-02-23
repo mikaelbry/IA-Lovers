@@ -161,11 +161,6 @@ body {
     color:#6c5ce7;
 }
 
-.post-image {
-    width:100%;
-    max-height:700px;
-    object-fit:cover;
-}
 .post-footer {
     padding:15px;
 }
@@ -177,15 +172,15 @@ body {
     cursor:pointer;
 }
 .feed {
-    max-width:700px;
-    margin:40px auto;
+    max-width: 600px;
+    margin: 40px auto;
 }
 .post {
-    background:#fff;
-    border-radius:16px;
-    box-shadow:0 8px 20px rgba(0,0,0,0.08);
-    margin-bottom:40px;
-    overflow:hidden;
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    padding: 15px;
 }
 .post-actions {
     padding:15px 20px;
@@ -226,6 +221,51 @@ body {
     background:none;
     color:#6c5ce7;
     cursor:pointer;
+}
+.post-image {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin-top: 10px;
+}
+
+.post-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 15px;
+}
+
+.like-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.like-btn.liked {
+    color: red;
+}
+
+.like-btn:not(.liked) {
+    color: black;
+}
+
+.like-btn:hover {
+    transform: scale(1.1);
+}
+.post-title {
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.comment-count {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: black;
+    font-size: 15px;
 }
 
 
