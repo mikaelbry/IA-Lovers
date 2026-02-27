@@ -16,12 +16,12 @@ class Router {
 
         $uri = parse_url($uri, PHP_URL_PATH);
 
-        // eliminar nombre del proyecto
+        // Normalizar base del proyecto
         $uri = str_replace('/IA-Lovers/api', '', $uri);
         $uri = str_replace('/api', '', $uri);
         $uri = str_replace('/index.php', '', $uri);
 
-        if ($uri === '') {
+        if ($uri === '' || $uri === null) {
             $uri = '/';
         }
 
@@ -32,7 +32,9 @@ class Router {
 
         http_response_code(404);
         header("Content-Type: application/json; charset=utf-8");
-        echo json_encode(['error' => 'Ruta no encontrada: ' . $uri]);
+        echo json_encode([
+            'error' => 'Ruta no encontrada: ' . $uri
+        ]);
         exit;
     }
 }

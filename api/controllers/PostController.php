@@ -24,7 +24,7 @@ class PostController {
         }
 
         if ($file['size'] > 2 * 1024 * 1024) {
-            Response::json(['error' => 'Archivo demasiado grande (max 2MB)'], 400);
+            Response::json(['error' => 'Archivo demasiado grande'], 400);
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -44,10 +44,7 @@ class PostController {
         };
 
         $uploadDir = __DIR__ . '/../../storage/uploads/';
-
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
         $filename = bin2hex(random_bytes(16)) . $extension;
         $targetPath = $uploadDir . $filename;
@@ -56,16 +53,40 @@ class PostController {
 
         $file_path = '/IA-Lovers/storage/uploads/' . $filename;
 
-        Post::create(
+        $pdo = Database::getConnection();
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("
+            INSERT INTO posts (user_id, title, description, file_path, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+
+        $stmt->execute([
             $user['id'],
-            htmlspecialchars($_POST['title'] ?? '', ENT_QUOTES, 'UTF-8'),
-            htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($_POST['title'] ?? ''),
+            htmlspecialchars($_POST['description'] ?? ''),
             $file_path
-        );
+        ]);
+
+        $postId = $pdo->lastInsertId();
+
+        $tags = json_decode($_POST['tags'] ?? '[]', true);
+
+        if ($tags) {
+            $stmtTag = $pdo->prepare("
+                INSERT INTO post_tags (post_id, tag_id)
+                VALUES (?, ?)
+            ");
+
+            foreach ($tags as $tagId) {
+                $stmtTag->execute([$postId, $tagId]);
+            }
+        }
+
+        $pdo->commit();
 
         Response::json(['message' => 'Post creado']);
     }
-
     public static function toggleLike() {
 
         $user = Middleware::auth();
@@ -159,13 +180,29 @@ class PostController {
             SELECT 
                 posts.*,
                 usuarios.username,
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
-                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+
+                (SELECT COUNT(*) 
+                FROM likes 
+                WHERE likes.post_id = posts.id) AS likes_count,
+
+                (SELECT COUNT(*) 
+                FROM comments 
+                WHERE comments.post_id = posts.id) AS comments_count,
+
                 EXISTS(
-                    SELECT 1 FROM likes 
+                    SELECT 1 
+                    FROM likes 
                     WHERE likes.post_id = posts.id 
                     AND likes.user_id = ?
-                ) as liked_by_user
+                ) AS liked_by_user,
+
+                (
+                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    FROM post_tags
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
+                ) AS tags
+
             FROM posts
             JOIN usuarios ON usuarios.id = posts.user_id
             WHERE posts.id = ?

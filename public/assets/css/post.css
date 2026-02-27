@@ -105,3 +105,15 @@
     border-radius: 6px;
     cursor: pointer;
 }
+
+/* ===== TAGS ===== */
+.post-tags {
+    margin-top:10px;
+}
+.post-tags .tag {
+    background:#eee;
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:12px;
+    margin-right:5px;
+}

@@ -10,6 +10,7 @@ require_once __DIR__ . '/core/Router.php';
 require_once __DIR__ . '/core/Response.php';
 require_once __DIR__ . '/core/RateLimiter.php';
 
+/* CONTROLLERS */
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/PostController.php';
 require_once __DIR__ . '/controllers/UserController.php';
@@ -17,6 +18,7 @@ require_once __DIR__ . '/controllers/CartController.php';
 require_once __DIR__ . '/controllers/FollowController.php';
 require_once __DIR__ . '/controllers/NotificationController.php';
 require_once __DIR__ . '/controllers/CommentController.php';
+require_once __DIR__ . '/controllers/TagController.php';
 
 $router = new Router();
 
@@ -34,7 +36,9 @@ $router->get('/users/public', fn() => UserController::publicProfile());
 
 $router->post('/posts/create', fn() => PostController::create());
 $router->get('/posts/latest', fn() => PostController::latest());
+$router->get('/posts/show', fn() => PostController::show());
 $router->get('/posts/following', fn() => FollowController::followingPosts());
+$router->post('/posts/toggle-like', fn() => PostController::toggleLike());
 
 /* =======================
    AUTH
@@ -55,21 +59,22 @@ $router->post('/follow', fn() => FollowController::follow());
 
 $router->get('/notifications', fn() => NotificationController::get());
 
-
 /* =======================
    COMMENTS
 ======================= */
-$router->get('/posts/show', fn() => PostController::show());
+
 $router->post('/comments/create', fn() => CommentController::create());
 $router->post('/comments/delete', fn() => CommentController::delete());
 
 /* =======================
-   LIKES
+   TAGS
 ======================= */
-$router->post('/posts/toggle-like', fn() => PostController::toggleLike());
+
+$router->get('/tags/search', fn() => TagController::search());
+$router->post('/tags/create', fn() => TagController::create());
 
 /* =======================
-   DISPATCH (SIEMPRE EL ÚLTIMO)
+   DISPATCH (SIEMPRE ÚLTIMO)
 ======================= */
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

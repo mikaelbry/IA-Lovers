@@ -1,35 +1,152 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Crear Post</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<title>Crear Post</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/auth.css">
+<link rel="stylesheet" href="assets/css/post.css">
+<style>
+.create-container {
+    max-width:600px;
+    margin:40px auto;
+    background:white;
+    padding:30px;
+    border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+.tag-box {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:10px;
+}
+.tag {
+    background:#6c5ce7;
+    color:white;
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:13px;
+}
+.tag-search {
+    width:100%;
+    padding:10px;
+    border:1px solid #ddd;
+    border-radius:8px;
+}
+.suggestions {
+    background:white;
+    border:1px solid #eee;
+    margin-top:5px;
+    border-radius:8px;
+}
+.suggestions div {
+    padding:8px;
+    cursor:pointer;
+}
+.suggestions div:hover {
+    background:#f3f4f6;
+}
+</style>
 </head>
 <body>
 
+<nav class="navbar">
+<div class="logo">IA-<span class="highlight">Lovers</span></div>
+<div id="nav-auth"></div>
+</nav>
+
+<div class="create-container">
 <h2>Crear nuevo Post</h2>
 
 <form id="postForm">
-    <input type="text" name="title" placeholder="Título" required><br><br>
-    <textarea name="description" placeholder="Descripción"></textarea><br><br>
-    <input type="file" name="image" required><br><br>
-    <button>Publicar</button>
+
+<input type="text" name="title" placeholder="Título" required><br><br>
+<textarea name="description" placeholder="Descripción"></textarea><br><br>
+
+<div class="tag-box" id="selectedTags"></div>
+<input type="text" id="tagSearch" class="tag-search" placeholder="Buscar o crear tag...">
+<div class="suggestions" id="suggestions"></div>
+
+<input type="file" name="image" required><br><br>
+
+<button class="btn-primary">Publicar</button>
 </form>
+</div>
+
+<script src="assets/js/header.js"></script>
 
 <script>
-document.getElementById("postForm").addEventListener("submit", async function(e) {
+const token = localStorage.getItem("token");
+const selected = [];
+
+async function searchTags(q) {
+
+    const res = await fetch("/IA-Lovers/api/index.php/tags/search?q=" + q);
+    return await res.json();
+}
+
+function renderSelected() {
+    const box = document.getElementById("selectedTags");
+    box.innerHTML = "";
+    selected.forEach(t => {
+        box.innerHTML += `<div class="tag">#${t.name}</div>`;
+    });
+}
+
+document.getElementById("tagSearch").addEventListener("input", async function() {
+
+    const q = this.value;
+    if (!q) return;
+
+    const results = await searchTags(q);
+
+    const sug = document.getElementById("suggestions");
+    sug.innerHTML = "";
+
+    results.forEach(tag => {
+        sug.innerHTML += `<div onclick='addTag(${JSON.stringify(tag)})'>${tag.name}</div>`;
+    });
+
+    if (!results.find(t => t.name.toLowerCase() === q.toLowerCase())) {
+        sug.innerHTML += `<div onclick='createTag("${q}")'>Crear "${q}"</div>`;
+    }
+});
+
+function addTag(tag) {
+    if (!selected.find(t => t.id == tag.id)) {
+        selected.push(tag);
+        renderSelected();
+    }
+    document.getElementById("suggestions").innerHTML = "";
+    document.getElementById("tagSearch").value = "";
+}
+
+async function createTag(name) {
+
+    const res = await fetch("/IA-Lovers/api/index.php/tags/create", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({ name })
+    });
+
+    const tag = await res.json();
+    addTag(tag);
+}
+
+document.getElementById("postForm").addEventListener("submit", async function(e){
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
-
     const formData = new FormData(this);
+    formData.append("tags", JSON.stringify(selected.map(t => t.id)));
 
     const res = await fetch("/IA-Lovers/api/index.php/posts/create", {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + token
-        },
-        body: formData
+        method:"POST",
+        headers:{ "Authorization":"Bearer " + token },
+        body:formData
     });
 
     const json = await res.json();

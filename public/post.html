@@ -5,6 +5,31 @@
 <title>Post</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/post.css">
+<style>
+.post-meta {
+    font-size:13px;
+    color:#777;
+    margin-bottom:10px;
+}
+
+.post-tags {
+    margin-top:10px;
+}
+
+.post-tags .tag {
+    background:#eee;
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:12px;
+    margin-right:5px;
+}
+
+.comment-date {
+    font-size:12px;
+    color:#888;
+    margin-bottom:5px;
+}
+</style>
 </head>
 <body>
 
@@ -23,127 +48,161 @@
 <script src="assets/js/header.js"></script>
 
 <script>
-    const params = new URLSearchParams(window.location.search);
-    const postId = params.get("id");
-    const token = localStorage.getItem("token");
+const params = new URLSearchParams(window.location.search);
+const postId = params.get("id");
+const token = localStorage.getItem("token");
 
-    let commentsCount = 0;
+let commentsCount = 0;
 
-    fetch("../api/index.php/posts/show?id=" + postId, {
-        headers: token ? { "Authorization": "Bearer " + token } : {}
+/* ===== FORMAT DATE ===== */
+function formatDate(dateString) {
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${hours}:${minutes} - ${day}/${month}/${year}`;
+}
+
+fetch("../api/index.php/posts/show?id=" + postId, {
+    headers: token ? { "Authorization": "Bearer " + token } : {}
+})
+.then(res => res.json())
+.then(data => {
+
+    const post = data.post;
+    commentsCount = post.comments_count;
+
+    const tagsHTML = post.tags
+        ? post.tags.split(',').map(t => `<span class="tag">#${t.trim()}</span>`).join(' ')
+        : '';
+
+    document.getElementById("post").innerHTML = `
+        <h2>${post.username}</h2>
+        <div class="post-meta">
+            ${formatDate(post.created_at)}
+        </div>
+
+        <img src="${post.file_path}" class="post-image">
+
+        <div class="post-title">${post.title}</div>
+        <div class="post-description">${post.description}</div>
+
+        <div class="post-tags">
+            ${tagsHTML}
+        </div>
+
+        <div class="post-actions">
+            <button 
+                id="likeBtn"
+                class="like-btn ${post.liked_by_user == 1 ? 'liked' : ''}"
+                onclick="toggleLike()">
+                ❤️ <span id="likeCount">${post.likes_count}</span>
+            </button>
+
+            <span id="commentCount">💬 ${post.comments_count}</span>
+        </div>
+        <hr>
+    `;
+
+    renderComments(data.comments);
+});
+
+function toggleLike() {
+
+    fetch("../api/index.php/posts/toggle-like", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({ post_id: postId })
     })
-    .then(res => res.json())
+    .then(r => r.json())
     .then(data => {
 
-        const post = data.post;
-        commentsCount = post.comments_count;
+        const btn = document.getElementById("likeBtn");
+        const countEl = document.getElementById("likeCount");
+        let count = parseInt(countEl.textContent);
 
-        document.getElementById("post").innerHTML = `
-            <h2>${post.username}</h2>
-            <img src="${post.file_path}" class="post-image">
+        if (data.liked) {
+            btn.classList.add("liked");
+            countEl.textContent = count + 1;
+        } else {
+            btn.classList.remove("liked");
+            countEl.textContent = count - 1;
+        }
+    });
+}
 
-            <div class="post-title">${post.title}</div>
-            <div class="post-description">${post.description}</div>
+function renderComments(comments) {
 
-            <div class="post-actions">
-                <button 
-                    id="likeBtn"
-                    class="like-btn ${post.liked_by_user == 1 ? 'liked' : ''}"
-                    onclick="toggleLike()">
-                    ❤️ <span id="likeCount">${post.likes_count}</span>
-                </button>
+    const container = document.getElementById("comments");
+    container.innerHTML = "";
 
-                <span id="commentCount">💬 ${post.comments_count}</span>
+    comments.forEach(c => {
+
+        container.innerHTML += `
+            <div class="comment">
+                <strong>${c.username}</strong>
+                <div class="comment-date">
+                    ${formatDate(c.created_at)}
+                </div>
+                <p>${c.content}</p>
             </div>
-            <hr>
         `;
-
-        renderComments(data.comments);
     });
 
-    function toggleLike() {
+    document.getElementById("comment-form").innerHTML = `
+        <textarea id="commentInput" placeholder="Escribe un comentario..."></textarea>
+        <button onclick="addComment()">Comentar</button>
+    `;
+}
 
-        fetch("../api/index.php/posts/toggle-like", {
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json",
-                "Authorization":"Bearer " + token
-            },
-            body:JSON.stringify({ post_id: postId })
+function addComment() {
+
+    const content = document.getElementById("commentInput").value;
+
+    fetch("../api/index.php/comments/create", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({
+            post_id: postId,
+            content: content
         })
-        .then(r => r.json())
-        .then(data => {
-
-            const btn = document.getElementById("likeBtn");
-            const countEl = document.getElementById("likeCount");
-            let count = parseInt(countEl.textContent);
-
-            if (data.liked) {
-                btn.classList.add("liked");
-                countEl.textContent = count + 1;
-            } else {
-                btn.classList.remove("liked");
-                countEl.textContent = count - 1;
-            }
-        });
-    }
-
-    function renderComments(comments) {
+    })
+    .then(r => r.json())
+    .then(data => {
 
         const container = document.getElementById("comments");
-        container.innerHTML = "";
 
-        comments.forEach(c => {
-            container.innerHTML += `
-                <div class="comment">
-                    <strong>${c.username}</strong>
-                    <p>${c.content}</p>
+        container.innerHTML += `
+            <div class="comment">
+                <strong>${data.comment.username}</strong>
+                <div class="comment-date">
+                    ${formatDate(data.comment.created_at)}
                 </div>
-            `;
-        });
-
-        document.getElementById("comment-form").innerHTML = `
-            <textarea id="commentInput"></textarea>
-            <button onclick="addComment()">Comentar</button>
+                <p>${data.comment.content}</p>
+            </div>
         `;
-    }
 
-    function addComment() {
+        document.getElementById("commentInput").value = "";
 
-        const content = document.getElementById("commentInput").value;
+        commentsCount = data.comments_count;
+        document.getElementById("commentCount").textContent = "💬 " + commentsCount;
+    });
+}
 
-        fetch("../api/index.php/comments/create", {
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json",
-                "Authorization":"Bearer " + token
-            },
-            body:JSON.stringify({
-                post_id: postId,
-                content: content
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-
-            const container = document.getElementById("comments");
-
-            container.innerHTML += `
-                <div class="comment">
-                    <strong>${data.comment.username}</strong>
-                    <p>${data.comment.content}</p>
-                </div>
-            `;
-
-            document.getElementById("commentInput").value = "";
-
-            commentsCount = data.comments_count;
-            document.getElementById("commentCount").textContent = "💬 " + commentsCount;
-        });
-    }
-    function goBack() {
-        window.history.back();
-    }
+function goBack() {
+    window.history.back();
+}
 </script>
 
 </body>
