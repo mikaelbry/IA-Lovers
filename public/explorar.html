@@ -5,7 +5,41 @@
 <title>Explorar</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/post.css">
-<link rel="stylesheet" href="assets/css/feed.css">
+
+<style>
+.explore-header {
+    margin-bottom: 30px;
+}
+
+.explore-filters {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.explore-filters input,
+.explore-filters select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.explore-filters button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: black;
+    color: white;
+    cursor: pointer;
+}
+
+.post-date {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 8px;
+}
+</style>
 </head>
 <body>
 
@@ -15,16 +49,52 @@
 </nav>
 
 <section class="feed">
-    <h2>Explorar</h2>
+
+    <div class="explore-header">
+        <h2>Explorar</h2>
+
+        <div class="explore-filters">
+            <input type="text" id="searchTitle" placeholder="Buscar por título">
+            <input type="text" id="searchTag" placeholder="Filtrar por tag">
+            <select id="orderSelect">
+                <option value="recent">Más reciente</option>
+                <option value="oldest">Más viejo</option>
+                <option value="likes">Más likes</option>
+            </select>
+            <button onclick="loadPosts()">Buscar</button>
+        </div>
+    </div>
+
     <div id="posts"></div>
+
 </section>
 
 <script src="assets/js/header.js"></script>
 
 <script>
-    const token = localStorage.getItem("token");
+const token = localStorage.getItem("token");
 
-    fetch("../api/index.php/posts/latest", {
+function formatDate(dateString) {
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${hours}:${minutes} - ${day}/${month}/${year}`;
+}
+
+function loadPosts() {
+
+    const title = document.getElementById("searchTitle").value;
+    const tag = document.getElementById("searchTag").value;
+    const order = document.getElementById("orderSelect").value;
+
+    let url = `../api/index.php/posts/latest?title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
+
+    fetch(url, {
         headers: token ? { "Authorization": "Bearer " + token } : {}
     })
     .then(res => res.json())
@@ -35,21 +105,33 @@
 
         posts.forEach(post => {
 
+            const tagsHTML = post.tags
+                ? post.tags.split(',').map(t => `<span class="tag">#${t}</span>`).join(' ')
+                : '';
+
             container.innerHTML += `
                 <div class="post">
+
                     <div class="post-header">
-                        <a href="user.html?id=${post.user_id}"
-                        onclick="event.stopPropagation()">
+                        <a href="user.html?id=${post.user_id}">
                             ${post.username}
                         </a>
                     </div>
 
+                    <div class="post-date">
+                        ${formatDate(post.created_at)}
+                    </div>
+
                     <img src="${post.file_path}"
-                        class="post-image"
-                        onclick="goToPost(${post.id})">
+                         class="post-image"
+                         onclick="goToPost(${post.id})">
 
                     <div class="post-title">
                         ${post.title}
+                    </div>
+
+                    <div class="post-tags">
+                        ${tagsHTML}
                     </div>
 
                     <div class="post-actions">
@@ -68,43 +150,46 @@
             `;
         });
     });
+}
 
-    function toggleLike(event, id, btn) {
+function toggleLike(event, id, btn) {
 
-        event.stopPropagation();
+    event.stopPropagation();
 
-        if (!token) {
-            window.location.href = "login.html";
-            return;
+    if (!token) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    fetch("../api/index.php/posts/toggle-like", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ post_id: id })
+    })
+    .then(r => r.json())
+    .then(data => {
+
+        const span = btn.querySelector("span");
+        let count = parseInt(span.textContent);
+
+        if (data.liked) {
+            btn.classList.add("liked");
+            span.textContent = count + 1;
+        } else {
+            btn.classList.remove("liked");
+            span.textContent = count - 1;
         }
+    });
+}
 
-        fetch("../api/index.php/posts/toggle-like", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({ post_id: id })
-        })
-        .then(r => r.json())
-        .then(data => {
+function goToPost(id) {
+    window.location.href = "post.html?id=" + id;
+}
 
-            const span = btn.querySelector("span");
-            let count = parseInt(span.textContent);
-
-            if (data.liked) {
-                btn.classList.add("liked");
-                span.textContent = count + 1;
-            } else {
-                btn.classList.remove("liked");
-                span.textContent = count - 1;
-            }
-        });
-    }
-
-    function goToPost(id) {
-        window.location.href = "post.html?id=" + id;
-    }
+loadPosts();
 </script>
 
 </body>

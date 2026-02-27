@@ -135,27 +135,69 @@ class PostController {
             }
         }
 
-        $stmt = $pdo->prepare("
+        $title = $_GET['title'] ?? '';
+        $tag = $_GET['tag'] ?? '';
+        $order = $_GET['order'] ?? 'recent';
+
+        $params = [$user_id];
+        $where = [];
+
+        if ($title !== '') {
+            $where[] = "posts.title LIKE ?";
+            $params[] = "%$title%";
+        }
+
+        if ($tag !== '') {
+            $where[] = "EXISTS (
+                SELECT 1 FROM post_tags
+                JOIN tags ON tags.id = post_tags.tag_id
+                WHERE post_tags.post_id = posts.id
+                AND tags.name LIKE ?
+            )";
+            $params[] = "%$tag%";
+        }
+
+        $whereSQL = $where ? "WHERE " . implode(" AND ", $where) : "";
+
+        $orderSQL = match ($order) {
+            'oldest' => 'posts.created_at ASC',
+            'likes' => 'likes_count DESC',
+            default => 'posts.created_at DESC'
+        };
+
+        $sql = "
             SELECT 
                 posts.*,
                 usuarios.username,
+
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
+
                 (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+
                 EXISTS(
                     SELECT 1 FROM likes 
                     WHERE likes.post_id = posts.id 
                     AND likes.user_id = ?
-                ) as liked_by_user
+                ) as liked_by_user,
+
+                (
+                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    FROM post_tags
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
+                ) as tags
+
             FROM posts
             JOIN usuarios ON usuarios.id = posts.user_id
-            ORDER BY posts.created_at DESC
-        ");
+            $whereSQL
+            ORDER BY $orderSQL
+        ";
 
-        $stmt->execute([$user_id]);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
 
         Response::json($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-
     public static function show() {
 
         $post_id = $_GET['id'] ?? null;
