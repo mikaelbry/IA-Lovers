@@ -85,7 +85,7 @@ class PostController {
 
         $pdo->commit();
 
-        Response::json(['message' => 'Post creado']);
+        Response::json(['message' => 'Post creado', 'id' => $postId]);
     }
     public static function toggleLike() {
 

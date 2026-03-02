@@ -392,7 +392,14 @@ document.getElementById("postForm").addEventListener("submit", async function(e)
     });
 
     const json = await res.json();
-    alert(json.message || json.error);
+
+    if (res.ok && json.id) {
+        // Redirigir directamente al post recién creado
+        window.location.href = "/IA-Lovers/public/post.html?id=" + json.id;
+        return;
+    }
+
+    alert(json.error || "Error al crear el post");
 });
 
 renderQuickTags();
