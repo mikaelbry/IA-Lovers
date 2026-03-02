@@ -6,46 +6,113 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/auth.css">
 <link rel="stylesheet" href="assets/css/post.css">
+
 <style>
 .create-container {
-    max-width:600px;
+    max-width:700px;
     margin:40px auto;
     background:white;
     padding:30px;
     border-radius:16px;
     box-shadow:0 10px 30px rgba(0,0,0,0.08);
 }
+
 .tag-box {
     display:flex;
     flex-wrap:wrap;
     gap:8px;
-    margin-bottom:10px;
+    margin-bottom:8px;
+    align-items:center;
 }
+
 .tag {
     background:#6c5ce7;
     color:white;
-    padding:6px 10px;
+    padding:6px 12px;
     border-radius:20px;
     font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:6px;
 }
+
+.tag button {
+    background:transparent;
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:14px;
+}
+
+.quick-tags {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:15px;
+}
+
+.quick-tag {
+    background:#eee;
+    padding:6px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    font-size:13px;
+}
+
+.quick-tag:hover {
+    background:#ddd;
+}
+
 .tag-search {
     width:100%;
     padding:10px;
     border:1px solid #ddd;
     border-radius:8px;
 }
+
 .suggestions {
     background:white;
     border:1px solid #eee;
     margin-top:5px;
     border-radius:8px;
 }
+
 .suggestions div {
     padding:8px;
     cursor:pointer;
 }
+
 .suggestions div:hover {
     background:#f3f4f6;
+}
+
+.dropdown-toggle {
+    margin-top:10px;
+    cursor:pointer;
+    font-size:14px;
+    color:#6c5ce7;
+}
+
+.hidden {
+    display:none;
+}
+
+.max-warning {
+    color:#e74c3c;
+    font-size:13px;
+    font-weight:600;
+    margin-top:4px;
+    opacity:0;
+    transition:opacity 0.2s ease, transform 0.2s ease;
+}
+
+.max-warning.visible {
+    opacity:1;
+}
+
+.max-warning.flash {
+    transform:scale(1.05);
 }
 </style>
 </head>
@@ -62,15 +129,31 @@
 <form id="postForm">
 
 <input type="text" name="title" placeholder="Título" required><br><br>
+
 <textarea name="description" placeholder="Descripción"></textarea><br><br>
 
+<h4>Agregar tags</h4>
+
+<div class="quick-tags" id="quickTags"></div>
+
 <div class="tag-box" id="selectedTags"></div>
-<input type="text" id="tagSearch" class="tag-search" placeholder="Buscar o crear tag...">
-<div class="suggestions" id="suggestions"></div>
+<div id="maxWarning" class="max-warning">
+    Alcanzado máximo número de tags
+</div>
+
+<div class="dropdown-toggle" onclick="toggleDropdown()">Otros tags ▼</div>
+
+<div id="tagDropdown" class="hidden">
+    <input type="text" id="tagSearch" class="tag-search" placeholder="Buscar o crear tag...">
+    <div class="suggestions" id="suggestions"></div>
+</div>
+
+<br>
 
 <input type="file" name="image" required><br><br>
 
 <button class="btn-primary">Publicar</button>
+
 </form>
 </div>
 
@@ -79,25 +162,178 @@
 <script>
 const token = localStorage.getItem("token");
 const selected = [];
+const MAX_TAGS = 4;
 
+const defaultTags = [
+    "Meme",
+    "Arte",
+    "ChatGPT",
+    "Mistral AI",
+    "MidJourney",
+    "Stable Diffusion"
+];
+
+function toggleDropdown() {
+    document.getElementById("tagDropdown").classList.toggle("hidden");
+}
+
+function showMaxWarningFlash() {
+    const warning = document.getElementById("maxWarning");
+    warning.classList.add("visible");
+    warning.classList.add("flash");
+
+    setTimeout(() => {
+        warning.classList.remove("flash");
+    }, 300);
+
+    setTimeout(() => {
+        if (selected.length < MAX_TAGS) {
+            warning.classList.remove("visible");
+        }
+    }, 2500);
+}
+
+/* QUICK TAGS */
+function renderQuickTags() {
+    const container = document.getElementById("quickTags");
+    container.innerHTML = "";
+
+    defaultTags.forEach(name => {
+        container.innerHTML += `
+            <div class="quick-tag" onclick="handleQuickTag('${name}')">
+                #${name}
+            </div>
+        `;
+    });
+}
+
+async function handleQuickTag(name) {
+
+    if (selected.length >= MAX_TAGS) {
+        showMaxWarningFlash();
+        return;
+    }
+
+    const res = await fetch("/IA-Lovers/api/index.php/tags/search?q=" + name);
+    const results = await res.json();
+
+    let tag = results.find(t => t.name.toLowerCase() === name.toLowerCase());
+
+    if (!tag) {
+        const createRes = await fetch("/IA-Lovers/api/index.php/tags/create", {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json",
+                "Authorization":"Bearer " + token
+            },
+            body:JSON.stringify({ name })
+        });
+        tag = await createRes.json();
+    }
+
+    addTag(tag);
+}
+
+/* SEARCH */
 async function searchTags(q) {
-
     const res = await fetch("/IA-Lovers/api/index.php/tags/search?q=" + q);
     return await res.json();
 }
 
+/* RENDER SELECTED */
 function renderSelected() {
     const box = document.getElementById("selectedTags");
     box.innerHTML = "";
+
     selected.forEach(t => {
-        box.innerHTML += `<div class="tag">#${t.name}</div>`;
+        box.innerHTML += `
+            <div class="tag">
+                #${t.name}
+                <button type="button" onclick="removeTag(${t.id})">×</button>
+            </div>
+        `;
     });
+
+    const searchInput = document.getElementById("tagSearch");
+    const warning = document.getElementById("maxWarning");
+
+    if (selected.length >= MAX_TAGS) {
+        warning.classList.add("visible");
+    } else {
+        searchInput.disabled = false;
+        warning.classList.remove("visible");
+    }
 }
 
+/* REMOVE */
+function removeTag(id) {
+    const index = selected.findIndex(t => t.id == id);
+    if (index !== -1) {
+        selected.splice(index, 1);
+        renderSelected();
+    }
+}
+
+/* ADD */
+function addTag(tag) {
+
+    if (selected.length >= MAX_TAGS) {
+        showMaxWarningFlash();
+        return;
+    }
+
+    if (!selected.find(t => t.id == tag.id)) {
+        selected.push(tag);
+        renderSelected();
+    }
+
+    document.getElementById("suggestions").innerHTML = "";
+    document.getElementById("tagSearch").value = "";
+}
+
+/* ENTER SUPPORT */
+document.getElementById("tagSearch").addEventListener("keydown", async function(e) {
+
+    if (e.key === "Enter") {
+        e.preventDefault();
+
+        if (selected.length >= MAX_TAGS) {
+            showMaxWarningFlash();
+            return;
+        }
+
+        const value = this.value.trim();
+        if (!value) return;
+
+        const results = await searchTags(value);
+        let tag = results.find(t => t.name.toLowerCase() === value.toLowerCase());
+
+        if (!tag) {
+            const res = await fetch("/IA-Lovers/api/index.php/tags/create", {
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json",
+                    "Authorization":"Bearer " + token
+                },
+                body:JSON.stringify({ name: value })
+            });
+            tag = await res.json();
+        }
+
+        addTag(tag);
+    }
+});
+
+/* INPUT SUGGESTIONS */
 document.getElementById("tagSearch").addEventListener("input", async function() {
 
-    const q = this.value;
-    if (!q) return;
+    if (selected.length >= MAX_TAGS) return;
+
+    const q = this.value.trim();
+    if (!q) {
+        document.getElementById("suggestions").innerHTML = "";
+        return;
+    }
 
     const results = await searchTags(q);
 
@@ -105,24 +341,29 @@ document.getElementById("tagSearch").addEventListener("input", async function() 
     sug.innerHTML = "";
 
     results.forEach(tag => {
-        sug.innerHTML += `<div onclick='addTag(${JSON.stringify(tag)})'>${tag.name}</div>`;
+        sug.innerHTML += `
+            <div onclick='addTag(${JSON.stringify(tag)})'>
+                ${tag.name}
+            </div>
+        `;
     });
 
     if (!results.find(t => t.name.toLowerCase() === q.toLowerCase())) {
-        sug.innerHTML += `<div onclick='createTag("${q}")'>Crear "${q}"</div>`;
+        sug.innerHTML += `
+            <div onclick='createTag("${q}")'>
+                Crear "${q}"
+            </div>
+        `;
     }
 });
 
-function addTag(tag) {
-    if (!selected.find(t => t.id == tag.id)) {
-        selected.push(tag);
-        renderSelected();
-    }
-    document.getElementById("suggestions").innerHTML = "";
-    document.getElementById("tagSearch").value = "";
-}
-
+/* CREATE */
 async function createTag(name) {
+
+    if (selected.length >= MAX_TAGS) {
+        showMaxWarningFlash();
+        return;
+    }
 
     const res = await fetch("/IA-Lovers/api/index.php/tags/create", {
         method:"POST",
@@ -137,6 +378,7 @@ async function createTag(name) {
     addTag(tag);
 }
 
+/* SUBMIT */
 document.getElementById("postForm").addEventListener("submit", async function(e){
     e.preventDefault();
 
@@ -152,6 +394,8 @@ document.getElementById("postForm").addEventListener("submit", async function(e)
     const json = await res.json();
     alert(json.message || json.error);
 });
+
+renderQuickTags();
 </script>
 
 </body>

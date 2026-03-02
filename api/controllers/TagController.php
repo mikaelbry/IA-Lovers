@@ -8,7 +8,7 @@ class TagController {
 
     public static function search() {
 
-        $q = $_GET['q'] ?? '';
+        $q = trim($_GET['q'] ?? '');
 
         $pdo = Database::getConnection();
 
@@ -36,16 +36,28 @@ class TagController {
             Response::json(['error' => 'Nombre requerido'], 400);
         }
 
+        // Normalizar nombre
+        $name = ucfirst(strtolower($name));
+
         $pdo = Database::getConnection();
 
-        $check = $pdo->prepare("SELECT id FROM tags WHERE name = ?");
+        // Buscar ignorando mayúsculas/minúsculas
+        $check = $pdo->prepare("
+            SELECT id, name 
+            FROM tags 
+            WHERE LOWER(name) = LOWER(?)
+        ");
         $check->execute([$name]);
 
-        if ($existing = $check->fetch()) {
+        if ($existing = $check->fetch(PDO::FETCH_ASSOC)) {
             Response::json($existing);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO tags (name) VALUES (?)");
+        $stmt = $pdo->prepare("
+            INSERT INTO tags (name)
+            VALUES (?)
+        ");
+
         $stmt->execute([$name]);
 
         Response::json([
