@@ -20,12 +20,16 @@
 </section>
 
 <script src="assets/js/header.js"></script>
+<script defer src="assets/js/posts.js"></script>
 
 <script>
+const token = localStorage.getItem("token");
 const params = new URLSearchParams(window.location.search);
 const userId = params.get("id");
 
-fetch("../api/index.php/users/public?id=" + userId)
+fetch("../api/index.php/users/public?id=" + userId, {
+    headers: token ? { "Authorization": "Bearer " + token } : {}
+})
 .then(res => res.json())
 .then(data => {
 
@@ -38,20 +42,11 @@ fetch("../api/index.php/users/public?id=" + userId)
         <hr>
     `;
 
-    const container = document.getElementById("posts");
+    renderPosts(data.posts,"posts");
 
-    data.posts.forEach(post => {
-        container.innerHTML += `
-            <div class="post">
-                <img src="${post.file_path}" class="post-image">
-            </div>
-        `;
-    });
 });
 
 function followUser(id) {
-
-    const token = localStorage.getItem("token");
 
     if (!token) {
         window.location.href = "login.html";

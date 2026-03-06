@@ -6,17 +6,31 @@ require_once __DIR__ . '/Response.php';
 class Auth {
 
     public static function user() {
-    
-        $headers = getallheaders();
 
-        if (!isset($headers['Authorization'])) {
-            Response::json(['error' => 'Token requerido'], 401);
+        $headers = getallheaders();
+        $authHeader = null;
+
+        foreach ($headers as $key => $value) {
+            if (strtolower($key) === 'authorization') {
+                $authHeader = $value;
+                break;
+            }
         }
 
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
+        if (!$authHeader) {
+            Response::json(['error' => 'Login requerido'], 401);
+        }
+
+        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            Response::json(['error' => 'Token inválido'], 401);
+        }
+
+        $token = $matches[1];
 
         $pdo = Database::getConnection();
-        $pdo->exec("DELETE FROM user_tokens WHERE expires_at < NOW()");    
+
+        $pdo->exec("DELETE FROM user_tokens WHERE expires_at < NOW()");
+
         $stmt = $pdo->prepare("
             SELECT usuarios.*
             FROM user_tokens
@@ -26,7 +40,7 @@ class Auth {
         ");
 
         $stmt->execute([$token]);
-        $user = $stmt->fetch();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
             Response::json(['error' => 'Token inválido'], 401);

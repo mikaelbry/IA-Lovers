@@ -73,6 +73,7 @@ class PostController {
         $tags = json_decode($_POST['tags'] ?? '[]', true);
 
         if ($tags) {
+
             $stmtTag = $pdo->prepare("
                 INSERT INTO post_tags (post_id, tag_id)
                 VALUES (?, ?)
@@ -87,9 +88,134 @@ class PostController {
 
         Response::json(['message' => 'Post creado', 'id' => $postId]);
     }
+
+    /* =========================
+       FEED UNIFICADO
+    ========================= */
+
+    public static function feed() {
+
+        $pdo = Database::getConnection();
+
+        $type = $_GET['type'] ?? 'explore';
+        $title = $_GET['title'] ?? '';
+        $tag = $_GET['tag'] ?? '';
+        $order = $_GET['order'] ?? 'recent';
+        $userFilter = $_GET['id'] ?? null;
+
+        $user_id = null;
+
+        $headers = getallheaders();
+
+        if (isset($headers['Authorization'])) {
+            try {
+                $user = Auth::user();
+                $user_id = $user['id'];
+            } catch (Exception $e) {}
+        }
+
+        $where = [];
+        $params = [];
+
+        if ($type === "following") {
+
+            if (!$user_id) {
+                Response::json(['error' => 'Login requerido'], 401);
+            }
+
+            $where[] = "posts.user_id IN (
+                SELECT following_id
+                FROM follows
+                WHERE follower_id = ?
+            )";
+
+            $params[] = $user_id;
+        }
+
+        if ($type === "user") {
+
+            if (!$userFilter) {
+                Response::json(['error' => 'ID requerido'], 400);
+            }
+
+            $where[] = "posts.user_id = ?";
+            $params[] = $userFilter;
+        }
+
+        if ($type === "me") {
+
+            if (!$user_id) {
+                Response::json(['error' => 'Login requerido'], 401);
+            }
+
+            $where[] = "posts.user_id = ?";
+            $params[] = $user_id;
+        }
+
+        if ($title !== '') {
+            $where[] = "posts.title LIKE ?";
+            $params[] = "%$title%";
+        }
+
+        if ($tag !== '') {
+
+            $where[] = "EXISTS (
+                SELECT 1
+                FROM post_tags
+                JOIN tags ON tags.id = post_tags.tag_id
+                WHERE post_tags.post_id = posts.id
+                AND tags.name LIKE ?
+            )";
+
+            $params[] = "%$tag%";
+        }
+
+        $whereSQL = $where ? "WHERE " . implode(" AND ", $where) : "";
+
+        $orderSQL = match ($order) {
+            'oldest' => 'posts.created_at ASC',
+            'likes' => 'likes_count DESC',
+            default => 'posts.created_at DESC'
+        };
+
+        $sql = "
+            SELECT 
+                posts.*,
+                usuarios.username,
+
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
+
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+
+                EXISTS(
+                    SELECT 1 FROM likes
+                    WHERE likes.post_id = posts.id
+                    AND likes.user_id = ?
+                ) as liked_by_user,
+
+                (
+                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    FROM post_tags
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
+                ) as tags
+
+            FROM posts
+            JOIN usuarios ON usuarios.id = posts.user_id
+            $whereSQL
+            ORDER BY $orderSQL
+        ";
+
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute(array_merge([$user_id], $params));
+
+        Response::json($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
     public static function toggleLike() {
 
         $user = Middleware::auth();
+
         $data = json_decode(file_get_contents("php://input"), true);
         $post_id = $data['post_id'] ?? null;
 
@@ -121,83 +247,6 @@ class PostController {
         Response::json(['liked' => true]);
     }
 
-    public static function latest() {
-
-        $pdo = Database::getConnection();
-        $user_id = null;
-
-        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-            try {
-                $user = Middleware::auth();
-                $user_id = $user['id'];
-            } catch (Exception $e) {
-                $user_id = null;
-            }
-        }
-
-        $title = $_GET['title'] ?? '';
-        $tag = $_GET['tag'] ?? '';
-        $order = $_GET['order'] ?? 'recent';
-
-        $params = [$user_id];
-        $where = [];
-
-        if ($title !== '') {
-            $where[] = "posts.title LIKE ?";
-            $params[] = "%$title%";
-        }
-
-        if ($tag !== '') {
-            $where[] = "EXISTS (
-                SELECT 1 FROM post_tags
-                JOIN tags ON tags.id = post_tags.tag_id
-                WHERE post_tags.post_id = posts.id
-                AND tags.name LIKE ?
-            )";
-            $params[] = "%$tag%";
-        }
-
-        $whereSQL = $where ? "WHERE " . implode(" AND ", $where) : "";
-
-        $orderSQL = match ($order) {
-            'oldest' => 'posts.created_at ASC',
-            'likes' => 'likes_count DESC',
-            default => 'posts.created_at DESC'
-        };
-
-        $sql = "
-            SELECT 
-                posts.*,
-                usuarios.username,
-
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
-
-                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-
-                EXISTS(
-                    SELECT 1 FROM likes 
-                    WHERE likes.post_id = posts.id 
-                    AND likes.user_id = ?
-                ) as liked_by_user,
-
-                (
-                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
-                    FROM post_tags
-                    JOIN tags ON tags.id = post_tags.tag_id
-                    WHERE post_tags.post_id = posts.id
-                ) as tags
-
-            FROM posts
-            JOIN usuarios ON usuarios.id = posts.user_id
-            $whereSQL
-            ORDER BY $orderSQL
-        ";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-
-        Response::json($stmt->fetchAll(PDO::FETCH_ASSOC));
-    }
     public static function show() {
 
         $post_id = $_GET['id'] ?? null;
@@ -207,15 +256,14 @@ class PostController {
         }
 
         $pdo = Database::getConnection();
+
         $user_id = null;
 
         if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
             try {
                 $user = Middleware::auth();
                 $user_id = $user['id'];
-            } catch (Exception $e) {
-                $user_id = null;
-            }
+            } catch (Exception $e) {}
         }
 
         $stmt = $pdo->prepare("
@@ -223,18 +271,13 @@ class PostController {
                 posts.*,
                 usuarios.username,
 
-                (SELECT COUNT(*) 
-                FROM likes 
-                WHERE likes.post_id = posts.id) AS likes_count,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) AS likes_count,
 
-                (SELECT COUNT(*) 
-                FROM comments 
-                WHERE comments.post_id = posts.id) AS comments_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comments_count,
 
                 EXISTS(
-                    SELECT 1 
-                    FROM likes 
-                    WHERE likes.post_id = posts.id 
+                    SELECT 1 FROM likes
+                    WHERE likes.post_id = posts.id
                     AND likes.user_id = ?
                 ) AS liked_by_user,
 
@@ -251,6 +294,7 @@ class PostController {
         ");
 
         $stmt->execute([$user_id, $post_id]);
+
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {

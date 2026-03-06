@@ -35,9 +35,11 @@ $router->get('/users/public', fn() => UserController::publicProfile());
 ======================= */
 
 $router->post('/posts/create', fn() => PostController::create());
-$router->get('/posts/latest', fn() => PostController::latest());
+
+/* NUEVO ENDPOINT UNIFICADO */
+$router->get('/posts', fn() => PostController::feed());
+
 $router->get('/posts/show', fn() => PostController::show());
-$router->get('/posts/following', fn() => FollowController::followingPosts());
 $router->post('/posts/toggle-like', fn() => PostController::toggleLike());
 
 /* =======================
@@ -74,7 +76,7 @@ $router->get('/tags/search', fn() => TagController::search());
 $router->post('/tags/create', fn() => TagController::create());
 
 /* =======================
-   DISPATCH (SIEMPRE ÚLTIMO)
+   DISPATCH
 ======================= */
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
