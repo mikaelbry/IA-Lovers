@@ -1,8 +1,13 @@
 window.token = localStorage.getItem("token");
 
-function formatDate(dateString) {
+let cursor = null;
+let loading = false;
+let finished = false;
+let observer = null;
 
-    if (!dateString) return "";
+function formatDate(dateString){
+
+    if(!dateString) return "";
 
     const date = new Date(dateString);
 
@@ -15,30 +20,37 @@ function formatDate(dateString) {
     return `${hours}:${minutes} - ${day}/${month}/${year}`;
 }
 
-function renderPosts(posts, containerId="posts") {
+function renderPosts(posts,containerId="posts"){
+
+    const container = document.getElementById(containerId);
+    container.innerHTML="";
+
+    appendPosts(posts,containerId);
+}
+
+function appendPosts(posts,containerId="posts"){
 
     const container = document.getElementById(containerId);
 
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (!Array.isArray(posts) || posts.length === 0) {
-        container.innerHTML = "<p>No hay publicaciones.</p>";
+    if(!posts || posts.length===0){
+        if(container.innerHTML===""){
+            container.innerHTML="<p>No hay publicaciones.</p>";
+        }
+        finished=true;
         return;
     }
 
-    posts.forEach(post => {
+    posts.forEach(post=>{
 
         const tagsHTML = post.tags
-            ? post.tags.split(',').map(t => `<span class="tag">#${t}</span>`).join(' ')
-            : '';
+        ? post.tags.split(',').map(t=>`<span class="tag">#${t}</span>`).join(' ')
+        : '';
 
-        container.innerHTML += `
+        container.innerHTML+=`
         <div class="post">
 
             <div class="post-header">
-                <a href="user.html?id=${post.user_id}" onclick="event.stopPropagation()">
+                <a href="user.html?id=${post.user_id}">
                     ${post.username ?? ''}
                 </a>
             </div>
@@ -48,6 +60,7 @@ function renderPosts(posts, containerId="posts") {
             </div>
 
             <img src="${post.file_path}"
+                 loading="lazy"
                  class="post-image"
                  onclick="goToPost(${post.id})">
 
@@ -62,8 +75,8 @@ function renderPosts(posts, containerId="posts") {
             <div class="post-actions">
 
                 <button 
-                    class="like-btn ${post.liked_by_user == 1 ? 'liked' : ''}"
-                    onclick="toggleLike(event, ${post.id}, this)">
+                    class="like-btn ${post.liked_by_user==1?'liked':''}"
+                    onclick="toggleLike(event,${post.id},this)">
                     ❤️ <span>${post.likes_count ?? 0}</span>
                 </button>
 
@@ -79,12 +92,60 @@ function renderPosts(posts, containerId="posts") {
     });
 }
 
-function toggleLike(event, id, btn) {
+function initInfiniteScroll(fetchUrlBuilder,containerId="posts"){
+
+    const sentinel = document.createElement("div");
+    sentinel.id="scroll-sentinel";
+
+    document.getElementById(containerId).after(sentinel);
+
+    observer = new IntersectionObserver(entries=>{
+
+        if(entries[0].isIntersecting){
+            loadMore(fetchUrlBuilder,containerId);
+        }
+
+    },{
+        rootMargin:"300px"
+    });
+
+    observer.observe(sentinel);
+
+    loadMore(fetchUrlBuilder,containerId);
+}
+
+async function loadMore(fetchUrlBuilder,containerId){
+
+    if(loading || finished) return;
+
+    loading=true;
+
+    let url = fetchUrlBuilder(cursor);
+
+    const headers = token ? {"Authorization":"Bearer "+token}:{};
+
+    const res = await fetch(url,{headers});
+
+    const data = await res.json();
+
+    appendPosts(data.posts,containerId);
+
+    cursor = data.next_cursor;
+
+    if(!cursor){
+        finished=true;
+        observer.disconnect();
+    }
+
+    loading=false;
+}
+
+function toggleLike(event,id,btn){
 
     event.stopPropagation();
 
-    if (!token) {
-        window.location.href = "login.html";
+    if(!token){
+        window.location.href="login.html";
         return;
     }
 
@@ -104,10 +165,10 @@ function toggleLike(event, id, btn) {
 
         if(data.liked){
             btn.classList.add("liked");
-            span.textContent = count + 1;
-        } else {
+            span.textContent = count+1;
+        }else{
             btn.classList.remove("liked");
-            span.textContent = count - 1;
+            span.textContent = count-1;
         }
 
     });

@@ -80,9 +80,44 @@
 
 /* ===== COMMENTS ===== */
 
-.comment {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
+.comment{
+    padding:12px;
+    border-left:2px solid #eee;
+    margin-top:10px;
+}
+
+.comment p{
+    margin:5px 0;
+}
+
+.comment-actions{
+    margin-top:5px;
+}
+
+.comment-actions button{
+    background:none;
+    border:none;
+    color:#6c5ce7;
+    cursor:pointer;
+    font-size:13px;
+}
+
+.comment-form{
+    margin-top:15px;
+}
+
+.comment-form textarea{
+    width:100%;
+    height:70px;
+    resize:none;
+    border-radius:8px;
+    padding:10px;
+    border:1px solid #ddd;
+}
+
+.comment-form button{
+    margin-top:8px;
+    padding:8px 14px;
 }
 
 .comment strong {
@@ -116,4 +151,20 @@
     border-radius:20px;
     font-size:12px;
     margin-right:5px;
+}
+
+
+.reply-btn{
+    font-size:13px;
+    margin-right:10px;
+}
+
+.view-replies{
+    font-size:13px;
+    color:#6c5ce7;
+    cursor:pointer;
+}
+
+.reply-back{
+    margin-bottom:15px;
 }

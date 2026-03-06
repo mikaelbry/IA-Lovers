@@ -34,19 +34,18 @@ if(!token){
     window.location.href="login.html";
 }
 
-fetch("../api/index.php/posts?type=following",{
-    headers:{
-        "Authorization":"Bearer " + token
-    }
-})
-.then(r=>r.json())
-.then(posts=>{
-    renderPosts(posts,"feed");
-})
-.catch(err=>{
-    console.error(err);
-});
+function buildURL(cursor){
 
+    let url = "../api/index.php/posts?type=following";
+
+    if(cursor){
+        url += "&cursor="+cursor;
+    }
+
+    return url;
+}
+
+initInfiniteScroll(buildURL,"feed");
 </script>
 
 </body>

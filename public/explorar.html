@@ -82,27 +82,22 @@ const token = localStorage.getItem("token");
 <script src="assets/js/posts.js"></script>
 
 <script>
-
-function loadPosts(){
+function buildURL(cursor){
 
     const title = document.getElementById("searchTitle").value;
     const tag = document.getElementById("searchTag").value;
     const order = document.getElementById("orderSelect").value;
 
-    const url = `../api/index.php/posts?type=explore&title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
+    let url = `../api/index.php/posts?type=explore&title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
 
-    fetch(url,{
-        headers: token ? { "Authorization":"Bearer "+token } : {}
-    })
-    .then(r=>r.json())
-    .then(posts=>{
-        renderPosts(posts,"posts");
-    });
+    if(cursor){
+        url += `&cursor=${cursor}`;
+    }
 
+    return url;
 }
 
-loadPosts();
-
+initInfiniteScroll(buildURL,"posts");
 </script>
 
 </body>

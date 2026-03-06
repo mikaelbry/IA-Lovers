@@ -6,6 +6,15 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/post.css">
 <link rel="stylesheet" href="assets/css/profile.css">
+<style>
+.profile-pic {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    float: left;
+    margin-right: 20px;
+}
+</style>
 </head>
 <body>
 
@@ -40,6 +49,7 @@ fetch("../api/index.php/users/profile", {
     if (!data.user) return;
 
     document.getElementById("profile").innerHTML = `
+        <img src="assets/images/logo.jpg" alt="Profile Picture" class="profile-pic">
         <h2>${data.user.username} (Tú)</h2>
         <p>Email: ${data.user.email}</p>
         <hr>
