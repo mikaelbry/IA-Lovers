@@ -31,6 +31,17 @@ class User {
         return $stmt->fetch();
     }
 
+    public static function findByUsername($username) {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("
+            SELECT id, username
+            FROM usuarios
+            WHERE username = ?
+        ");
+        $stmt->execute([$username]);
+        return $stmt->fetch();
+    }
+
     public static function update($id, $username, $email, $password = null) {
 
         $pdo = Database::getConnection();

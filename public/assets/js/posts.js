@@ -1,4 +1,5 @@
-window.token = localStorage.getItem("token");
+window.API ??= "/IA-Lovers/api";
+window.token ??= localStorage.getItem("token");
 
 let cursor = null;
 let loading = false;
@@ -50,7 +51,7 @@ function appendPosts(posts,containerId="posts"){
         <div class="post">
 
             <div class="post-header">
-                <a href="user.html?id=${post.user_id}">
+                <a href="/IA-Lovers/public/user/${encodeURIComponent(post.username)}">
                     ${post.username ?? ''}
                 </a>
             </div>
@@ -125,7 +126,6 @@ async function loadMore(fetchUrlBuilder,containerId){
     const headers = token ? {"Authorization":"Bearer "+token}:{};
 
     const res = await fetch(url,{headers});
-
     const data = await res.json();
 
     appendPosts(data.posts,containerId);
@@ -149,7 +149,7 @@ function toggleLike(event,id,btn){
         return;
     }
 
-    fetch("../api/index.php/posts/toggle-like",{
+    fetch(API + "/posts/toggle-like",{
         method:"POST",
         headers:{
             "Content-Type":"application/json",

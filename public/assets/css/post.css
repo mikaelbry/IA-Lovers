@@ -9,7 +9,7 @@
 }
 
 .post-header a {
-    color: #6c5ce7;
+    color: #2481ce;
     font-weight: 600;
 }
 
@@ -72,7 +72,7 @@
     margin-bottom: 20px;
     padding: 8px 14px;
     border: none;
-    background: #6c5ce7;
+    background: #2481ce;
     color: white;
     border-radius: 8px;
     cursor: pointer;
@@ -121,7 +121,7 @@
 }
 
 .comment strong {
-    color: #6c5ce7;
+    color: #2481ce;
 }
 
 .comment textarea {
@@ -134,7 +134,7 @@
 .comment button {
     margin-top: 5px;
     border: none;
-    background: #6c5ce7;
+    background: #2481ce;
     color: white;
     padding: 6px 12px;
     border-radius: 6px;

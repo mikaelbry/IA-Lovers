@@ -10,8 +10,8 @@
 .post-tags { margin-top:10px; }
 .post-tags .tag { background:#eee; padding:5px 10px; border-radius:20px; font-size:12px; margin-right:5px; }
 .comment-date { font-size:12px; color:#888; margin-bottom:5px; }
-.reply-back { margin-bottom:15px; background:#6c5ce7;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;}
-.comment-actions button, .comment-actions .view-replies { font-size:13px; color:#6c5ce7; background:none;border:none;cursor:pointer;margin-right:10px;}
+.reply-back { margin-bottom:15px; background:#2481ce;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;}
+.comment-actions button, .comment-actions .view-replies { font-size:13px; color:#2481ce; background:none;border:none;cursor:pointer;margin-right:10px;}
 </style>
 </head>
 <body>
@@ -22,7 +22,7 @@
 </nav>
 
 <section class="feed">
-    <button class="back-btn" onclick="goBack()">← Volver al feed</button>
+    <button class="back-btn" onclick="goBack()">← Volver</button>
     <div id="post"></div>
     <div id="comments"></div>
 </section>
@@ -202,7 +202,6 @@ function addComment(parentId=null){
     });
 }
 
-/* ================= BACK TO FEED ================= */
 function goBack(){ window.history.back(); }
 
 </script>

@@ -1,3 +1,6 @@
+window.API = "/IA-Lovers/api";
+window.token = localStorage.getItem("token");
+
 document.addEventListener("DOMContentLoaded", () => {
 
     const nav = document.getElementById("nav-auth");
@@ -17,7 +20,9 @@ document.addEventListener("DOMContentLoaded", () => {
             <a href="#" id="logout">Salir</a>
         `;
     } else {
+
         const current = window.location.pathname.split("/").pop();
+
         html += `
             <a href="login.html?redirect=${current}">Login</a>
             <a href="register.html?redirect=${current}" class="btn-primary">Registro</a>
@@ -32,4 +37,5 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = "index.html";
         });
     }
+
 });

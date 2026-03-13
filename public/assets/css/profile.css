@@ -7,7 +7,7 @@
 }
 
 #profile button {
-    background: #6c5ce7;
+    background: #2481ce;
     color: white;
     border: none;
     padding: 8px 14px;
@@ -17,4 +17,12 @@
 
 #posts .post {
     margin-bottom: 20px;
+}
+
+.profile-pic {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    float: left;
+    margin-right: 20px;
 }

@@ -28,15 +28,12 @@
 
 <script>
 
-const token = localStorage.getItem("token");
-
-if(!token){
+if(!localStorage.getItem("token")){
     window.location.href="login.html";
 }
-
 function buildURL(cursor){
 
-    let url = "../api/index.php/posts?type=following";
+    let url = "/IA-Lovers/api/posts?type=following";
 
     if(cursor){
         url += "&cursor="+cursor;

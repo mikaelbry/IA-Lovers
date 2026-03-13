@@ -20,18 +20,34 @@ class FollowController {
 
         $pdo = Database::getConnection();
 
-        $stmt = $pdo->prepare("
-            INSERT IGNORE INTO follows (follower_id, following_id)
-            VALUES (?, ?)
+        $check = $pdo->prepare("
+            SELECT 1 FROM follows
+            WHERE follower_id = ?
+            AND following_id = ?
         ");
+        $check->execute([$user['id'],$target]);
 
-        $stmt->execute([$user['id'], $target]);
+        if($check->fetch()){
+
+            $pdo->prepare("
+                DELETE FROM follows
+                WHERE follower_id = ?
+                AND following_id = ?
+            ")->execute([$user['id'],$target]);
+
+            Response::json(['following'=>false]);
+        }
 
         $pdo->prepare("
-            INSERT INTO notifications (user_id, type, from_user_id)
-            VALUES (?, 'follow', ?)
-        ")->execute([$target, $user['id']]);
+            INSERT INTO follows (follower_id,following_id)
+            VALUES (?,?)
+        ")->execute([$user['id'],$target]);
 
-        Response::json(['message' => 'Ahora sigues a este usuario']);
+        $pdo->prepare("
+            INSERT INTO notifications (user_id,type,from_user_id)
+            VALUES (?, 'follow', ?)
+        ")->execute([$target,$user['id']]);
+
+        Response::json(['following'=>true]);
     }
 }

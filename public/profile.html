@@ -3,18 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>Mi Perfil</title>
+
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/post.css">
 <link rel="stylesheet" href="assets/css/profile.css">
-<style>
-.profile-pic {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    float: left;
-    margin-right: 20px;
-}
-</style>
+
 </head>
 <body>
 
@@ -24,40 +17,38 @@
 </nav>
 
 <section class="feed">
-    <div id="profile"></div>
-    <div id="posts"></div>
+<div id="profile"></div>
+<div id="posts"></div>
 </section>
 
 <script src="assets/js/header.js"></script>
 <script defer src="assets/js/posts.js"></script>
 
 <script>
-const token = localStorage.getItem("token");
-
-if (!token) {
-    window.location.href = "login.html";
-}
-
 fetch("../api/index.php/users/profile", {
-    headers: {
-        "Authorization": "Bearer " + token
-    }
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
 })
-.then(res => res.json())
-.then(data => {
+.then(res=>res.json())
+.then(data=>{
 
-    if (!data.user) return;
+document.getElementById("profile").innerHTML = `
+<img src="assets/images/logo.jpg" class="profile-pic">
 
-    document.getElementById("profile").innerHTML = `
-        <img src="assets/images/logo.jpg" alt="Profile Picture" class="profile-pic">
-        <h2>${data.user.username} (Tú)</h2>
-        <p>Email: ${data.user.email}</p>
-        <hr>
-    `;
+<h2>${data.user.username} (Tú)</h2>
 
-    renderPosts(data.posts,"posts");
+<p>Email: ${data.user.email}</p>
+
+<p><strong>Seguidores:</strong> ${data.followers}</p>
+
+<hr>
+`;
+
+renderPosts(data.posts,"posts");
 
 });
+
 </script>
 
 </body>

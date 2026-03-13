@@ -27,8 +27,8 @@ $router = new Router();
 ======================= */
 
 $router->get('/users/profile', fn() => UserController::profile());
-$router->post('/users/update', fn() => UserController::update());
 $router->get('/users/public', fn() => UserController::publicProfile());
+$router->get('/users/username', fn() => UserController::profileByUsername());
 
 /* =======================
    POSTS
@@ -36,7 +36,6 @@ $router->get('/users/public', fn() => UserController::publicProfile());
 
 $router->post('/posts/create', fn() => PostController::create());
 
-/* NUEVO ENDPOINT UNIFICADO */
 $router->get('/posts', fn() => PostController::feed());
 
 $router->get('/posts/show', fn() => PostController::show());

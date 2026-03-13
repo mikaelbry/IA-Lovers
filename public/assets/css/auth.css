@@ -24,7 +24,7 @@
 }
 
 .auth-card input:focus {
-    border-color: #6c5ce7;
+    border-color: #2481ce;
     outline: none;
 }
 
@@ -34,6 +34,6 @@
 }
 
 .auth-footer a {
-    color: #6c5ce7;
+    color: #2481ce;
     font-weight: 600;
 }

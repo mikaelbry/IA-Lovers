@@ -12,6 +12,14 @@ class UserController {
         $user = Middleware::auth();
         $pdo = Database::getConnection();
 
+        $followersStmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM follows
+            WHERE following_id = ?
+        ");
+        $followersStmt->execute([$user['id']]);
+        $followers = $followersStmt->fetchColumn();
+
         $stmt = $pdo->prepare("
             SELECT 
                 posts.*,
@@ -45,23 +53,98 @@ class UserController {
 
         Response::json([
             "user" => $user,
+            "followers" => $followers,
             "posts" => $posts
         ]);
     }
 
-    public static function update() {
+    public static function profileByUsername() {
 
-        $user = Auth::user();
+        $username = $_GET['username'] ?? null;
 
-        $data = json_decode(file_get_contents("php://input"), true);
+        if(!$username){
+            Response::json(["error"=>"Username requerido"],400);
+        }
 
-        $username = $data['username'] ?? $user['username'];
-        $email = $data['email'] ?? $user['email'];
-        $password = $data['password'] ?? null;
+        $pdo = Database::getConnection();
 
-        User::update($user['id'], $username, $email, $password);
+        $user = User::findByUsername($username);
 
-        Response::json(['message' => 'Perfil actualizado']);
+        if(!$user){
+            Response::json(["error"=>"Usuario no encontrado"],404);
+        }
+
+        $user_id = $user['id'];
+
+        $viewer = null;
+
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            try {
+                $viewer = Middleware::auth();
+            } catch(Exception $e){}
+        }
+
+        $viewer_id = $viewer['id'] ?? null;
+
+        $followersStmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM follows
+            WHERE following_id = ?
+        ");
+        $followersStmt->execute([$user_id]);
+        $followers = $followersStmt->fetchColumn();
+
+        $isFollowing = false;
+
+        if($viewer_id){
+
+            $check = $pdo->prepare("
+                SELECT 1 FROM follows
+                WHERE follower_id = ?
+                AND following_id = ?
+            ");
+
+            $check->execute([$viewer_id,$user_id]);
+
+            $isFollowing = $check->fetch() ? true : false;
+        }
+
+        $postsStmt = $pdo->prepare("
+            SELECT 
+                posts.*,
+                usuarios.username,
+
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+
+                EXISTS(
+                    SELECT 1 FROM likes 
+                    WHERE likes.post_id = posts.id 
+                    AND likes.user_id = ?
+                ) as liked_by_user,
+
+                (
+                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    FROM post_tags
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
+                ) as tags
+
+            FROM posts
+            JOIN usuarios ON usuarios.id = posts.user_id
+            WHERE posts.user_id = ?
+            ORDER BY posts.created_at DESC
+        ");
+
+        $postsStmt->execute([$viewer_id,$user_id]);
+        $posts = $postsStmt->fetchAll();
+
+        Response::json([
+            "user"=>$user,
+            "followers"=>$followers,
+            "is_following"=>$isFollowing,
+            "posts"=>$posts
+        ]);
     }
 
     public static function publicProfile() {
@@ -96,6 +179,29 @@ class UserController {
             Response::json(["error"=>"Usuario no encontrado"],404);
         }
 
+        $followersStmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM follows
+            WHERE following_id = ?
+        ");
+        $followersStmt->execute([$user_id]);
+        $followers = $followersStmt->fetchColumn();
+
+        $isFollowing = false;
+
+        if($viewer_id){
+
+            $check = $pdo->prepare("
+                SELECT 1 FROM follows
+                WHERE follower_id = ?
+                AND following_id = ?
+            ");
+
+            $check->execute([$viewer_id,$user_id]);
+
+            $isFollowing = $check->fetch() ? true : false;
+        }
+
         $postsStmt = $pdo->prepare("
             SELECT 
                 posts.*,
@@ -124,21 +230,13 @@ class UserController {
             ORDER BY posts.created_at DESC
         ");
 
-        $postsStmt->execute([$viewer_id, $user_id]);
+        $postsStmt->execute([$viewer_id,$user_id]);
         $posts = $postsStmt->fetchAll();
-
-        $followersStmt = $pdo->prepare("
-            SELECT COUNT(*) 
-            FROM follows
-            WHERE following_id = ?
-        ");
-        $followersStmt->execute([$user_id]);
-
-        $followers = $followersStmt->fetchColumn();
 
         Response::json([
             "user"=>$user,
             "followers"=>$followers,
+            "is_following"=>$isFollowing,
             "posts"=>$posts
         ]);
     }
