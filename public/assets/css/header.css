@@ -61,7 +61,6 @@
     transition: all 0.2s ease;
 }
 
-/* 🔥 HOVER GLOBAL (todos los enlaces) */
 .navbar a:hover {
     color: #2481ce;
     transform: scale(1.1);
@@ -82,7 +81,6 @@
     border-radius: 20px;
 }
 
-/* evitar que el botón escale raro */
 .btn-primary:hover {
     transform: scale(1.05);
 }
@@ -98,7 +96,7 @@
 .icon {
     width: 20px;
     height: 20px;
-    color: inherit; /* 🔥 clave: hereda color del <a> */
+    color: inherit;
     transition: all 0.2s ease;
 }
 

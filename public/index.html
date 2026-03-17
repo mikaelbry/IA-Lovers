@@ -6,166 +6,155 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/header.css">
 <style>
-body{
-    background-color:#ffffff;
+/* ===== BODY ===== */
+body {
+    background-color: #ffffff;
 }
 
 /* ===== MAIN LAYOUT ===== */
-
-.main-section{
-    max-width:1200px;
-    margin:60px auto 80px auto;
-    padding:0 20px;
+.main-section {
+    max-width: 1200px;
+    margin: 60px auto 80px auto;
+    padding: 0 20px;
 }
 
-/* GRID CONTENT */
-
+/* ===== GRID CONTENT ===== */
 .content-container {
     display: grid;
-    grid-template-columns:260px 1fr;
+    grid-template-columns: 260px 1fr;
     gap: 80px;
     align-items: start;
     justify-content: center;
 }
 
 /* ===== CATEGORIES ===== */
-
-.categories{
-    background:#2481ce;
-    padding:25px;
-    border-radius:14px;
-    box-shadow:0 8px 20px rgba(0,0,0,0.06);
+.categories {
+    background: #a8d5e5;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
     margin-left: 20px;
 }
 
-.categories h2{
-    margin-bottom:10px;
+.categories h2 {
+    margin-bottom: 10px;
 }
 
-.card{
-    background:#f3f4f6;
-    border-radius:10px;
-    padding:12px;
-    margin-bottom:12px;
-    text-align:center;
-    transition:all 0.2s ease;
+.card {
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: all 0.2s ease;
 }
 
-.card a{
-    color:#333;
-    font-weight:500;
+.card a {
+    color: #333;
+    font-weight: 500;
 }
 
-.card:hover{
-    background:#e5e7eb;
-    transform:translateY(-2px);
+.card:hover {
+    background: #e5e7eb;
+    transform: translateY(-2px);
 }
 
 /* ===== DESCRIPTION ===== */
-
-.description{
-    text-align:center;
+.description {
+    text-align: center;
     margin-right: 210px;
 }
 
-.description h2{
-    font-size:28px;
-    margin-bottom:20px;
+.description h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
 }
 
-.description p{
-    max-width:600px;
-    margin:0 auto;
-    font-size:17px;
-    line-height:1.7;
-    color:#555;
-    text-align:left;
+.description p {
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 17px;
+    line-height: 1.7;
+    color: #555;
+    text-align: left;
 }
 
-/* ===== ROBOT ===== */
-
-.robot-image{
-    position:fixed;
-    bottom:0;
-    right:0;
-    pointer-events:none;
+/* ===== ROBOT IMAGE ===== */
+.robot-image {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
 }
 
-.robot-image img{
-    width:320px;
-    max-width:30vw;
-    height:auto;
-    opacity:0.95;
+.robot-image img {
+    width: 320px;
+    max-width: 30vw;
+    height: auto;
+    opacity: 0.95;
 }
 
-/* ===== HERO ===== */
-
-.hero{
-    padding:120px 20px;
+/* ===== HERO SECTION ===== */
+.hero {
+    padding: 120px 20px;
 }
 
 /* =========================
    RESPONSIVE
 ========================= */
 
-/* Tablets */
+/* ===== TABLETS ===== */
+@media (max-width: 1000px) {
+    .content-container {
+        grid-template-columns: 220px 1fr;
+        gap: 40px;
+    }
 
-@media (max-width:1000px){
+    .robot-image img {
+        width: 240px;
+    }
 
-.content-container{
-    grid-template-columns:220px 1fr;
-    gap:40px;
+    .hero {
+        padding: 90px 20px;
+    }
+
+    .categories,
+    .description {
+        margin-right: 0;
+    }
 }
 
-.robot-image img{
-    width:240px;
-}
+/* ===== MOBILE ===== */
+@media (max-width: 700px) {
+    .content-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
 
-.hero{
-    padding:90px 20px;
-}
+    .categories {
+        max-width: 400px;
+        margin: auto;
+    }
 
-.categories,
-.description {
-    margin-right: 0;
-}
+    .description {
+        text-align: center;
+    }
 
-}
+    .description p {
+        text-align: center;
+    }
 
-/* Mobile */
+    .hero {
+        padding: 70px 20px;
+    }
 
-@media (max-width:700px){
+    .hero h1 {
+        font-size: 28px;
+    }
 
-.content-container{
-    grid-template-columns:1fr;
-    gap:40px;
-}
-
-.categories{
-    max-width:400px;
-    margin:auto;
-}
-
-.description{
-    text-align:center;
-}
-
-.description p{
-    text-align:center;
-}
-
-.hero{
-    padding:70px 20px;
-}
-
-.hero h1{
-    font-size:28px;
-}
-
-.robot-image{
-    display:none;
-}
-
+    .robot-image {
+        display: none;
+    }
 }
 </style>
 
