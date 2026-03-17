@@ -2,8 +2,8 @@
 
 body {
     font-family: 'Poppins', sans-serif;
-    margin: 0;
     background: #f3f4f6;
+    padding-top: 70px;
 }
 
 h1, h2, h3, h4 {
@@ -12,43 +12,6 @@ h1, h2, h3, h4 {
 
 a {
     text-decoration: none;
-}
-
-/* ===== NAVBAR ===== */
-
-.navbar {
-    background: white;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.logo {
-    font-size: 22px;
-    font-weight: bold;
-}
-
-.highlight {
-    color: #8b68f3;
-}
-
-.navbar a {
-    margin-left: 20px;
-    font-weight: 500;
-    color: #333;
-}
-
-/* ===== BUTTON BASE ===== */
-
-.btn-primary {
-    background: #2481ce;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 25px;
-    border: none;
-    cursor: pointer;
 }
 
 /* ===== HERO ===== */
@@ -71,19 +34,4 @@ a {
     max-width: 1200px;
     margin: 40px auto;
     padding: 0 20px;
-}
-
-/* ===== NAVBAR RESPONSIVE ===== */
-
-@media (max-width:700px){
-
-.navbar{
-    flex-direction:column;
-    gap:10px;
-}
-
-.navbar a{
-    margin-left:10px;
-}
-
 }
