@@ -52,6 +52,20 @@ class PostController {
 
         $file_path = '/IA-Lovers/storage/uploads/'.$filename;
 
+
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+
+        if(strlen($title) > 80){
+            Response::json(['error'=>'Título demasiado largo'],400);
+        }
+
+        if(strlen($description) > 500){
+            Response::json(['error'=>'Descripción demasiado larga'],400);
+        }
+
+        /* ===== DB ===== */
+
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
 
@@ -62,23 +76,43 @@ class PostController {
 
         $stmt->execute([
             $user['id'],
-            htmlspecialchars($_POST['title'] ?? ''),
-            htmlspecialchars($_POST['description'] ?? ''),
+            htmlspecialchars($title),
+            htmlspecialchars($description),
             $file_path
         ]);
 
         $postId = $pdo->lastInsertId();
 
-        $tags = json_decode($_POST['tags'] ?? '[]',true);
+        $tags = json_decode($_POST['tags'] ?? '[]', true);
 
         if($tags){
-            $stmtTag = $pdo->prepare("
-                INSERT INTO post_tags (post_id,tag_id)
-                VALUES (?,?)
-            ");
 
-            foreach($tags as $tagId){
-                $stmtTag->execute([$postId,$tagId]);
+            foreach($tags as $name){
+
+                $name = trim($name);
+
+                if(strlen($name) > 24) continue;
+
+                $name = ucfirst(strtolower($name));
+
+                // buscar o crear
+                $stmt = $pdo->prepare("SELECT id FROM tags WHERE LOWER(name)=LOWER(?)");
+                $stmt->execute([$name]);
+
+                $tag = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if(!$tag){
+                    $insert = $pdo->prepare("INSERT INTO tags (name) VALUES (?)");
+                    $insert->execute([$name]);
+                    $tagId = $pdo->lastInsertId();
+                }else{
+                    $tagId = $tag['id'];
+                }
+
+                $pdo->prepare("
+                    INSERT INTO post_tags (post_id,tag_id)
+                    VALUES (?,?)
+                ")->execute([$postId,$tagId]);
             }
         }
 

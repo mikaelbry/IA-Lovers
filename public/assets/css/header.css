@@ -47,7 +47,7 @@
 }
 
 .highlight {
-    color: #8b68f3;
+    color: #072c4e;
 }
 
 /* ===== LINKS ===== */
@@ -76,7 +76,7 @@
 
 .btn-primary {
     background: #2481ce;
-    color: white;
+    color: #ffffff !important;;
     padding: 8px 16px;
     border-radius: 20px;
 }
