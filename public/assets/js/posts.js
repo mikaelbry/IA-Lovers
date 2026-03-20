@@ -2,6 +2,7 @@ window.API ??= "/IA-Lovers/api";
 window.token ??= localStorage.getItem("token");
 
 let cursor = null;
+let cursorLikes = null;
 let loading = false;
 let finished = false;
 let observer = null;
@@ -131,6 +132,7 @@ async function loadMore(fetchUrlBuilder,containerId){
     appendPosts(data.posts,containerId);
 
     cursor = data.next_cursor;
+    cursorLikes = data.next_cursor_likes ?? null;
 
     if(!cursor){
         finished=true;
@@ -173,6 +175,25 @@ function toggleLike(event,id,btn){
 
     });
 
+}
+
+function resetAndLoad(fetchUrlBuilder, containerId="posts"){
+
+    cursor = null;
+    cursorLikes = null;
+    loading = false;
+    finished = false;
+
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    if(observer){
+        observer.disconnect();
+    }
+
+    initInfiniteScroll(fetchUrlBuilder, containerId);
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function goToPost(id){

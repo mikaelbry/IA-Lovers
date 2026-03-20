@@ -128,6 +128,7 @@ class PostController {
 
         $type = $_GET['type'] ?? 'explore';
         $cursor = $_GET['cursor'] ?? null;
+        $cursorLikes = $_GET['cursor_likes'] ?? null;
         $limit = 10;
 
         $title = $_GET['title'] ?? '';
@@ -184,7 +185,19 @@ class PostController {
             $params[] = $user_id;
         }
 
-        if($cursor){
+        if($cursor && $order === 'likes' && $cursorLikes !== null){
+            $where[] = "(
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id=posts.id) < ?
+                OR (
+                    (SELECT COUNT(*) FROM likes WHERE likes.post_id=posts.id) = ?
+                    AND posts.id < ?
+                )
+            )";
+            $params[] = $cursorLikes;
+            $params[] = $cursorLikes;
+            $params[] = $cursor;
+        }
+        elseif($cursor){
             $where[] = "posts.id < ?";
             $params[] = $cursor;
         }
@@ -208,9 +221,9 @@ class PostController {
         $whereSQL = $where ? "WHERE ".implode(" AND ",$where) : "";
 
         $orderSQL = match($order){
-            'oldest'=>'posts.created_at ASC',
-            'likes'=>'likes_count DESC',
-            default=>'posts.created_at DESC'
+            'oldest'=>'posts.created_at ASC, posts.id ASC',
+            'likes'=>'likes_count DESC, posts.id DESC',
+            default=>'posts.created_at DESC, posts.id DESC'
         };
 
         $sql = "
@@ -249,15 +262,18 @@ class PostController {
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $nextCursor = null;
+        $nextCursorLikes = null;
 
         if(count($posts) === $limit){
             $last = end($posts);
             $nextCursor = $last['id'];
+            $nextCursorLikes = $last['likes_count'];
         }
 
         Response::json([
             "posts"=>$posts,
-            "next_cursor"=>$nextCursor
+            "next_cursor"=>$nextCursor,
+            "next_cursor_likes"=>$nextCursorLikes
         ]);
     }
 

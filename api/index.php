@@ -29,6 +29,8 @@ $router = new Router();
 $router->get('/users/profile', fn() => UserController::profile());
 $router->get('/users/public', fn() => UserController::publicProfile());
 $router->get('/users/username', fn() => UserController::profileByUsername());
+$router->get('/users/followers', fn() => FollowController::followers());
+$router->get('/users/following', fn() => FollowController::following());
 
 /* =======================
    POSTS

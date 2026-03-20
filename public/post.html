@@ -51,7 +51,7 @@ fetch("../api/index.php/posts/show?id="+postId,{
     document.getElementById("post").innerHTML = `
         <h2>${post.username}</h2>
         <div class="post-meta">${formatDate(post.created_at)}</div>
-        <img src="${post.file_path}" class="post-image">
+        <img src="${post.file_path}" class="post-image2">
         <div class="post-title">${post.title}</div>
         <div class="post-description">${post.description}</div>
         <div class="post-tags">${tagsHTML}</div>
