@@ -1,5 +1,6 @@
 window.API ??= "/IA-Lovers/api";
 window.token ??= localStorage.getItem("token");
+window.user = JSON.parse(localStorage.getItem("user"));
 
 let cursor = null;
 let cursorLikes = null;
@@ -7,8 +8,8 @@ let loading = false;
 let finished = false;
 let observer = null;
 
+/* ===== FORMAT DATE ===== */
 function formatDate(dateString){
-
     if(!dateString) return "";
 
     const date = new Date(dateString);
@@ -22,16 +23,14 @@ function formatDate(dateString){
     return `${hours}:${minutes} - ${day}/${month}/${year}`;
 }
 
+/* ===== RENDER ===== */
 function renderPosts(posts,containerId="posts"){
-
     const container = document.getElementById(containerId);
     container.innerHTML="";
-
     appendPosts(posts,containerId);
 }
 
 function appendPosts(posts,containerId="posts"){
-
     const container = document.getElementById(containerId);
 
     if(!posts || posts.length===0){
@@ -47,11 +46,29 @@ function appendPosts(posts,containerId="posts"){
         const profileUrl = `/IA-Lovers/public/user.html?username=${encodeURIComponent(post.username ?? "")}`;
 
         const tagsHTML = post.tags
-        ? post.tags.split(',').map(t=>`<span class="tag">#${t}</span>`).join(' ')
+        ? post.tags.split(',').map(t=>`
+            <span class="tag" onclick="goToTag('${encodeURIComponent(t.trim())}', event)">
+                #${t.trim()}
+            </span>
+        `).join(' ')
         : '';
 
         container.innerHTML+=`
-        <div class="post">
+        <div class="post" id="post-${post.id}">
+
+            <div class="post-menu">
+                <button class="menu-btn" onclick="toggleMenu(event, ${post.id})">⋯</button>
+                <div class="menu-dropdown" id="menu-${post.id}">
+                    <div class="menu-item" id="copy-${post.id}" onclick="copyPostLink(${post.id}, event)">
+                        📋 Compartir
+                    </div>
+                    ${
+                        (window.user && window.user.username === post.username)
+                        ? `<div class="menu-item delete" onclick="deletePost(${post.id})">🗑️ Eliminar</div>`
+                        : ``
+                    }
+                </div>
+            </div>
 
             <div class="post-header">
                 <a href="${profileUrl}">
@@ -96,6 +113,7 @@ function appendPosts(posts,containerId="posts"){
     });
 }
 
+/* ===== INFINITE SCROLL ===== */
 function initInfiniteScroll(fetchUrlBuilder,containerId="posts"){
 
     const sentinel = document.createElement("div");
@@ -104,11 +122,9 @@ function initInfiniteScroll(fetchUrlBuilder,containerId="posts"){
     document.getElementById(containerId).after(sentinel);
 
     observer = new IntersectionObserver(entries=>{
-
         if(entries[0].isIntersecting){
             loadMore(fetchUrlBuilder,containerId);
         }
-
     },{
         rootMargin:"300px"
     });
@@ -138,45 +154,10 @@ async function loadMore(fetchUrlBuilder,containerId){
 
     if(!cursor){
         finished=true;
-        observer.disconnect();
+        if(observer) observer.disconnect();
     }
 
     loading=false;
-}
-
-function toggleLike(event,id,btn){
-
-    event.stopPropagation();
-
-    if(!token){
-        window.location.href="login.html";
-        return;
-    }
-
-    fetch(API + "/posts/toggle-like",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization":"Bearer "+token
-        },
-        body:JSON.stringify({post_id:id})
-    })
-    .then(r=>r.json())
-    .then(data=>{
-
-        const span = btn.querySelector("span");
-        let count = parseInt(span.textContent);
-
-        if(data.liked){
-            btn.classList.add("liked");
-            span.textContent = count+1;
-        }else{
-            btn.classList.remove("liked");
-            span.textContent = count-1;
-        }
-
-    });
-
 }
 
 function resetAndLoad(fetchUrlBuilder, containerId="posts"){
@@ -198,6 +179,104 @@ function resetAndLoad(fetchUrlBuilder, containerId="posts"){
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+/* ===== LIKE ===== */
+function toggleLike(event,id,btn){
+    event.stopPropagation();
+
+    if(!token){
+        window.location.href="login.html";
+        return;
+    }
+
+    fetch(API + "/posts/toggle-like",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer "+token
+        },
+        body:JSON.stringify({post_id:id})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        const span = btn.querySelector("span");
+        let count = parseInt(span.textContent);
+
+        if(data.liked){
+            btn.classList.add("liked");
+            span.textContent = count+1;
+        }else{
+            btn.classList.remove("liked");
+            span.textContent = count-1;
+        }
+    });
+}
+
+/* ===== MENU ===== */
+function toggleMenu(event, id){
+    event.stopPropagation();
+
+    document.querySelectorAll(".menu-dropdown").forEach(m=>{
+        if(m.id !== "menu-"+id) m.classList.remove("active");
+    });
+
+    document.getElementById("menu-"+id).classList.toggle("active");
+}
+
+document.addEventListener("click", ()=>{
+    document.querySelectorAll(".menu-dropdown")
+        .forEach(m=>m.classList.remove("active"));
+});
+
+/* ===== COPIAR LINK ===== */
+function copyPostLink(id){
+    event.stopPropagation();
+
+    const url = `${window.location.origin}/IA-Lovers/public/post.html?id=${id}`;
+
+    navigator.clipboard.writeText(url);
+
+    const el = document.getElementById(`copy-${id}`);
+    el.textContent = "✔ Copiado al portapapeles";
+    el.style.color = "green";
+
+    setTimeout(()=>{
+        el.textContent = "📋 Compartir";
+        el.style.color = "";
+    },2000);
+}
+
+/* ===== ELIMINAR POST ===== */
+function deletePost(id){
+
+    const confirmDelete = confirm("¿Estás seguro de que deseas borrar esta publicación?\nEsta acción es irreversible.");
+
+    if(!confirmDelete) return;
+
+    fetch(API + "/posts/delete",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer "+token
+        },
+        body:JSON.stringify({post_id:id})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        if(data.success){
+            const postEl = document.getElementById("post-"+id);
+            if(postEl) postEl.remove();
+        }else{
+            alert("Error al eliminar");
+        }
+    });
+}
+
+/* ===== NAV ===== */
 function goToPost(id){
     window.location.href="post.html?id="+id;
+}
+
+function goToTag(tag, event){
+    event.stopPropagation();
+    window.location.href = `/IA-Lovers/public/explorar.html?tag=${tag}`;
 }

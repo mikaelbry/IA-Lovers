@@ -47,7 +47,13 @@ fetch("../api/index.php/posts/show?id="+postId,{
 .then(res=>res.json())
 .then(data=>{
     const post = data.post;
-    const tagsHTML = post.tags ? post.tags.split(',').map(t=>`<span class="tag">#${t.trim()}</span>`).join(' ') : '';
+    const tagsHTML = post.tags 
+    ? post.tags.split(',').map(t=>`
+        <span class="tag" onclick="goToTag('${encodeURIComponent(t.trim())}', event)">
+            #${t.trim()}
+        </span>
+    `).join(' ') 
+    : '';
     document.getElementById("post").innerHTML = `
         <h2>${post.username}</h2>
         <div class="post-meta">${formatDate(post.created_at)}</div>
@@ -202,6 +208,10 @@ function addComment(parentId=null){
 
 function goBack(){ window.history.back(); }
 
+function goToTag(tag, event){
+    event.stopPropagation();
+    window.location.href = `/IA-Lovers/public/explorar.html?tag=${tag}`;
+}
 </script>
 </body>
 </html>

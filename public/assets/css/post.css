@@ -148,12 +148,20 @@
 .post-tags {
     margin-top:10px;
 }
+
 .post-tags .tag {
     background:#eee;
     padding:5px 10px;
     border-radius:20px;
     font-size:12px;
     margin-right:5px;
+    cursor:pointer;
+    transition:0.2s ease;
+}
+
+.post-tags .tag:hover {
+    background:#2481ce;
+    color:#fff;
 }
 
 
@@ -170,4 +178,60 @@
 
 .reply-back{
     margin-bottom:15px;
+}
+
+/* ===== MENU 3 PUNTOS ===== */
+
+.post {
+    position: relative; /* necesario */
+}
+
+.post-menu {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.menu-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.menu-btn:hover {
+    color: #2481ce;
+}
+
+/* Dropdown */
+.menu-dropdown {
+    position: absolute;
+    right: 0;
+    top: 30px;
+    background: white;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    min-width: 150px;
+    display: none;
+    z-index: 100;
+}
+
+.menu-dropdown.active {
+    display: block;
+}
+
+.menu-item {
+    padding: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.menu-item:hover {
+    background: #f3f4f6;
+}
+
+.menu-item.delete {
+    color: #e74c3c;
 }

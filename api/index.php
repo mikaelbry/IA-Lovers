@@ -37,7 +37,7 @@ $router->get('/users/following', fn() => FollowController::following());
 ======================= */
 
 $router->post('/posts/create', fn() => PostController::create());
-
+$router->post('/posts/delete',fn() => PostController::delete());
 $router->get('/posts', fn() => PostController::feed());
 
 $router->get('/posts/show', fn() => PostController::show());

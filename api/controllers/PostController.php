@@ -121,6 +121,62 @@ class PostController {
         Response::json(['message'=>'Post creado','id'=>$postId]);
     }
 
+    public static function delete(){
+
+        $user = Middleware::auth();
+
+        $data = json_decode(file_get_contents("php://input"), true);
+        $post_id = $data['post_id'] ?? null;
+
+        if(!$post_id){
+            Response::json(['error'=>'ID requerido'],400);
+        }
+
+        $pdo = Database::getConnection();
+
+        // Obtener post
+        $stmt = $pdo->prepare("SELECT * FROM posts WHERE id=?");
+        $stmt->execute([$post_id]);
+        $post = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if(!$post){
+            Response::json(['error'=>'Post no encontrado'],404);
+        }
+
+        // Seguridad: solo dueño
+        if($post['user_id'] != $user['id']){
+            Response::json(['error'=>'No autorizado'],403);
+        }
+
+        $pdo->beginTransaction();
+
+        try{
+
+            // borrar relaciones
+            $pdo->prepare("DELETE FROM likes WHERE post_id=?")->execute([$post_id]);
+            $pdo->prepare("DELETE FROM comments WHERE post_id=?")->execute([$post_id]);
+            $pdo->prepare("DELETE FROM post_tags WHERE post_id=?")->execute([$post_id]);
+
+            // borrar post
+            $pdo->prepare("DELETE FROM posts WHERE id=?")->execute([$post_id]);
+
+            // borrar archivo físico
+            $filePath = __DIR__ . "/../../" . str_replace("/IA-Lovers/","",$post['file_path']);
+
+            if(file_exists($filePath)){
+                unlink($filePath);
+            }
+
+            $pdo->commit();
+
+            Response::json(['success'=>true]);
+
+        }catch(Exception $e){
+            $pdo->rollBack();
+            Response::json(['error'=>'Error al eliminar'],500);
+        }
+    }
+
 
     public static function feed(){
 
