@@ -2,4 +2,4 @@ RewriteEngine On
 
 RewriteBase /IA-Lovers/public/
 
-RewriteRule ^user/([a-zA-Z0-9_]+)$ user.html?username=$1 [L,QSA]
+RewriteRule ^user/([^/]+)$ user.html?username=$1 [L,QSA]

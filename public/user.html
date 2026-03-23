@@ -15,7 +15,6 @@
             <div id="profile"></div>
             <div id="posts"></div>
         </section>
-        <!-- Modal popup -->
         <div id="followModal" class="hidden">
             <div class="modal-content">
                 <span id="closeModal" style="cursor:pointer;">&times;</span>
@@ -27,81 +26,158 @@
         <script src="/IA-Lovers/public/assets/js/posts.js"></script>
         <script>
             const token = localStorage.getItem("token");
-            const username = new URLSearchParams(window.location.search).get("username");
+            let myUser = null;
+            let myFollowing = [];
+
+            function getUsernameFromLocation(){
+                const params = new URLSearchParams(window.location.search);
+                const queryUsername = params.get("username");
+
+                if(queryUsername){
+                    return queryUsername;
+                }
+
+                const match = window.location.pathname.match(/\/user\/([^/?#]+)/);
+
+                return match ? decodeURIComponent(match[1]) : null;
+            }
+
+            const username = getUsernameFromLocation();
+
             if(!username){
                 window.location.href="/IA-Lovers/public/index.html";
             }
-            fetch("/IA-Lovers/api/index.php/users/profile", {
-                headers: { "Authorization": "Bearer "+token }
-            })
-            .then(res => res.json())
-            .then(me => {
-                if(me.user.username === username){
-                    window.location.href="/IA-Lovers/public/profile.html";
-                }
+
+            const modal = document.getElementById("followModal");
+            document.getElementById("closeModal").onclick = closeModal;
+            modal.addEventListener("click", (e) => {
+                if(e.target === modal) closeModal();
             });
-            fetch("/IA-Lovers/api/index.php/users/username?username=" + encodeURIComponent(username),{
-                headers: token ? {"Authorization":"Bearer "+token} : {}
-            })
-            .then(res => res.json())
-            .then(async data => {
+
+            async function loadUserPage(){
+                if(token){
+                    const me = await fetch("/IA-Lovers/api/index.php/users/profile", {
+                        headers: { "Authorization": "Bearer " + token }
+                    }).then(res => res.ok ? res.json() : null);
+
+                    if(me?.user){
+                        myUser = me.user;
+
+                        if(me.user.username === username){
+                            window.location.href="/IA-Lovers/public/profile.html";
+                            return;
+                        }
+
+                        myFollowing = await fetch("/IA-Lovers/api/index.php/users/following", {
+                            headers: { "Authorization": "Bearer " + token }
+                        }).then(r => r.ok ? r.json() : []);
+                    }
+                }
+
+                const data = await fetch("/IA-Lovers/api/index.php/users/username?username=" + encodeURIComponent(username), {
+                    headers: token ? { "Authorization": "Bearer " + token } : {}
+                }).then(res => res.json());
+
                 if(!data.user){
-                    document.getElementById("profile").innerHTML="<p>Usuario no encontrado</p>";
+                    document.getElementById("profile").innerHTML = "<p>Usuario no encontrado</p>";
                     return;
                 }
-                const followersData = await fetch("/IA-Lovers/api/index.php/users/followers?user_id=" + data.user.id).then(r=>r.json());
-                const followingData = await fetch("/IA-Lovers/api/index.php/users/following?user_id=" + data.user.id).then(r=>r.json());
-                const myFollowing = token ? await fetch("/IA-Lovers/api/index.php/users/following", {
-                    headers: { "Authorization":"Bearer "+token }
-                }).then(r=>r.json()) : [];
-                const button = token ?
-                    `<button onclick="toggleFollow(${data.user.id})"> ${data.is_following ? "Dejar de seguir" : "Seguir"} </button>` : "";
-                document.getElementById("profile").innerHTML= `
+
+                const followersData = await fetch("/IA-Lovers/api/index.php/users/followers?user_id=" + data.user.id)
+                    .then(r => r.ok ? r.json() : []);
+                const followingData = await fetch("/IA-Lovers/api/index.php/users/following?user_id=" + data.user.id)
+                    .then(r => r.ok ? r.json() : []);
+
+                const button = token
+                    ? `<button onclick="toggleFollow('${escapeUsername(data.user.username)}')">
+                        ${data.is_following ? "Dejar de seguir" : "Seguir"}
+                    </button>`
+                    : "";
+
+                document.getElementById("profile").innerHTML = `
                     <img src="/IA-Lovers/public/assets/images/logo.jpg" class="profile-pic">
                     <h2>${data.user.username}</h2>
-                    <p> <strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${followersData.length} | <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${followingData.length} </p>
+                    <p><strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${followersData.length} | <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${followingData.length}</p>
                     ${button}
                     <hr>
                 `;
-                renderPosts(data.posts,"posts");
+
+                renderPosts(data.posts, "posts");
+
                 document.getElementById("followersBtn")
-                    .addEventListener("click", () => showFollowPopup("Seguidores", followersData, myFollowing));
+                    .addEventListener("click", () => showFollowPopup("Seguidores", followersData));
                 document.getElementById("followingBtn")
-                    .addEventListener("click", () => showFollowPopup("Siguiendo", followingData, myFollowing));
-            });
+                    .addEventListener("click", () => showFollowPopup("Siguiendo", followingData));
+            }
 
-            const modal = document.getElementById("followModal");
-            document.getElementById("closeModal").onclick = () => modal.classList.add("hidden");
-            modal.addEventListener("click", (e) => {
-                if(e.target === modal) modal.classList.add("hidden");
-            });
+            function closeModal(){
+                modal.classList.add("hidden");
+                document.body.style.overflow = "";
+            }
 
-            function showFollowPopup(title, list, myFollowing){
+            function getProfileUrl(targetUsername){
+                if(myUser && targetUsername === myUser.username){
+                    return "/IA-Lovers/public/profile.html";
+                }
+
+                return `/IA-Lovers/public/user.html?username=${encodeURIComponent(targetUsername)}`;
+            }
+
+            function escapeUsername(targetUsername){
+                return String(targetUsername).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            }
+
+            function buildFollowButton(targetUsername){
+                if(!token){
+                    return "";
+                }
+
+                const isMe = myUser && targetUsername === myUser.username;
+                const isFollowing = myFollowing.some(f => f.username === targetUsername);
+
+                return `<button
+                    class="follow-btn ${isMe ? "" : (isFollowing ? "unfollow" : "")}"
+                    onclick="${isMe ? "" : `toggleFollow('${escapeUsername(targetUsername)}')`}"
+                    ${isMe ? "disabled" : ""}>
+                    ${isMe ? "Tú" : (isFollowing ? "Siguiendo" : "Seguir")}
+                </button>`;
+            }
+
+            function showFollowPopup(title, list){
+                document.body.style.overflow = "hidden";
+
                 const ul = document.getElementById("modalList");
                 document.getElementById("modalTitle").textContent = title;
                 ul.innerHTML = "";
+
                 list.forEach(u => {
-                    const isFollowing = myFollowing.some(f => f.id == u.id);
+                    const isMe = myUser && u.username === myUser.username;
+
                     ul.innerHTML += `
                         <li class="follow-item">
-                            <a href="/IA-Lovers/public/user.html?username=${encodeURIComponent(u.username)}"> ${u.username} </a>
-                            <button class="follow-btn ${isFollowing ? "unfollow" : ""}" onclick="toggleFollow(${u.id})"> ${isFollowing ? "Siguiendo" : "Seguir"} </button>
+                            <a href="${getProfileUrl(u.username)}">
+                                ${isMe ? `${u.username} (Tú)` : u.username}
+                            </a>
+                            ${buildFollowButton(u.username)}
                         </li>
                     `;
                 });
+
                 modal.classList.remove("hidden");
             }
 
-            function toggleFollow(id){
-                fetch("/IA-Lovers/api/index.php/follow",{
-                    method:"POST",
-                    headers:{
-                        "Content-Type":"application/json",
-                        "Authorization":"Bearer "+token
+            function toggleFollow(targetUsername){
+                fetch("/IA-Lovers/api/index.php/follow", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
                     },
-                    body:JSON.stringify({user_id:id})
-                }).then(()=>location.reload());
+                    body: JSON.stringify({ username: targetUsername })
+                }).then(() => location.reload());
             }
+
+            loadUserPage();
         </script>
     </body>
 </html>

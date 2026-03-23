@@ -44,6 +44,8 @@ function appendPosts(posts,containerId="posts"){
 
     posts.forEach(post=>{
 
+        const profileUrl = `/IA-Lovers/public/user.html?username=${encodeURIComponent(post.username ?? "")}`;
+
         const tagsHTML = post.tags
         ? post.tags.split(',').map(t=>`<span class="tag">#${t}</span>`).join(' ')
         : '';
@@ -52,7 +54,7 @@ function appendPosts(posts,containerId="posts"){
         <div class="post">
 
             <div class="post-header">
-                <a href="/IA-Lovers/public/user/${encodeURIComponent(post.username)}">
+                <a href="${profileUrl}">
                     ${post.username ?? ''}
                 </a>
             </div>
