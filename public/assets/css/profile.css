@@ -1,0 +1,148 @@
+#profile {
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+#profile h2 {
+    margin-bottom: 10px;
+}
+
+#profile button {
+    background: #2481ce;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#profile button:hover {
+    background: #1a6fb3;
+}
+
+#posts .post {
+    margin-bottom: 20px;
+}
+
+.profile-pic {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    float: left;
+    margin-right: 20px;
+}
+
+/* =========================
+   MODAL OVERLAY
+========================= */
+#followModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0,0,0,0.5);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 999;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* =========================
+   MODAL BOX
+========================= */
+.modal-content {
+    background: white;
+    width: 420px;
+    max-height: 520px;
+
+    border-radius: 14px;
+    padding: 20px;
+
+    display: flex;
+    flex-direction: column;
+
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* HEADER */
+.modal-content h3 {
+    margin: 0 0 10px 0;
+}
+
+/* BOTÓN X */
+#closeModal {
+    position: absolute;
+    top: 12px;
+    right: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* LISTA */
+#modalList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    overflow-y: auto;
+    max-height: 380px;
+}
+
+/* ITEM */
+.follow-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 10px 12px;
+    border-radius: 10px;
+
+    transition: background 0.2s;
+}
+
+.follow-item:hover {
+    background: #f3f4f6;
+}
+
+/* USERNAME */
+.follow-item a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+}
+
+/* BOTÓN */
+.follow-btn {
+    background: #2481ce;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.follow-btn:hover {
+    background: #1a6fb3;
+}
+
+.follow-btn.unfollow {
+    background: #ddd;
+    color: #333;
+}
+
+.follow-btn.unfollow:hover {
+    background: #bbb;
+}

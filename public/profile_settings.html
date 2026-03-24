@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Configuración</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/header.css">
+</head>
+<body>
+
+<nav class="navbar"></nav>
+
+<h2 style="text-align:center;margin-top:40px;">Editar Perfil</h2>
+
+<form id="updateForm" style="max-width:400px;margin:auto;">
+    <input type="text" id="username" placeholder="Nuevo usuario"><br><br>
+    <input type="email" id="email" placeholder="Nuevo email"><br><br>
+    <input type="password" id="password" placeholder="Nueva contraseña"><br><br>
+    <button class="btn-primary">Guardar</button>
+</form>
+
+<script>
+document.getElementById("updateForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const token = localStorage.getItem("token");
+
+    const data = {
+        username: document.getElementById("username").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+    };
+
+    const res = await fetch("/IA-Lovers/api/index.php/user/update", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(data)
+    });
+
+    const json = await res.json();
+    alert(json.message);
+});
+</script>
+
+<script src="assets/js/header.js"></script>
+
+</body>
+</html>

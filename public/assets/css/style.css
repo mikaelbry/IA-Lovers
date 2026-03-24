@@ -1,0 +1,48 @@
+/* ===== GLOBAL ===== */
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f3f4f6;
+    padding-top: 70px;
+}
+
+h1, h2, h3, h4 {
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* ===== HERO ===== */
+
+.hero {
+    padding: 100px 20px;
+    text-align: center;
+    background: linear-gradient(to right,#154c79,#072c4e);
+    color: white;
+}
+
+/* ===== GENERIC CONTAINERS ===== */
+
+.feed {
+    max-width: 1000px;
+    margin: 40px auto;
+}
+
+.feed-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.post-image {
+    width: 100%;
+    max-height: 500px;     /* límite para imágenes muy altas */
+    object-fit: contain;   /* nunca recorta */
+    border-radius: 12px;
+    display: block;
+    margin: 10px 0;
+    background: linear-gradient(180deg,#f3f4f6,#e5e7eb);
+    aspect-ratio: auto;
+}

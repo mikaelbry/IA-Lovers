@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Crear Post</title>
+
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/auth.css">
+<link rel="stylesheet" href="assets/css/post.css">
+<link rel="stylesheet" href="assets/css/header.css">
+
+<style>
+
+/* ===== PAGE LAYOUT ===== */
+
+html, body{
+    height:100%;
+}
+
+body{
+    display:flex;
+    flex-direction:column;
+    background-color: #f2f1f4;
+    overflow:hidden;
+}
+
+/* ===== CREATE CONTAINER ===== */
+
+.create-container{
+    max-width:900px;
+    width:100%;
+    margin:40px auto 0 auto;
+    background:white;
+    padding:40px;
+    border-radius:20px;
+    box-shadow:0 15px 40px rgba(0,0,0,0.08);
+}
+
+.create-container h2{
+    margin-bottom:25px;
+}
+
+/* ===== INPUTS ===== */
+
+input[type="text"]{
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:15px;
+    margin-bottom:15px;
+}
+
+input[type="text"]:focus{
+    outline:none;
+    border-color:#2481ce;
+}
+
+/* ===== DESCRIPTION ===== */
+
+textarea{
+    width:100%;
+    height:130px;
+    padding:14px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:15px;
+    resize:none;
+    overflow-y:auto;
+}
+
+textarea:focus{
+    outline:none;
+    border-color:#2481ce;
+}
+
+/* ===== TAGS ===== */
+
+.tag-box{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+}
+
+.tag{
+    background:#2481ce;
+    color:white;
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.tag button{
+    background:transparent;
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:14px;
+}
+
+.quick-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:12px;
+}
+
+.quick-tag{
+    background:#f1f1f1;
+    padding:6px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    font-size:13px;
+    transition:0.15s;
+}
+
+.quick-tag:hover{
+    background:#e6e6e6;
+}
+
+/* ===== SEARCH ===== */
+
+.tag-search{
+    width:100%;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:10px;
+}
+
+.suggestions{
+    background:white;
+    border:1px solid #eee;
+    margin-top:5px;
+    border-radius:8px;
+}
+
+.suggestions div{
+    padding:10px;
+    cursor:pointer;
+}
+
+.suggestions div:hover{
+    background:#f3f4f6;
+}
+
+.dropdown-toggle{
+    margin-top:10px;
+    cursor:pointer;
+    font-size:14px;
+    color:#2481ce;
+}
+
+.hidden{
+    display:none;
+}
+
+/* ===== FILE INPUT ===== */
+
+input[type="file"]{
+    margin-top:10px;
+}
+
+/* ===== WARNING ===== */
+
+.max-warning{
+    color:#e74c3c;
+    font-size:13px;
+    font-weight:600;
+    margin-top:6px;
+    opacity:0;
+    transition:opacity 0.2s ease, transform 0.2s ease;
+}
+
+.max-warning.visible{
+    opacity:1;
+}
+
+.max-warning.flash{
+    transform:scale(1.05);
+}
+
+/* ===== ROBOT ===== */
+
+.upload-robot{
+    position:fixed;
+    bottom:0;
+    right:0;
+    pointer-events:none;
+}
+
+.upload-robot img{
+    width:350px;
+}
+
+/* ===== BUTTON ===== */
+
+.btn-primary{
+    margin-top:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<nav class="navbar"></nav>
+
+<div class="create-container">
+
+<h2>Crear nuevo Post</h2>
+
+<form id="postForm">
+
+<input type="text" id="title" name="title" placeholder="Título" required>
+<div id="titleWarning" class="max-warning">Máximo 80 caracteres</div>
+
+<textarea id="description" name="description" placeholder="Descripción"></textarea>
+<div id="descWarning" class="max-warning">Máximo 500 caracteres</div>
+
+<br>
+
+<h4>Agregar tags</h4>
+
+<div class="quick-tags" id="quickTags"></div>
+<div class="tag-box" id="selectedTags"></div>
+
+<div id="maxWarning" class="max-warning">
+Alcanzado máximo número de tags
+</div>
+
+<div id="tagLengthWarning" class="max-warning">
+Máximo 24 caracteres por tag
+</div>
+
+<div class="dropdown-toggle" onclick="toggleDropdown()">Otros tags ▼</div>
+
+<div id="tagDropdown" class="hidden">
+<input type="text" id="tagSearch" class="tag-search" placeholder="Buscar o crear tag...">
+<div class="suggestions" id="suggestions"></div>
+</div>
+
+<br>
+
+<input type="file" id="imageInput" name="image" required>
+
+<div id="fileWarning" class="max-warning"></div>
+
+<button class="btn-primary">Publicar</button>
+
+</form>
+
+</div>
+
+<div class="upload-robot">
+<img src="assets/images/upload.png">
+</div>
+
+<script src="assets/js/header.js"></script>
+
+<script>
+
+const token = localStorage.getItem("token");
+const selected = [];
+
+const MAX_TAGS = 4;
+const MAX_TAG_LENGTH = 24;
+
+const MAX_TITLE = 80;
+const MAX_DESC = 500;
+const MAX_FILE = 2 * 1024 * 1024;
+
+const defaultTags = [
+"Meme","Arte","ChatGPT","Mistral AI","MidJourney","Stable Diffusion"
+];
+
+/* ===== WARNING ===== */
+
+function flashWarning(el){
+el.classList.add("visible","flash");
+setTimeout(()=>el.classList.remove("flash"),300);
+setTimeout(()=>el.classList.remove("visible"),2000);
+}
+
+/* ===== LIMITS ===== */
+
+document.getElementById("title").addEventListener("input",function(){
+if(this.value.length > MAX_TITLE){
+this.value = this.value.substring(0, MAX_TITLE);
+flashWarning(document.getElementById("titleWarning"));
+}
+});
+
+document.getElementById("description").addEventListener("input",function(){
+if(this.value.length > MAX_DESC){
+this.value = this.value.substring(0, MAX_DESC);
+flashWarning(document.getElementById("descWarning"));
+}
+});
+
+const allowedTypes = ["image/jpeg","image/png","image/webp"];
+
+document.getElementById("imageInput").addEventListener("change",function(){
+
+    const file = this.files[0];
+    const warning = document.getElementById("fileWarning");
+    warning.classList.remove("visible");
+    warning.textContent = "";
+
+    if(!file) return;
+
+    if(file.size > MAX_FILE){
+        this.value = "";
+        warning.textContent = "Archivo demasiado grande (máx 2MB)";
+        warning.classList.add("visible");
+        return;
+    }
+
+    if(!allowedTypes.includes(file.type)){
+        this.value = "";
+        warning.textContent = "Formato no permitido (solo JPG, PNG, WEBP)";
+        warning.classList.add("visible");
+        return;
+    }
+
+    warning.classList.remove("visible");
+    warning.textContent = "";
+
+});
+
+/* ===== TAGS ===== */
+
+function toggleDropdown(){
+document.getElementById("tagDropdown").classList.toggle("hidden");
+}
+
+function showMaxWarningFlash(){
+flashWarning(document.getElementById("maxWarning"));
+}
+
+function showTagLengthWarning(){
+flashWarning(document.getElementById("tagLengthWarning"));
+}
+
+function renderQuickTags(){
+const container=document.getElementById("quickTags");
+container.innerHTML="";
+
+defaultTags.forEach(name=>{
+container.innerHTML+=`
+<div class="quick-tag" onclick="handleQuickTag('${name}')">
+#${name}
+</div>`;
+});
+}
+
+function handleQuickTag(name){
+
+if(name.length > MAX_TAG_LENGTH){
+    showTagLengthWarning();
+    return;
+}
+
+addTag({name});
+}
+
+function renderSelected(){
+
+const box=document.getElementById("selectedTags");
+box.innerHTML="";
+
+selected.forEach((t,i)=>{
+box.innerHTML+=`
+<div class="tag">
+#${t.name}
+<button type="button" onclick="removeTag(${i})">×</button>
+</div>`;
+});
+
+}
+
+function removeTag(index){
+    selected.splice(index,1);
+    renderSelected();
+}
+
+
+function addTag(tag){
+    if(selected.length>=MAX_TAGS){
+        showMaxWarningFlash();
+        return;
+    }
+
+    if(tag.name.length > MAX_TAG_LENGTH){
+        showTagLengthWarning();
+        return;
+    }
+
+    if(!selected.find(t=>t.name.toLowerCase()===tag.name.toLowerCase())){
+        selected.push(tag);
+        renderSelected();
+    }
+
+    document.getElementById("suggestions").innerHTML="";
+    document.getElementById("tagSearch").value="";
+}
+
+document.getElementById("tagSearch").addEventListener("keydown",function(e){
+
+    if(e.key==="Enter"){
+        e.preventDefault();
+
+        const value=this.value.trim();
+
+        if(!value) return;
+
+        if(value.length > MAX_TAG_LENGTH){
+            showTagLengthWarning();
+            return;
+        }
+
+        addTag({name:value});
+    }
+
+});
+
+document.getElementById("tagSearch").addEventListener("input",async function(){
+
+const q=this.value.trim();
+const sug=document.getElementById("suggestions");
+
+if(!q){
+    sug.innerHTML="";
+    return;
+}
+
+const res=await fetch("/IA-Lovers/api/index.php/tags/search?q="+q);
+let results=await res.json();
+
+results = results.slice(0,3);
+
+sug.innerHTML="";
+
+if(q.length <= MAX_TAG_LENGTH){
+sug.innerHTML+=`
+<div onclick='addTag({name:"${q}"})'>
+${q}
+</div>`;
+}
+
+results.forEach(tag=>{
+
+if(tag.name.toLowerCase() === q.toLowerCase()) return;
+
+sug.innerHTML+=`
+<div onclick='addTag({name:"${tag.name}"})'>
+${tag.name}
+</div>`;
+
+});
+
+});
+
+/* SUBMIT */
+
+document.getElementById("postForm").addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const formData=new FormData(this);
+
+formData.append("tags",JSON.stringify(selected.map(t=>t.name)));
+
+const res=await fetch("/IA-Lovers/api/index.php/posts/create",{
+method:"POST",
+headers:{ "Authorization":"Bearer "+token },
+body:formData
+});
+
+const json=await res.json();
+
+if(res.ok && json.id){
+window.location.href="/IA-Lovers/public/post.html?id="+json.id;
+return;
+}
+
+alert(json.error || "Error al crear el post");
+
+});
+
+renderQuickTags();
+
+</script>
+
+</body>
+</html>

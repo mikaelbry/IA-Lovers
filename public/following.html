@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Siguiendo</title>
+
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/post.css">
+<link rel="stylesheet" href="assets/css/header.css">
+
+</head>
+<body>
+
+<nav class="navbar"></nav>
+
+<section class="feed">
+
+<h2>Siguiendo</h2>
+
+<div id="feed"></div>
+
+</section>
+
+<script src="assets/js/header.js"></script>
+<script src="assets/js/posts.js"></script>
+
+<script>
+
+if(!localStorage.getItem("token")){
+    window.location.href="login.html";
+}
+function buildURL(cursor){
+
+    let url = "/IA-Lovers/api/posts?type=following";
+
+    if(cursor){
+        url += "&cursor="+cursor;
+    }
+
+    return url;
+}
+
+initInfiniteScroll(buildURL,"feed");
+</script>
+
+</body>
+</html>

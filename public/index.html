@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA-Lovers</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/header.css">
+<style>
+/* ===== BODY ===== */
+body {
+    background-color: #ffffff;
+}
+
+/* ===== MAIN LAYOUT ===== */
+.main-section {
+    max-width: 1200px;
+    margin: 60px auto 80px auto;
+    padding: 0 20px;
+}
+
+/* ===== GRID CONTENT ===== */
+.content-container {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 80px;
+    align-items: start;
+    justify-content: center;
+}
+
+/* ===== CATEGORIES ===== */
+.categories {
+    background: #a8d5e5;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    margin-left: 20px;
+}
+
+.categories h2 {
+    margin-bottom: 10px;
+}
+
+.card {
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.card a {
+    color: #333;
+    font-weight: 500;
+}
+
+.card:hover {
+    background: #e5e7eb;
+    transform: translateY(-2px);
+}
+
+/* ===== DESCRIPTION ===== */
+.description {
+    text-align: center;
+    margin-right: 210px;
+}
+
+.description h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+.description p {
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 17px;
+    line-height: 1.7;
+    color: #555;
+    text-align: left;
+}
+
+/* ===== ROBOT IMAGE ===== */
+.robot-image {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+}
+
+.robot-image img {
+    width: 320px;
+    max-width: 30vw;
+    height: auto;
+    opacity: 0.95;
+}
+
+/* ===== HERO SECTION ===== */
+.hero {
+    padding: 120px 20px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+/* ===== TABLETS ===== */
+@media (max-width: 1000px) {
+    .content-container {
+        grid-template-columns: 220px 1fr;
+        gap: 40px;
+    }
+
+    .robot-image img {
+        width: 240px;
+    }
+
+    .hero {
+        padding: 90px 20px;
+    }
+
+    .categories,
+    .description {
+        margin-right: 0;
+    }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 700px) {
+    .content-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .categories {
+        max-width: 400px;
+        margin: auto;
+    }
+
+    .description {
+        text-align: center;
+    }
+
+    .description p {
+        text-align: center;
+    }
+
+    .hero {
+        padding: 70px 20px;
+    }
+
+    .hero h1 {
+        font-size: 28px;
+    }
+
+    .robot-image {
+        display: none;
+    }
+}
+</style>
+
+</head>
+<body>
+
+<nav class="navbar"></nav>
+
+<section class="hero">
+    <h1>Bienvenido a IA-Lovers</h1>
+    <p class="slogan">Tu plataforma para descubrir y compartir contenido generado por IA</p>
+    <p>Memes y arte creados con inteligencia artificial.</p>
+    <br>
+    <a href="explorar.html" class="btn-primary">Explorar contenido</a>
+</section>
+
+<div class="main-section">
+
+<div class="content-container">
+
+<section class="categories">
+    <h2>Categorías destacadas</h2>
+
+    <div class="card">
+        <a href="explorar.html?tag=Meme">Memes</a>
+    </div>
+
+    <div class="card">
+        <a href="explorar.html?tag=Arte">Arte</a>
+    </div>
+
+    <div class="card">
+        <a href="explorar.html?tag=ChatGPT">ChatGPT</a>
+    </div>
+
+    <div class="card">
+        <a href="explorar.html?tag=Mistral AI">Mistral AI</a>
+    </div>
+</section>
+
+<section class="description">
+    <h2>Descubre y comparte contenido generado por IA</h2>
+
+    <p>
+    En IA-Lovers buscamos centralizar el contenido generado por IA
+    para ofrecer una experiencia adaptada y fomentar una comunidad
+    centrada en la exploración, experimentación y análisis de la
+    inteligencia artificial como herramienta creativa.
+    <br><br>Comparte tus creaciones, descubre nuevas ideas y forma parte
+    de una comunidad apasionada por la IA. :)
+    </p>
+</section>
+
+</div>
+
+</div>
+
+<div class="robot-image">
+    <img src="assets/images/robot.jpg" alt="Robot Saludando">
+</div>
+<script src="assets/js/header.js"></script>
+</body>
+</html>

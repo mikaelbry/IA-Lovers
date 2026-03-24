@@ -1,0 +1,5 @@
+RewriteEngine On
+
+RewriteBase /IA-Lovers/public/
+
+RewriteRule ^user/([^/]+)$ user.html?username=$1 [L,QSA]

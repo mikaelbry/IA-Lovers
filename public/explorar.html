@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Explorar</title>
+        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/post.css">
+        <link rel="stylesheet" href="assets/css/header.css">
+        <style>
+            .explore-filters{
+                position: fixed;
+                left: 40px;
+                bottom: 40px;
+                width: 250px;
+
+                display:flex;
+                flex-direction:column;
+                gap:15px;
+
+                background:#fff;
+                padding:20px;
+                border-radius:12px;
+                border:1px solid #e6e6e6;
+
+                max-height: calc(100vh - 120px);
+                overflow-y: auto;
+            }
+
+            .explore-filters input,
+            .explore-filters select,
+            .explore-filters button{
+                width:100%;
+                box-sizing: border-box;
+            }
+
+            .explore-filters input,
+            .explore-filters select{
+                padding:10px;
+                border-radius:6px;
+                border:1px solid #2481ce;
+            }
+
+            .explore-filters button{
+                padding:10px;
+                border-radius:6px;
+                border:none;
+                background:#2481ce;
+                color:white;
+                cursor:pointer;
+            }
+
+            .explore-header{
+                margin-bottom:30px;
+            }
+
+            .post-date{
+                font-size:13px;
+                color:#777;
+                margin-bottom:8px;
+            }
+
+            @media(max-width:1100px){
+                .explore-filters{
+                    position: static;
+                    width:100%;
+                    margin-bottom:20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar"></nav>
+        <section class="feed">
+            <div class="explore-header">
+                <h2>Explorar</h2>
+            </div>
+            <div class="explore-filters">
+                <input type="text" id="searchTitle" placeholder="Buscar por título">
+                <input type="text" id="searchTag" placeholder="Filtrar por tag">
+                <select id="orderSelect">
+                    <option value="recent">Más recientes</option>
+                    <option value="likes">Más likes</option>
+                </select>
+                <button onclick="applyFilters()">Aplicar filtros</button>
+                <button id="clearFiltersBtn" onclick="clearFilters()" style="display:none;">
+                    Quitar filtros
+                </button>
+            </div>
+
+            <div id="posts"></div>
+        </section>
+        <script src="assets/js/header.js"></script>
+        <script src="assets/js/posts.js"></script>
+        <script>
+            function buildURL(cursor){
+
+                const title = document.getElementById("searchTitle").value;
+                const tag = document.getElementById("searchTag").value;
+                const order = document.getElementById("orderSelect").value;
+
+                let url = `/IA-Lovers/api/posts?type=explore&title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
+
+                if(cursor){
+                    url += `&cursor=${cursor}`;
+                }
+
+                if(order === "likes" && cursorLikes !== null){
+                    url += `&cursor_likes=${cursorLikes}`;
+                }
+
+                return url;
+            }
+
+            function applyFilters(){
+
+                const title = document.getElementById("searchTitle").value;
+                const tag = document.getElementById("searchTag").value;
+                const order = document.getElementById("orderSelect").value;
+
+                const params = new URLSearchParams();
+
+                if(title) params.set("title", title);
+                if(tag) params.set("tag", tag);
+                if(order && order !== "recent") params.set("order", order);
+
+                history.replaceState(null, "", "?" + params.toString());
+
+                updateClearButton();
+                resetAndLoad(buildURL, "posts");
+            }
+
+            function clearFilters(){
+
+                document.getElementById("searchTitle").value = "";
+                document.getElementById("searchTag").value = "";
+                document.getElementById("orderSelect").value = "recent";
+
+                history.replaceState(null, "", window.location.pathname);
+
+                updateClearButton();
+                resetAndLoad(buildURL, "posts");
+            }
+
+            function updateClearButton(){
+
+                const title = document.getElementById("searchTitle").value;
+                const tag = document.getElementById("searchTag").value;
+                const order = document.getElementById("orderSelect").value;
+
+                const btn = document.getElementById("clearFiltersBtn");
+
+                if(title || tag || order !== "recent"){
+                    btn.style.display = "block";
+                }else{
+                    btn.style.display = "none";
+                }
+            }
+
+            function loadFiltersFromURL(){
+
+                const params = new URLSearchParams(window.location.search);
+
+                const title = params.get("title");
+                const tag = params.get("tag");
+                const order = params.get("order");
+
+                if(title) document.getElementById("searchTitle").value = title;
+                if(tag) document.getElementById("searchTag").value = tag;
+                if(order) document.getElementById("orderSelect").value = order;
+            }
+
+            document.getElementById("searchTitle").addEventListener("input", updateClearButton);
+            document.getElementById("searchTag").addEventListener("input", updateClearButton);
+            document.getElementById("orderSelect").addEventListener("change", updateClearButton);
+
+            loadFiltersFromURL();
+            updateClearButton();
+            initInfiniteScroll(buildURL,"posts");
+        </script>
+    </body>
+</html>

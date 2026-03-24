@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Mi Perfil</title>
+
+        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/post.css">
+        <link rel="stylesheet" href="assets/css/profile.css">
+        <link rel="stylesheet" href="assets/css/header.css">
+    </head>
+    <body>
+        <nav class="navbar"></nav>
+        <section class="feed">
+            <div id="profile"></div>
+            <div id="posts"></div>
+        </section>
+        <div id="followModal" class="hidden">
+            <div class="modal-content">
+                <span id="closeModal" style="cursor:pointer;">&times;</span>
+                <h3 id="modalTitle"></h3>
+                <ul id="modalList"></ul>
+            </div>
+        </div>
+        <script src="assets/js/header.js"></script>
+        <script defer src="assets/js/posts.js"></script>
+<script>
+const token = localStorage.getItem("token");
+let myUser = null;
+let myFollowing = [];
+
+fetch("/IA-Lovers/api/index.php/users/profile", {
+    headers: { "Authorization": "Bearer " + token }
+})
+.then(res => res.json())
+.then(async data => {
+
+    myUser = data.user;
+
+    const followersData = await fetch("/IA-Lovers/api/index.php/users/followers", {
+        headers: { "Authorization": "Bearer " + token }
+    }).then(r => r.json());
+
+    const followingData = await fetch("/IA-Lovers/api/index.php/users/following", {
+        headers: { "Authorization": "Bearer " + token }
+    }).then(r => r.json());
+
+    myFollowing = followingData;
+
+    document.getElementById("profile").innerHTML = `
+        <img src="assets/images/logo.jpg" class="profile-pic">
+        <h2>${data.user.username} (Tú)</h2>
+        <p>Email: ${data.user.email}</p>
+        <p>
+            <strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${followersData.length} |
+            <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${followingData.length}
+        </p>
+        <hr>
+    `;
+
+    renderPosts(data.posts,"posts");
+
+    document.getElementById("followersBtn")
+        .addEventListener("click", () => showFollowPopup("Seguidores", followersData));
+
+    document.getElementById("followingBtn")
+        .addEventListener("click", () => showFollowPopup("Siguiendo", followingData));
+});
+
+const modal = document.getElementById("followModal");
+const closeBtn = document.getElementById("closeModal");
+
+closeBtn.onclick = closeModal;
+
+modal.addEventListener("click", (e) => {
+    if(e.target === modal) closeModal();
+});
+
+function closeModal(){
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+}
+
+function showFollowPopup(title, list){
+    document.body.style.overflow = "hidden";
+
+    const ul = document.getElementById("modalList");
+    document.getElementById("modalTitle").textContent = title;
+    ul.innerHTML = "";
+
+    list.forEach(u => {
+
+        const isMe = u.username === myUser.username;
+        const isFollowing = myFollowing.some(f => f.username === u.username);
+
+        ul.innerHTML += `
+            <li class="follow-item">
+                <a href="/IA-Lovers/public/user.html?username=${encodeURIComponent(u.username)}">
+                    ${isMe ? u.username + " (Tú)" : u.username}
+                </a>
+
+                ${
+                    isMe ? "" :
+                    `<button class="follow-btn ${isFollowing ? "unfollow" : ""}"
+                        onclick="toggleFollow('${u.username}')">
+                        ${isFollowing ? "Siguiendo" : "Seguir"}
+                    </button>`
+                }
+            </li>
+        `;
+    });
+
+    modal.classList.remove("hidden");
+}
+
+function toggleFollow(username){
+    fetch("/IA-Lovers/api/index.php/follow",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer "+token
+        },
+        body:JSON.stringify({username})
+    }).then(()=>location.reload());
+}
+</script>
+    </body>
+</html>

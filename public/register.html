@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Registro - IA Lovers</title>
+        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/auth.css">
+        <link rel="stylesheet" href="assets/css/header.css">
+    </head>
+    <body>
+
+        <nav class="navbar"></nav>
+
+        <div class="auth-container">
+            <div class="auth-card">
+                <h2>Crear cuenta</h2>
+                <p>Únete a la comunidad IA</p>
+
+                <form onsubmit="register(event)">
+                    <input type="text" id="username" placeholder="Usuario" required>
+                    <input type="email" id="email" placeholder="Email" required>
+                    <input type="password" id="password" placeholder="Contraseña" required>
+                    <button class="btn-primary">Registrarse</button>
+                </form>
+
+                <div class="auth-footer">
+                    ¿Ya tienes cuenta?
+                    <a id="login-link">Iniciar sesión</a>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect") || "index.html";
+        document.getElementById("login-link").href = "login.html?redirect=" + redirect;
+        </script>
+
+        <script src="assets/js/header.js"></script>
+        <script src="assets/js/auth.js"></script>
+    </body>
+</html>
