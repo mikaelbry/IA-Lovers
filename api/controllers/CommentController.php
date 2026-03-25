@@ -17,21 +17,20 @@ class CommentController {
         $parent_id = $data['parent_id'] ?? null;
 
         if (!$post_id || !$content) {
-            Response::json(['error' => 'Datos inválidos'], 400);
+            Response::json(['error' => 'Datos invalidos'], 400);
         }
 
-        Comment::create($user['id'], $post_id, htmlspecialchars($content), $parent_id);
+        $commentId = Comment::create($user['id'], $post_id, htmlspecialchars($content), $parent_id);
 
         $pdo = Database::getConnection();
 
-        // Obtener último comentario insertado
         $stmt = $pdo->prepare("
             SELECT comments.*, usuarios.username
             FROM comments
             JOIN usuarios ON usuarios.id = comments.user_id
-            WHERE comments.id = LAST_INSERT_ID()
+            WHERE comments.id = ?
         ");
-        $stmt->execute();
+        $stmt->execute([$commentId]);
         $newComment = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $count = Comment::countByPost($post_id);

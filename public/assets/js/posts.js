@@ -1,4 +1,8 @@
-window.API ??= "/IA-Lovers/api";
+window.APP_BASE ??= window.location.pathname.includes("/IA-Lovers/") ? "/IA-Lovers" : "";
+window.API ??= `${window.APP_BASE}/api`;
+window.PUBLIC_BASE ??= `${window.APP_BASE}/public`;
+window.apiUrl ??= (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;
+window.publicUrl ??= (path = "") => `${window.PUBLIC_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 window.token ??= localStorage.getItem("token");
 window.user = JSON.parse(localStorage.getItem("user"));
 
@@ -43,7 +47,7 @@ function appendPosts(posts,containerId="posts"){
 
     posts.forEach(post=>{
 
-        const profileUrl = `/IA-Lovers/public/user.html?username=${encodeURIComponent(post.username ?? "")}`;
+        const profileUrl = `${window.publicUrl("user.html")}?username=${encodeURIComponent(post.username ?? "")}`;
 
         const tagsHTML = post.tags
         ? post.tags.split(',').map(t=>`
@@ -188,7 +192,7 @@ function toggleLike(event,id,btn){
         return;
     }
 
-    fetch(API + "/posts/toggle-like",{
+    fetch(apiUrl("/posts/toggle-like"),{
         method:"POST",
         headers:{
             "Content-Type":"application/json",
@@ -231,7 +235,7 @@ document.addEventListener("click", ()=>{
 function copyPostLink(id){
     event.stopPropagation();
 
-    const url = `${window.location.origin}/IA-Lovers/public/post.html?id=${id}`;
+    const url = `${window.location.origin}${window.publicUrl("post.html")}?id=${id}`;
 
     navigator.clipboard.writeText(url);
 
@@ -252,7 +256,7 @@ function deletePost(id){
 
     if(!confirmDelete) return;
 
-    fetch(API + "/posts/delete",{
+    fetch(apiUrl("/posts/delete"),{
         method:"POST",
         headers:{
             "Content-Type":"application/json",
@@ -278,5 +282,5 @@ function goToPost(id){
 
 function goToTag(tag, event){
     event.stopPropagation();
-    window.location.href = `/IA-Lovers/public/explorar.html?tag=${tag}`;
+    window.location.href = `${window.publicUrl("explorar.html")}?tag=${tag}`;
 }

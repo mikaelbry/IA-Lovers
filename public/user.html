@@ -3,10 +3,9 @@
     <head>
         <meta charset="UTF-8">
         <title>Usuario</title>
-        <base href="/IA-Lovers/public/">
-        <link rel="stylesheet" href="/IA-Lovers/public/assets/css/style.css">
-        <link rel="stylesheet" href="/IA-Lovers/public/assets/css/post.css">
-        <link rel="stylesheet" href="/IA-Lovers/public/assets/css/profile.css">
+        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/post.css">
+        <link rel="stylesheet" href="assets/css/profile.css">
         <link rel="stylesheet" href="assets/css/header.css">
     </head>
     <body>
@@ -22,162 +21,164 @@
                 <ul id="modalList"></ul>
             </div>
         </div>
-        <script src="/IA-Lovers/public/assets/js/header.js"></script>
-        <script src="/IA-Lovers/public/assets/js/posts.js"></script>
+        <script src="assets/js/header.js"></script>
+        <script src="assets/js/posts.js"></script>
         <script>
-            const token = localStorage.getItem("token");
-            let myUser = null;
-            let myFollowing = [];
+const token = localStorage.getItem("token");
+let myUser = null;
+let myFollowing = [];
 
-            function getUsernameFromLocation(){
-                const params = new URLSearchParams(window.location.search);
-                const queryUsername = params.get("username");
+function getUsernameFromLocation() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("username");
+}
 
-                if(queryUsername){
-                    return queryUsername;
-                }
+async function requestJson(url, options = {}) {
+    const res = await fetch(url, options);
+    const data = await res.json();
 
-                const match = window.location.pathname.match(/\/user\/([^/?#]+)/);
+    if (!res.ok) {
+        throw new Error(data.error || "Error");
+    }
 
-                return match ? decodeURIComponent(match[1]) : null;
-            }
+    return data;
+}
 
-            const username = getUsernameFromLocation();
+const username = getUsernameFromLocation();
 
-            if(!username){
-                window.location.href="/IA-Lovers/public/index.html";
-            }
+if (!username) {
+    window.location.href = publicUrl("index.html");
+}
 
-            const modal = document.getElementById("followModal");
-            document.getElementById("closeModal").onclick = closeModal;
-            modal.addEventListener("click", (e) => {
-                if(e.target === modal) closeModal();
+const modal = document.getElementById("followModal");
+document.getElementById("closeModal").onclick = closeModal;
+modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+
+async function loadUserPage() {
+    if (token) {
+        try {
+            const me = await requestJson(apiUrl("/users/profile"), {
+                headers: { Authorization: "Bearer " + token }
             });
 
-            async function loadUserPage(){
-                if(token){
-                    const me = await fetch("/IA-Lovers/api/index.php/users/profile", {
-                        headers: { "Authorization": "Bearer " + token }
-                    }).then(res => res.ok ? res.json() : null);
+            if (me?.user) {
+                myUser = me.user;
 
-                    if(me?.user){
-                        myUser = me.user;
-
-                        if(me.user.username === username){
-                            window.location.href="/IA-Lovers/public/profile.html";
-                            return;
-                        }
-
-                        myFollowing = await fetch("/IA-Lovers/api/index.php/users/following", {
-                            headers: { "Authorization": "Bearer " + token }
-                        }).then(r => r.ok ? r.json() : []);
-                    }
-                }
-
-                const data = await fetch("/IA-Lovers/api/index.php/users/username?username=" + encodeURIComponent(username), {
-                    headers: token ? { "Authorization": "Bearer " + token } : {}
-                }).then(res => res.json());
-
-                if(!data.user){
-                    document.getElementById("profile").innerHTML = "<p>Usuario no encontrado</p>";
+                if (me.user.username === username) {
+                    window.location.href = publicUrl("profile.html");
                     return;
                 }
 
-                const followersData = await fetch("/IA-Lovers/api/index.php/users/followers?user_id=" + data.user.id)
-                    .then(r => r.ok ? r.json() : []);
-                const followingData = await fetch("/IA-Lovers/api/index.php/users/following?user_id=" + data.user.id)
-                    .then(r => r.ok ? r.json() : []);
-
-                const button = token
-                    ? `<button onclick="toggleFollow('${escapeUsername(data.user.username)}')">
-                        ${data.is_following ? "Dejar de seguir" : "Seguir"}
-                    </button>`
-                    : "";
-
-                document.getElementById("profile").innerHTML = `
-                    <img src="/IA-Lovers/public/assets/images/logo.jpg" class="profile-pic">
-                    <h2>${data.user.username}</h2>
-                    <p><strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${followersData.length} | <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${followingData.length}</p>
-                    ${button}
-                    <hr>
-                `;
-
-                renderPosts(data.posts, "posts");
-
-                document.getElementById("followersBtn")
-                    .addEventListener("click", () => showFollowPopup("Seguidores", followersData));
-                document.getElementById("followingBtn")
-                    .addEventListener("click", () => showFollowPopup("Siguiendo", followingData));
-            }
-
-            function closeModal(){
-                modal.classList.add("hidden");
-                document.body.style.overflow = "";
-            }
-
-            function getProfileUrl(targetUsername){
-                if(myUser && targetUsername === myUser.username){
-                    return "/IA-Lovers/public/profile.html";
-                }
-
-                return `/IA-Lovers/public/user.html?username=${encodeURIComponent(targetUsername)}`;
-            }
-
-            function escapeUsername(targetUsername){
-                return String(targetUsername).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-            }
-
-            function buildFollowButton(targetUsername){
-                if(!token){
-                    return "";
-                }
-
-                const isMe = myUser && targetUsername === myUser.username;
-                const isFollowing = myFollowing.some(f => f.username === targetUsername);
-
-                return `<button
-                    class="follow-btn ${isMe ? "" : (isFollowing ? "unfollow" : "")}"
-                    onclick="${isMe ? "" : `toggleFollow('${escapeUsername(targetUsername)}')`}"
-                    ${isMe ? "disabled" : ""}>
-                    ${isMe ? "Tú" : (isFollowing ? "Siguiendo" : "Seguir")}
-                </button>`;
-            }
-
-            function showFollowPopup(title, list){
-                document.body.style.overflow = "hidden";
-
-                const ul = document.getElementById("modalList");
-                document.getElementById("modalTitle").textContent = title;
-                ul.innerHTML = "";
-
-                list.forEach(u => {
-                    const isMe = myUser && u.username === myUser.username;
-
-                    ul.innerHTML += `
-                        <li class="follow-item">
-                            <a href="${getProfileUrl(u.username)}">
-                                ${isMe ? `${u.username} (Tú)` : u.username}
-                            </a>
-                            ${buildFollowButton(u.username)}
-                        </li>
-                    `;
+                myFollowing = await requestJson(apiUrl("/users/following"), {
+                    headers: { Authorization: "Bearer " + token }
                 });
-
-                modal.classList.remove("hidden");
             }
+        } catch (error) {
+        }
+    }
 
-            function toggleFollow(targetUsername){
-                fetch("/IA-Lovers/api/index.php/follow", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify({ username: targetUsername })
-                }).then(() => location.reload());
-            }
+    const data = await requestJson(`${apiUrl("/users/username")}?username=${encodeURIComponent(username)}`, {
+        headers: token ? { Authorization: "Bearer " + token } : {}
+    });
 
-            loadUserPage();
+    const followersData = await requestJson(`${apiUrl("/users/followers")}?user_id=${data.user.id}`);
+    const followingData = await requestJson(`${apiUrl("/users/following")}?user_id=${data.user.id}`);
+
+    const button = token
+        ? `<button type="button" onclick="toggleFollow('${escapeUsername(data.user.username)}')">
+            ${data.is_following ? "Dejar de seguir" : "Seguir"}
+        </button>`
+        : "";
+
+    document.getElementById("profile").innerHTML = `
+        <img src="assets/images/logo.jpg" class="profile-pic">
+        <h2>${data.user.username}</h2>
+        <p><strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${followersData.length} | <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${followingData.length}</p>
+        ${button}
+        <hr>
+    `;
+
+    renderPosts(data.posts, "posts");
+
+    document.getElementById("followersBtn")
+        .addEventListener("click", () => showFollowPopup("Seguidores", followersData));
+    document.getElementById("followingBtn")
+        .addEventListener("click", () => showFollowPopup("Siguiendo", followingData));
+}
+
+function closeModal() {
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+}
+
+function getProfileUrl(targetUsername) {
+    if (myUser && targetUsername === myUser.username) {
+        return publicUrl("profile.html");
+    }
+
+    return `${publicUrl("user.html")}?username=${encodeURIComponent(targetUsername)}`;
+}
+
+function escapeUsername(targetUsername) {
+    return String(targetUsername).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function buildFollowButton(targetUsername) {
+    if (!token) {
+        return "";
+    }
+
+    const isMe = myUser && targetUsername === myUser.username;
+    const isFollowing = myFollowing.some(f => f.username === targetUsername);
+
+    return `<button
+        class="follow-btn ${isMe ? "" : (isFollowing ? "unfollow" : "")}"
+        type="button"
+        onclick="${isMe ? "" : `toggleFollow('${escapeUsername(targetUsername)}')`}"
+        ${isMe ? "disabled" : ""}>
+        ${isMe ? "Tú" : (isFollowing ? "Siguiendo" : "Seguir")}
+    </button>`;
+}
+
+function showFollowPopup(title, list) {
+    document.body.style.overflow = "hidden";
+
+    const ul = document.getElementById("modalList");
+    document.getElementById("modalTitle").textContent = title;
+    ul.innerHTML = "";
+
+    list.forEach(u => {
+        const isMe = myUser && u.username === myUser.username;
+
+        ul.innerHTML += `
+            <li class="follow-item">
+                <a href="${getProfileUrl(u.username)}">
+                    ${isMe ? `${u.username} (Tú)` : u.username}
+                </a>
+                ${buildFollowButton(u.username)}
+            </li>
+        `;
+    });
+
+    modal.classList.remove("hidden");
+}
+
+function toggleFollow(targetUsername) {
+    fetch(apiUrl("/follow"), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ username: targetUsername })
+    }).then(() => location.reload());
+}
+
+loadUserPage().catch(error => alert(error.message));
         </script>
     </body>
 </html>

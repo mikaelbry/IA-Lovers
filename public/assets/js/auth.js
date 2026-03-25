@@ -3,6 +3,11 @@ function getRedirectUrl() {
     return params.get("redirect") || "index.html";
 }
 
+function getApiUrl(path) {
+    const base = window.API || `${window.location.origin}/api`;
+    return `${base}${path}`;
+}
+
 async function register(event) {
     event.preventDefault();
 
@@ -16,7 +21,7 @@ async function register(event) {
     };
 
     try {
-        const res = await fetch("../api/register", {
+        const res = await fetch(getApiUrl("/register"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -57,7 +62,7 @@ async function login(event) {
 
 async function autoLogin(email, password) {
 
-    const res = await fetch("../api/login", {
+    const res = await fetch(getApiUrl("/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })

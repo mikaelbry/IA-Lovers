@@ -15,7 +15,7 @@ class TagController {
         $stmt = $pdo->prepare("
             SELECT id, name
             FROM tags
-            WHERE name LIKE ?
+            WHERE name ILIKE ?
             ORDER BY name ASC
             LIMIT 10
         ");
@@ -56,12 +56,13 @@ class TagController {
         $stmt = $pdo->prepare("
             INSERT INTO tags (name)
             VALUES (?)
+            RETURNING id
         ");
 
         $stmt->execute([$name]);
 
         Response::json([
-            'id' => $pdo->lastInsertId(),
+            'id' => $stmt->fetchColumn(),
             'name' => $name
         ]);
     }

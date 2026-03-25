@@ -25,22 +25,21 @@
 <script src="assets/js/posts.js"></script>
 
 <script>
-
 if(!localStorage.getItem("token")){
-    window.location.href="login.html";
-}
-function buildURL(cursor){
+    window.location.href = "login.html";
+} else {
+    function buildURL(cursor){
+        let url = apiUrl("/posts") + "?type=following";
 
-    let url = "/IA-Lovers/api/posts?type=following";
+        if(cursor){
+            url += "&cursor=" + cursor;
+        }
 
-    if(cursor){
-        url += "&cursor="+cursor;
+        return url;
     }
 
-    return url;
+    initInfiniteScroll(buildURL, "feed");
 }
-
-initInfiniteScroll(buildURL,"feed");
 </script>
 
 </body>

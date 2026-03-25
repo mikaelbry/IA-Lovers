@@ -16,14 +16,20 @@
     <input type="text" id="username" placeholder="Nuevo usuario"><br><br>
     <input type="email" id="email" placeholder="Nuevo email"><br><br>
     <input type="password" id="password" placeholder="Nueva contraseña"><br><br>
-    <button class="btn-primary">Guardar</button>
+    <button class="btn-primary" type="submit">Guardar</button>
 </form>
 
+<script src="assets/js/header.js"></script>
 <script>
 document.getElementById("updateForm").addEventListener("submit", async function(e){
     e.preventDefault();
 
     const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location.href = "login.html";
+        return;
+    }
 
     const data = {
         username: document.getElementById("username").value,
@@ -31,7 +37,7 @@ document.getElementById("updateForm").addEventListener("submit", async function(
         password: document.getElementById("password").value
     };
 
-    const res = await fetch("/IA-Lovers/api/index.php/user/update", {
+    const res = await fetch(apiUrl("/user/update"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -41,11 +47,9 @@ document.getElementById("updateForm").addEventListener("submit", async function(
     });
 
     const json = await res.json();
-    alert(json.message);
+    alert(json.message || json.error);
 });
 </script>
-
-<script src="assets/js/header.js"></script>
 
 </body>
 </html>

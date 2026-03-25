@@ -31,6 +31,7 @@ $router->get('/users/public', fn() => UserController::publicProfile());
 $router->get('/users/username', fn() => UserController::profileByUsername());
 $router->get('/users/followers', fn() => FollowController::followers());
 $router->get('/users/following', fn() => FollowController::following());
+$router->post('/user/update', fn() => UserController::update());
 
 /* =======================
    POSTS
@@ -80,4 +81,10 @@ $router->post('/tags/create', fn() => TagController::create());
    DISPATCH
 ======================= */
 
-$router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
+try {
+    $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
+} catch (Throwable $e) {
+    Response::json([
+        'error' => $e->getMessage()
+    ], 500);
+}

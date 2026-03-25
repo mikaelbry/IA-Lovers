@@ -30,155 +30,151 @@ class PostController {
         $mime = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
 
-        $allowed = ['image/jpeg','image/png','image/webp'];
+        $allowed = ['image/jpeg', 'image/png', 'image/webp'];
 
-        if (!in_array($mime,$allowed)) {
-            Response::json(['error'=>'Formato no permitido'],400);
+        if (!in_array($mime, $allowed, true)) {
+            Response::json(['error' => 'Formato no permitido'], 400);
         }
 
-        $extension = match($mime){
-            'image/jpeg'=>'.jpg',
-            'image/png'=>'.png',
-            'image/webp'=>'.webp'
+        $extension = match ($mime) {
+            'image/jpeg' => '.jpg',
+            'image/png' => '.png',
+            'image/webp' => '.webp'
         };
 
-        $uploadDir = __DIR__.'/../../storage/uploads/';
-        if(!is_dir($uploadDir)) mkdir($uploadDir,0755,true);
+        $uploadDir = __DIR__ . '/../../storage/uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
 
-        $filename = bin2hex(random_bytes(16)).$extension;
-        $targetPath = $uploadDir.$filename;
+        $filename = bin2hex(random_bytes(16)) . $extension;
+        $targetPath = $uploadDir . $filename;
 
-        move_uploaded_file($file['tmp_name'],$targetPath);
+        move_uploaded_file($file['tmp_name'], $targetPath);
 
-        $file_path = '/IA-Lovers/storage/uploads/'.$filename;
-
+        $file_path = '/IA-Lovers/storage/uploads/' . $filename;
 
         $title = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
 
-        if(strlen($title) > 80){
-            Response::json(['error'=>'Título demasiado largo'],400);
+        if (strlen($title) > 80) {
+            Response::json(['error' => 'Titulo demasiado largo'], 400);
         }
 
-        if(strlen($description) > 500){
-            Response::json(['error'=>'Descripción demasiado larga'],400);
+        if (strlen($description) > 500) {
+            Response::json(['error' => 'Descripcion demasiado larga'], 400);
         }
-
-        /* ===== DB ===== */
 
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
 
         $stmt = $pdo->prepare("
-            INSERT INTO posts (user_id,title,description,file_path,created_at)
-            VALUES (?,?,?, ?, NOW())
+            INSERT INTO posts (user_id, title, description, file_path, mime_type, size_bytes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            RETURNING id
         ");
 
         $stmt->execute([
             $user['id'],
             htmlspecialchars($title),
             htmlspecialchars($description),
-            $file_path
+            $file_path,
+            $mime,
+            $file['size']
         ]);
 
-        $postId = $pdo->lastInsertId();
+        $postId = $stmt->fetchColumn();
 
         $tags = json_decode($_POST['tags'] ?? '[]', true);
 
-        if($tags){
-
-            foreach($tags as $name){
-
+        if ($tags) {
+            foreach ($tags as $name) {
                 $name = trim($name);
 
-                if(strlen($name) > 24) continue;
+                if (strlen($name) > 24) {
+                    continue;
+                }
 
                 $name = ucfirst(strtolower($name));
 
-                // buscar o crear
-                $stmt = $pdo->prepare("SELECT id FROM tags WHERE LOWER(name)=LOWER(?)");
+                $stmt = $pdo->prepare("SELECT id FROM tags WHERE LOWER(name) = LOWER(?)");
                 $stmt->execute([$name]);
 
                 $tag = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if(!$tag){
-                    $insert = $pdo->prepare("INSERT INTO tags (name) VALUES (?)");
+                if (!$tag) {
+                    $insert = $pdo->prepare("
+                        INSERT INTO tags (name)
+                        VALUES (?)
+                        RETURNING id
+                    ");
                     $insert->execute([$name]);
-                    $tagId = $pdo->lastInsertId();
-                }else{
+                    $tagId = $insert->fetchColumn();
+                } else {
                     $tagId = $tag['id'];
                 }
 
                 $pdo->prepare("
-                    INSERT INTO post_tags (post_id,tag_id)
-                    VALUES (?,?)
-                ")->execute([$postId,$tagId]);
+                    INSERT INTO post_tags (post_id, tag_id)
+                    VALUES (?, ?)
+                ")->execute([$postId, $tagId]);
             }
         }
 
         $pdo->commit();
 
-        Response::json(['message'=>'Post creado','id'=>$postId]);
+        Response::json(['message' => 'Post creado', 'id' => $postId]);
     }
 
-    public static function delete(){
+    public static function delete() {
 
         $user = Middleware::auth();
 
         $data = json_decode(file_get_contents("php://input"), true);
         $post_id = $data['post_id'] ?? null;
 
-        if(!$post_id){
-            Response::json(['error'=>'ID requerido'],400);
+        if (!$post_id) {
+            Response::json(['error' => 'ID requerido'], 400);
         }
 
         $pdo = Database::getConnection();
 
-        // Obtener post
-        $stmt = $pdo->prepare("SELECT * FROM posts WHERE id=?");
+        $stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ?");
         $stmt->execute([$post_id]);
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if(!$post){
-            Response::json(['error'=>'Post no encontrado'],404);
+        if (!$post) {
+            Response::json(['error' => 'Post no encontrado'], 404);
         }
 
-        // Seguridad: solo dueño
-        if($post['user_id'] != $user['id']){
-            Response::json(['error'=>'No autorizado'],403);
+        if ($post['user_id'] != $user['id']) {
+            Response::json(['error' => 'No autorizado'], 403);
         }
 
         $pdo->beginTransaction();
 
-        try{
+        try {
+            $pdo->prepare("DELETE FROM likes WHERE post_id = ?")->execute([$post_id]);
+            $pdo->prepare("DELETE FROM comments WHERE post_id = ?")->execute([$post_id]);
+            $pdo->prepare("DELETE FROM post_tags WHERE post_id = ?")->execute([$post_id]);
+            $pdo->prepare("DELETE FROM posts WHERE id = ?")->execute([$post_id]);
 
-            // borrar relaciones
-            $pdo->prepare("DELETE FROM likes WHERE post_id=?")->execute([$post_id]);
-            $pdo->prepare("DELETE FROM comments WHERE post_id=?")->execute([$post_id]);
-            $pdo->prepare("DELETE FROM post_tags WHERE post_id=?")->execute([$post_id]);
+            $filePath = __DIR__ . "/../../" . str_replace("/IA-Lovers/", "", $post['file_path']);
 
-            // borrar post
-            $pdo->prepare("DELETE FROM posts WHERE id=?")->execute([$post_id]);
-
-            // borrar archivo físico
-            $filePath = __DIR__ . "/../../" . str_replace("/IA-Lovers/","",$post['file_path']);
-
-            if(file_exists($filePath)){
+            if (file_exists($filePath)) {
                 unlink($filePath);
             }
 
             $pdo->commit();
 
-            Response::json(['success'=>true]);
-
-        }catch(Exception $e){
+            Response::json(['success' => true]);
+        } catch (Exception $e) {
             $pdo->rollBack();
-            Response::json(['error'=>'Error al eliminar'],500);
+            Response::json(['error' => 'Error al eliminar'], 500);
         }
     }
 
-
-    public static function feed(){
+    public static function feed() {
 
         $pdo = Database::getConnection();
 
@@ -196,20 +192,20 @@ class PostController {
 
         $headers = getallheaders();
 
-        if(isset($headers['Authorization'])){
-            try{
+        if (isset($headers['Authorization'])) {
+            try {
                 $user = Auth::user();
                 $user_id = $user['id'];
-            }catch(Exception $e){}
+            } catch (Exception $e) {
+            }
         }
 
         $where = [];
         $params = [];
 
-        if($type === "following"){
-
-            if(!$user_id){
-                Response::json(['error'=>'Login requerido'],401);
+        if ($type === 'following') {
+            if (!$user_id) {
+                Response::json(['error' => 'Login requerido'], 401);
             }
 
             $where[] = "posts.user_id IN (
@@ -221,65 +217,62 @@ class PostController {
             $params[] = $user_id;
         }
 
-        if($type === "user"){
-
-            if(!$userFilter){
-                Response::json(['error'=>'ID requerido'],400);
+        if ($type === 'user') {
+            if (!$userFilter) {
+                Response::json(['error' => 'ID requerido'], 400);
             }
 
             $where[] = "posts.user_id = ?";
             $params[] = $userFilter;
         }
 
-        if($type === "me"){
-
-            if(!$user_id){
-                Response::json(['error'=>'Login requerido'],401);
+        if ($type === 'me') {
+            if (!$user_id) {
+                Response::json(['error' => 'Login requerido'], 401);
             }
 
             $where[] = "posts.user_id = ?";
             $params[] = $user_id;
         }
 
-        if($cursor && $order === 'likes' && $cursorLikes !== null){
+        if ($cursor && $order === 'likes' && $cursorLikes !== null) {
             $where[] = "(
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id=posts.id) < ?
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) < ?
                 OR (
-                    (SELECT COUNT(*) FROM likes WHERE likes.post_id=posts.id) = ?
+                    (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) = ?
                     AND posts.id < ?
                 )
             )";
             $params[] = $cursorLikes;
             $params[] = $cursorLikes;
             $params[] = $cursor;
-        }
-        elseif($cursor){
+        } elseif ($cursor) {
             $where[] = "posts.id < ?";
             $params[] = $cursor;
         }
 
-        if($title !== ''){
-            $where[] = "posts.title LIKE ?";
+        if ($title !== '') {
+            $where[] = "posts.title ILIKE ?";
             $params[] = "%$title%";
         }
 
-        if($tag !== ''){
+        if ($tag !== '') {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM post_tags
                 JOIN tags ON tags.id = post_tags.tag_id
                 WHERE post_tags.post_id = posts.id
-                AND tags.name LIKE ?
+                AND tags.name ILIKE ?
             )";
             $params[] = "%$tag%";
         }
 
-        $whereSQL = $where ? "WHERE ".implode(" AND ",$where) : "";
+        $whereSQL = $where ? "WHERE " . implode(" AND ", $where) : "";
 
-        $orderSQL = match($order){
-            'oldest'=>'posts.created_at ASC, posts.id ASC',
-            'likes'=>'likes_count DESC, posts.id DESC',
-            default=>'posts.created_at DESC, posts.id DESC'
+        $orderSQL = match ($order) {
+            'oldest' => 'posts.created_at ASC, posts.id ASC',
+            'likes' => 'likes_count DESC, posts.id DESC',
+            default => 'posts.created_at DESC, posts.id DESC'
         };
 
         $sql = "
@@ -287,107 +280,105 @@ class PostController {
                 posts.*,
                 usuarios.username,
 
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id=posts.id) as likes_count,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
-                (SELECT COUNT(*) FROM comments WHERE comments.post_id=posts.id) as comments_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 
                 EXISTS(
                     SELECT 1 FROM likes
-                    WHERE likes.post_id=posts.id
-                    AND likes.user_id=?
+                    WHERE likes.post_id = posts.id
+                    AND likes.user_id = ?
                 ) as liked_by_user,
 
                 (
-                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    SELECT STRING_AGG(tags.name, ',' ORDER BY tags.name)
                     FROM post_tags
-                    JOIN tags ON tags.id=post_tags.tag_id
-                    WHERE post_tags.post_id=posts.id
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id=posts.user_id
+            JOIN usuarios ON usuarios.id = posts.user_id
             $whereSQL
             ORDER BY $orderSQL
             LIMIT $limit
         ";
 
         $stmt = $pdo->prepare($sql);
-
-        $stmt->execute(array_merge([$user_id],$params));
+        $stmt->execute(array_merge([$user_id], $params));
 
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $nextCursor = null;
         $nextCursorLikes = null;
 
-        if(count($posts) === $limit){
+        if (count($posts) === $limit) {
             $last = end($posts);
             $nextCursor = $last['id'];
             $nextCursorLikes = $last['likes_count'];
         }
 
         Response::json([
-            "posts"=>$posts,
-            "next_cursor"=>$nextCursor,
-            "next_cursor_likes"=>$nextCursorLikes
+            'posts' => $posts,
+            'next_cursor' => $nextCursor,
+            'next_cursor_likes' => $nextCursorLikes
         ]);
     }
 
-
-    public static function toggleLike(){
+    public static function toggleLike() {
 
         $user = Middleware::auth();
 
-        $data = json_decode(file_get_contents("php://input"),true);
+        $data = json_decode(file_get_contents("php://input"), true);
         $post_id = $data['post_id'] ?? null;
 
-        if(!$post_id){
-            Response::json(['error'=>'ID requerido'],400);
+        if (!$post_id) {
+            Response::json(['error' => 'ID requerido'], 400);
         }
 
         $pdo = Database::getConnection();
 
         $check = $pdo->prepare("
-            SELECT id FROM likes WHERE user_id=? AND post_id=?
+            SELECT id FROM likes WHERE user_id = ? AND post_id = ?
         ");
-        $check->execute([$user['id'],$post_id]);
+        $check->execute([$user['id'], $post_id]);
 
-        if($check->fetch()){
-
+        if ($check->fetch()) {
             $pdo->prepare("
-                DELETE FROM likes WHERE user_id=? AND post_id=?
-            ")->execute([$user['id'],$post_id]);
+                DELETE FROM likes WHERE user_id = ? AND post_id = ?
+            ")->execute([$user['id'], $post_id]);
 
-            Response::json(['liked'=>false]);
+            Response::json(['liked' => false]);
         }
 
         $pdo->prepare("
-            INSERT INTO likes (user_id,post_id)
-            VALUES (?,?)
-        ")->execute([$user['id'],$post_id]);
+            INSERT INTO likes (user_id, post_id)
+            VALUES (?, ?)
+        ")->execute([$user['id'], $post_id]);
 
-        Response::json(['liked'=>true]);
+        Response::json(['liked' => true]);
     }
 
-    public static function show(){
+    public static function show() {
 
         $pdo = Database::getConnection();
 
         $id = $_GET['id'] ?? null;
 
-        if(!$id){
-            Response::json(['error'=>'ID requerido'],400);
+        if (!$id) {
+            Response::json(['error' => 'ID requerido'], 400);
         }
 
         $user_id = null;
 
         $headers = getallheaders();
 
-        if(isset($headers['Authorization'])){
-            try{
+        if (isset($headers['Authorization'])) {
+            try {
                 $user = Auth::user();
                 $user_id = $user['id'];
-            }catch(Exception $e){}
+            } catch (Exception $e) {
+            }
         }
 
         $stmt = $pdo->prepare("
@@ -395,34 +386,34 @@ class PostController {
                 posts.*,
                 usuarios.username,
 
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id=posts.id) as likes_count,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
-                (SELECT COUNT(*) FROM comments WHERE comments.post_id=posts.id) as comments_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 
                 EXISTS(
                     SELECT 1 FROM likes
-                    WHERE likes.post_id=posts.id
-                    AND likes.user_id=?
+                    WHERE likes.post_id = posts.id
+                    AND likes.user_id = ?
                 ) as liked_by_user,
 
                 (
-                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    SELECT STRING_AGG(tags.name, ',' ORDER BY tags.name)
                     FROM post_tags
-                    JOIN tags ON tags.id=post_tags.tag_id
-                    WHERE post_tags.post_id=posts.id
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id=posts.user_id
-            WHERE posts.id=?
+            JOIN usuarios ON usuarios.id = posts.user_id
+            WHERE posts.id = ?
         ");
 
-        $stmt->execute([$user_id,$id]);
+        $stmt->execute([$user_id, $id]);
 
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if(!$post){
-            Response::json(['error'=>'Post no encontrado'],404);
+        if (!$post) {
+            Response::json(['error' => 'Post no encontrado'], 404);
         }
 
         $stmt = $pdo->prepare("
@@ -430,8 +421,8 @@ class PostController {
                 comments.*,
                 usuarios.username
             FROM comments
-            JOIN usuarios ON usuarios.id=comments.user_id
-            WHERE comments.post_id=?
+            JOIN usuarios ON usuarios.id = comments.user_id
+            WHERE comments.post_id = ?
             ORDER BY comments.created_at ASC
         ");
 
@@ -440,9 +431,8 @@ class PostController {
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         Response::json([
-            "post"=>$post,
-            "comments"=>$comments
+            'post' => $post,
+            'comments' => $comments
         ]);
     }
-
 }

@@ -11,9 +11,12 @@ class Comment {
         $stmt = $pdo->prepare("
             INSERT INTO comments (user_id, post_id, content, parent_id)
             VALUES (?, ?, ?, ?)
+            RETURNING id
         ");
 
-        return $stmt->execute([$user_id, $post_id, $content, $parent_id]);
+        $stmt->execute([$user_id, $post_id, $content, $parent_id]);
+
+        return $stmt->fetchColumn();
     }
 
     public static function delete($comment_id, $user_id) {

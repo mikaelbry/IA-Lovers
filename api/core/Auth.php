@@ -29,14 +29,14 @@ class Auth {
 
         $pdo = Database::getConnection();
 
-        $pdo->exec("DELETE FROM user_tokens WHERE expires_at < NOW()");
+        $pdo->exec("DELETE FROM user_tokens WHERE expires_at < CURRENT_TIMESTAMP");
 
         $stmt = $pdo->prepare("
             SELECT usuarios.*
             FROM user_tokens
             JOIN usuarios ON usuarios.id = user_tokens.user_id
             WHERE user_tokens.token = ?
-            AND user_tokens.expires_at > NOW()
+            AND user_tokens.expires_at > CURRENT_TIMESTAMP
         ");
 
         $stmt->execute([$token]);

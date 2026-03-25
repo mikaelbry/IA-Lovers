@@ -59,7 +59,7 @@ class AuthController {
 
         $stmt = $pdo->prepare("
             INSERT INTO user_tokens (user_id, token, expires_at)
-            VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))
+            VALUES (?, ?, CURRENT_TIMESTAMP + INTERVAL '7 days')
         ");
 
         $stmt->execute([$user['id'], $token]);

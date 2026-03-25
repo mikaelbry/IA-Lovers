@@ -21,7 +21,7 @@ class UserController {
         $followers = $followersStmt->fetchColumn();
 
         $stmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 posts.*,
                 usuarios.username,
 
@@ -30,13 +30,13 @@ class UserController {
                 (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 
                 EXISTS(
-                    SELECT 1 FROM likes 
-                    WHERE likes.post_id = posts.id 
+                    SELECT 1 FROM likes
+                    WHERE likes.post_id = posts.id
                     AND likes.user_id = ?
                 ) as liked_by_user,
 
                 (
-                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    SELECT STRING_AGG(tags.name, ',' ORDER BY tags.name)
                     FROM post_tags
                     JOIN tags ON tags.id = post_tags.tag_id
                     WHERE post_tags.post_id = posts.id
@@ -52,9 +52,9 @@ class UserController {
         $posts = $stmt->fetchAll();
 
         Response::json([
-            "user" => $user,
-            "followers" => $followers,
-            "posts" => $posts
+            'user' => $user,
+            'followers' => $followers,
+            'posts' => $posts
         ]);
     }
 
@@ -62,16 +62,16 @@ class UserController {
 
         $username = $_GET['username'] ?? null;
 
-        if(!$username){
-            Response::json(["error"=>"Username requerido"],400);
+        if (!$username) {
+            Response::json(['error' => 'Username requerido'], 400);
         }
 
         $pdo = Database::getConnection();
 
         $user = User::findByUsername($username);
 
-        if(!$user){
-            Response::json(["error"=>"Usuario no encontrado"],404);
+        if (!$user) {
+            Response::json(['error' => 'Usuario no encontrado'], 404);
         }
 
         $user_id = $user['id'];
@@ -81,13 +81,14 @@ class UserController {
         if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
             try {
                 $viewer = Middleware::auth();
-            } catch(Exception $e){}
+            } catch (Exception $e) {
+            }
         }
 
         $viewer_id = $viewer['id'] ?? null;
 
         $followersStmt = $pdo->prepare("
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM follows
             WHERE following_id = ?
         ");
@@ -96,21 +97,20 @@ class UserController {
 
         $isFollowing = false;
 
-        if($viewer_id){
-
+        if ($viewer_id) {
             $check = $pdo->prepare("
                 SELECT 1 FROM follows
                 WHERE follower_id = ?
                 AND following_id = ?
             ");
 
-            $check->execute([$viewer_id,$user_id]);
+            $check->execute([$viewer_id, $user_id]);
 
             $isFollowing = $check->fetch() ? true : false;
         }
 
         $postsStmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 posts.*,
                 usuarios.username,
 
@@ -118,13 +118,13 @@ class UserController {
                 (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 
                 EXISTS(
-                    SELECT 1 FROM likes 
-                    WHERE likes.post_id = posts.id 
+                    SELECT 1 FROM likes
+                    WHERE likes.post_id = posts.id
                     AND likes.user_id = ?
                 ) as liked_by_user,
 
                 (
-                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    SELECT STRING_AGG(tags.name, ',' ORDER BY tags.name)
                     FROM post_tags
                     JOIN tags ON tags.id = post_tags.tag_id
                     WHERE post_tags.post_id = posts.id
@@ -136,14 +136,14 @@ class UserController {
             ORDER BY posts.created_at DESC
         ");
 
-        $postsStmt->execute([$viewer_id,$user_id]);
+        $postsStmt->execute([$viewer_id, $user_id]);
         $posts = $postsStmt->fetchAll();
 
         Response::json([
-            "user"=>$user,
-            "followers"=>$followers,
-            "is_following"=>$isFollowing,
-            "posts"=>$posts
+            'user' => $user,
+            'followers' => $followers,
+            'is_following' => $isFollowing,
+            'posts' => $posts
         ]);
     }
 
@@ -152,7 +152,7 @@ class UserController {
         $user_id = $_GET['id'] ?? null;
 
         if (!$user_id) {
-            Response::json(["error"=>"Usuario requerido"],400);
+            Response::json(['error' => 'Usuario requerido'], 400);
         }
 
         $pdo = Database::getConnection();
@@ -162,7 +162,8 @@ class UserController {
         if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
             try {
                 $viewer = Middleware::auth();
-            } catch(Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
 
         $viewer_id = $viewer['id'] ?? null;
@@ -175,12 +176,12 @@ class UserController {
         $userStmt->execute([$user_id]);
         $user = $userStmt->fetch();
 
-        if(!$user){
-            Response::json(["error"=>"Usuario no encontrado"],404);
+        if (!$user) {
+            Response::json(['error' => 'Usuario no encontrado'], 404);
         }
 
         $followersStmt = $pdo->prepare("
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM follows
             WHERE following_id = ?
         ");
@@ -189,21 +190,20 @@ class UserController {
 
         $isFollowing = false;
 
-        if($viewer_id){
-
+        if ($viewer_id) {
             $check = $pdo->prepare("
                 SELECT 1 FROM follows
                 WHERE follower_id = ?
                 AND following_id = ?
             ");
 
-            $check->execute([$viewer_id,$user_id]);
+            $check->execute([$viewer_id, $user_id]);
 
             $isFollowing = $check->fetch() ? true : false;
         }
 
         $postsStmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 posts.*,
                 usuarios.username,
 
@@ -212,13 +212,13 @@ class UserController {
                 (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 
                 EXISTS(
-                    SELECT 1 FROM likes 
-                    WHERE likes.post_id = posts.id 
+                    SELECT 1 FROM likes
+                    WHERE likes.post_id = posts.id
                     AND likes.user_id = ?
                 ) as liked_by_user,
 
                 (
-                    SELECT GROUP_CONCAT(tags.name SEPARATOR ',')
+                    SELECT STRING_AGG(tags.name, ',' ORDER BY tags.name)
                     FROM post_tags
                     JOIN tags ON tags.id = post_tags.tag_id
                     WHERE post_tags.post_id = posts.id
@@ -230,15 +230,46 @@ class UserController {
             ORDER BY posts.created_at DESC
         ");
 
-        $postsStmt->execute([$viewer_id,$user_id]);
+        $postsStmt->execute([$viewer_id, $user_id]);
         $posts = $postsStmt->fetchAll();
 
         Response::json([
-            "user"=>$user,
-            "followers"=>$followers,
-            "is_following"=>$isFollowing,
-            "posts"=>$posts
+            'user' => $user,
+            'followers' => $followers,
+            'is_following' => $isFollowing,
+            'posts' => $posts
         ]);
     }
 
+    public static function update() {
+
+        $user = Middleware::auth();
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        $username = trim($data['username'] ?? $user['username']);
+        $email = trim($data['email'] ?? $user['email']);
+        $password = trim($data['password'] ?? '');
+
+        if ($username === '' || $email === '') {
+            Response::json(['error' => 'Username y email son obligatorios'], 400);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Response::json(['error' => 'Email invalido'], 400);
+        }
+
+        $existingEmail = User::findByEmail($email);
+        if ($existingEmail && (int) $existingEmail['id'] !== (int) $user['id']) {
+            Response::json(['error' => 'Email ya registrado'], 400);
+        }
+
+        $existingUsername = User::findByUsername($username);
+        if ($existingUsername && (int) $existingUsername['id'] !== (int) $user['id']) {
+            Response::json(['error' => 'Username ya registrado'], 400);
+        }
+
+        User::update($user['id'], $username, $email, $password !== '' ? $password : null);
+
+        Response::json(['message' => 'Perfil actualizado']);
+    }
 }

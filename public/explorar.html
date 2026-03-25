@@ -98,7 +98,7 @@
                 const tag = document.getElementById("searchTag").value;
                 const order = document.getElementById("orderSelect").value;
 
-                let url = `/IA-Lovers/api/posts?type=explore&title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
+                let url = `${apiUrl("/posts")}?type=explore&title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
 
                 if(cursor){
                     url += `&cursor=${cursor}`;

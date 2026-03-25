@@ -16,11 +16,17 @@ class CartController {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            INSERT IGNORE INTO cart (user_id, post_id)
-            VALUES (?, ?)
+            INSERT INTO cart (user_id, post_id)
+            SELECT ?, ?
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM cart
+                WHERE user_id = ?
+                AND post_id = ?
+            )
         ");
 
-        $stmt->execute([$user['id'], $post_id]);
+        $stmt->execute([$user['id'], $post_id, $user['id'], $post_id]);
 
         Response::json(['message' => 'Añadido al carrito']);
     }

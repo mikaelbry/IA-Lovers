@@ -11,7 +11,7 @@ class User {
 
         $stmt = $pdo->prepare("
             INSERT INTO usuarios (username, email, password_hash, created_at)
-            VALUES (?, ?, ?, NOW())
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
         ");
 
         return $stmt->execute([$username, $email, $hash]);

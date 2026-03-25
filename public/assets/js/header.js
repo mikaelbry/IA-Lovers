@@ -1,4 +1,8 @@
-window.API = "/IA-Lovers/api";
+window.APP_BASE = window.location.pathname.includes("/IA-Lovers/") ? "/IA-Lovers" : "";
+window.API = `${window.APP_BASE}/api`;
+window.PUBLIC_BASE = `${window.APP_BASE}/public`;
+window.apiUrl = (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;
+window.publicUrl = (path = "") => `${window.PUBLIC_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 window.token = localStorage.getItem("token");
 
 document.addEventListener("DOMContentLoaded", () => {

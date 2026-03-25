@@ -24,26 +24,40 @@
         </div>
         <script src="assets/js/header.js"></script>
         <script defer src="assets/js/posts.js"></script>
-<script>
+        <script>
 const token = localStorage.getItem("token");
 let myUser = null;
 let myFollowing = [];
 
-fetch("/IA-Lovers/api/index.php/users/profile", {
-    headers: { "Authorization": "Bearer " + token }
-})
-.then(res => res.json())
-.then(async data => {
+if (!token) {
+    window.location.href = "login.html";
+}
+
+async function requestJson(url, options = {}) {
+    const res = await fetch(url, options);
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.error || "Error");
+    }
+
+    return data;
+}
+
+async function loadProfile() {
+    const data = await requestJson(apiUrl("/users/profile"), {
+        headers: { Authorization: "Bearer " + token }
+    });
 
     myUser = data.user;
 
-    const followersData = await fetch("/IA-Lovers/api/index.php/users/followers", {
-        headers: { "Authorization": "Bearer " + token }
-    }).then(r => r.json());
+    const followersData = await requestJson(apiUrl("/users/followers"), {
+        headers: { Authorization: "Bearer " + token }
+    });
 
-    const followingData = await fetch("/IA-Lovers/api/index.php/users/following", {
-        headers: { "Authorization": "Bearer " + token }
-    }).then(r => r.json());
+    const followingData = await requestJson(apiUrl("/users/following"), {
+        headers: { Authorization: "Bearer " + token }
+    });
 
     myFollowing = followingData;
 
@@ -58,14 +72,14 @@ fetch("/IA-Lovers/api/index.php/users/profile", {
         <hr>
     `;
 
-    renderPosts(data.posts,"posts");
+    renderPosts(data.posts, "posts");
 
     document.getElementById("followersBtn")
         .addEventListener("click", () => showFollowPopup("Seguidores", followersData));
 
     document.getElementById("followingBtn")
         .addEventListener("click", () => showFollowPopup("Siguiendo", followingData));
-});
+}
 
 const modal = document.getElementById("followModal");
 const closeBtn = document.getElementById("closeModal");
@@ -73,15 +87,17 @@ const closeBtn = document.getElementById("closeModal");
 closeBtn.onclick = closeModal;
 
 modal.addEventListener("click", (e) => {
-    if(e.target === modal) closeModal();
+    if (e.target === modal) {
+        closeModal();
+    }
 });
 
-function closeModal(){
+function closeModal() {
     modal.classList.add("hidden");
     document.body.style.overflow = "";
 }
 
-function showFollowPopup(title, list){
+function showFollowPopup(title, list) {
     document.body.style.overflow = "hidden";
 
     const ul = document.getElementById("modalList");
@@ -89,19 +105,17 @@ function showFollowPopup(title, list){
     ul.innerHTML = "";
 
     list.forEach(u => {
-
         const isMe = u.username === myUser.username;
         const isFollowing = myFollowing.some(f => f.username === u.username);
 
         ul.innerHTML += `
             <li class="follow-item">
-                <a href="/IA-Lovers/public/user.html?username=${encodeURIComponent(u.username)}">
+                <a href="${publicUrl("user.html")}?username=${encodeURIComponent(u.username)}">
                     ${isMe ? u.username + " (Tú)" : u.username}
                 </a>
-
                 ${
                     isMe ? "" :
-                    `<button class="follow-btn ${isFollowing ? "unfollow" : ""}"
+                    `<button class="follow-btn ${isFollowing ? "unfollow" : ""}" type="button"
                         onclick="toggleFollow('${u.username}')">
                         ${isFollowing ? "Siguiendo" : "Seguir"}
                     </button>`
@@ -113,16 +127,18 @@ function showFollowPopup(title, list){
     modal.classList.remove("hidden");
 }
 
-function toggleFollow(username){
-    fetch("/IA-Lovers/api/index.php/follow",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization":"Bearer "+token
+function toggleFollow(username) {
+    fetch(apiUrl("/follow"), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
         },
-        body:JSON.stringify({username})
-    }).then(()=>location.reload());
+        body: JSON.stringify({ username })
+    }).then(() => location.reload());
 }
-</script>
+
+loadProfile().catch(error => alert(error.message));
+        </script>
     </body>
 </html>
