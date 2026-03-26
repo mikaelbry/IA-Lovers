@@ -1,22 +1,30 @@
+const postsPathname = window.location.pathname;
+const postsWebIndex = postsPathname.indexOf("/web/");
+const postsPublicIndex = postsPathname.indexOf("/public/");
+const postsApiIndex = postsPathname.indexOf("/api/");
+
 window.APP_BASE ??= (() => {
     const path = window.location.pathname;
-    const publicIndex = path.indexOf("/public/");
-    const apiIndex = path.indexOf("/api/");
 
-    if (publicIndex > 0) {
-        return path.slice(0, publicIndex);
+    if (postsWebIndex > 0) {
+        return path.slice(0, postsWebIndex);
     }
 
-    if (apiIndex > 0) {
-        return path.slice(0, apiIndex);
+    if (postsPublicIndex > 0) {
+        return path.slice(0, postsPublicIndex);
+    }
+
+    if (postsApiIndex > 0) {
+        return path.slice(0, postsApiIndex);
     }
 
     return "";
 })();
 window.API ??= `${window.APP_BASE}/api`;
-window.PUBLIC_BASE ??= `${window.APP_BASE}/public`;
+window.WEB_BASE ??= (postsWebIndex >= 0 || postsPublicIndex >= 0) ? `${window.APP_BASE}/web` : window.APP_BASE;
 window.apiUrl ??= (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;
-window.publicUrl ??= (path = "") => `${window.PUBLIC_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+window.webUrl ??= (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+window.publicUrl ??= window.webUrl;
 window.token ??= localStorage.getItem("token");
 window.user = JSON.parse(localStorage.getItem("user"));
 

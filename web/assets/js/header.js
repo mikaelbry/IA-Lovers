@@ -1,22 +1,30 @@
+const headerPathname = window.location.pathname;
+const headerWebIndex = headerPathname.indexOf("/web/");
+const headerPublicIndex = headerPathname.indexOf("/public/");
+const headerApiIndex = headerPathname.indexOf("/api/");
+
 window.APP_BASE = (() => {
     const path = window.location.pathname;
-    const publicIndex = path.indexOf("/public/");
-    const apiIndex = path.indexOf("/api/");
 
-    if (publicIndex > 0) {
-        return path.slice(0, publicIndex);
+    if (headerWebIndex > 0) {
+        return path.slice(0, headerWebIndex);
     }
 
-    if (apiIndex > 0) {
-        return path.slice(0, apiIndex);
+    if (headerPublicIndex > 0) {
+        return path.slice(0, headerPublicIndex);
+    }
+
+    if (headerApiIndex > 0) {
+        return path.slice(0, headerApiIndex);
     }
 
     return "";
 })();
 window.API = `${window.APP_BASE}/api`;
-window.PUBLIC_BASE = `${window.APP_BASE}/public`;
+window.WEB_BASE = headerWebIndex >= 0 || headerPublicIndex >= 0 ? `${window.APP_BASE}/web` : window.APP_BASE;
 window.apiUrl = (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;
-window.publicUrl = (path = "") => `${window.PUBLIC_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+window.webUrl = (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+window.publicUrl = window.webUrl;
 window.token = localStorage.getItem("token");
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -39,13 +47,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ===== CENTRO =====
     let centerHTML = `
-        <a href="index.html" data-page="index">Inicio</a>
-        <a href="explorar.html" data-page="explorar">Explorar</a>
+        <a href="${webUrl("index.html")}" data-page="index">Inicio</a>
+        <a href="${webUrl("explorar.html")}" data-page="explorar">Explorar</a>
     `;
 
     if (user) {
         centerHTML += `
-            <a href="following.html" data-page="following">Siguiendo</a>
+            <a href="${webUrl("following.html")}" data-page="following">Siguiendo</a>
         `;
     }
 
@@ -56,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (user) {
         rightHTML = `
-            <a href="create.html" data-page="create">Publicar</a>
+            <a href="${webUrl("create.html")}" data-page="create">Publicar</a>
             <a href="notifications.html" class="icon-btn">
                 <svg class="icon" viewBox="0 0 24 24" fill="none">
                     <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" 
@@ -65,15 +73,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </a>
-            <a href="profile.html" data-page="profile">${user.username}</a>
+            <a href="${webUrl("profile.html")}" data-page="profile">${user.username}</a>
             <a href="#" id="logout">Salir</a>
         `;
     } else {
         const current = window.location.pathname.split("/").pop();
 
         rightHTML = `
-            <a href="login.html?redirect=${current}">Login</a>
-            <a href="register.html?redirect=${current}" class="btn-primary">Registro</a>
+            <a href="${webUrl("login.html")}?redirect=${current}">Login</a>
+            <a href="${webUrl("register.html")}?redirect=${current}" class="btn-primary">Registro</a>
         `;
     }
 
@@ -101,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (user) {
         document.getElementById("logout").addEventListener("click", () => {
             localStorage.clear();
-            window.location.href = "index.html";
+            window.location.href = webUrl("index.html");
         });
     }
 

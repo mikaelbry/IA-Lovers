@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Post</title>
+        <link rel="shortcut icon" href="assets/images/logo.png" />
+        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/post.css">
+        <link rel="stylesheet" href="assets/css/header.css">
+        <style>
+            .post-meta { font-size: 13px; color: #777; margin-bottom: 10px; }
+            .post-tags { margin-top: 10px; }
+            .post-tags .tag { background: #eee; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin-right: 5px; }
+            .comment-date { font-size: 12px; color: #888; margin-bottom: 5px; }
+            .reply-back { margin-bottom: 15px; background: #2481ce; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+            .comment-actions button, .comment-actions .view-replies { font-size: 13px; color: #2481ce; background: none; border: none; cursor: pointer; margin-right: 10px; }
+        </style>
+    </head>
+    <body>
+
+    <nav class="navbar"></nav>
+
+    <section class="feed">
+        <button class="back-btn" onclick="goBack()">← Volver</button>
+        <div id="post"></div>
+        <div id="comments"></div>
+    </section>
+
+    <script src="assets/js/header.js?v=20260326-2"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get("id");
+        const token = localStorage.getItem("token");
+
+        let allComments = [];
+        let commentStack = [];
+
+        function formatDate(dateString) {
+            const d = new Date(dateString);
+            return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")} - ${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`;
+        }
+
+        async function requestJson(url, options = {}) {
+            const res = await fetch(url, options);
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Error");
+            }
+
+            return data;
+        }
+
+        async function loadPost() {
+            if (!postId) {
+                document.getElementById("post").innerHTML = "<p>Post no encontrado.</p>";
+                return;
+            }
+
+            const data = await requestJson(apiUrl(`/posts/show?id=${encodeURIComponent(postId)}`), {
+                headers: token ? { Authorization: "Bearer " + token } : {}
+            });
+
+            const post = data.post;
+            const tagsHTML = post.tags
+                ? post.tags.split(",").map(t => `
+                    <span class="tag" onclick="goToTag('${encodeURIComponent(t.trim())}', event)">
+                        #${t.trim()}
+                    </span>
+                `).join(" ")
+                : "";
+
+            document.getElementById("post").innerHTML = `
+                <h2>${post.username}</h2>
+                <div class="post-meta">${formatDate(post.created_at)}</div>
+                <img src="${post.file_path}" class="post-image2">
+                <div class="post-title">${post.title}</div>
+                <div class="post-description">${post.description ?? ""}</div>
+                <div class="post-tags">${tagsHTML}</div>
+                <div class="post-actions">
+                    <button id="likeBtn" type="button" class="like-btn ${post.liked_by_user == 1 ? "liked" : ""}" onclick="toggleLike()">
+                        ❤️ <span id="likeCount">${post.likes_count}</span>
+                    </button>
+                    <span id="commentCount">💬 ${post.comments_count}</span>
+                </div>
+                <hr>
+            `;
+
+            allComments = Array.isArray(data.comments) ? data.comments : [];
+
+            const activeThreadId = commentStack[commentStack.length - 1] || null;
+            renderComments(activeThreadId);
+        }
+
+        async function toggleLike() {
+            if (!token) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            try {
+                const data = await requestJson(apiUrl("/posts/toggle-like"), {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + token
+                    },
+                    body: JSON.stringify({ post_id: postId })
+                });
+
+                const btn = document.getElementById("likeBtn");
+                const countEl = document.getElementById("likeCount");
+                const count = parseInt(countEl.textContent, 10);
+
+                if (data.liked) {
+                    btn.classList.add("liked");
+                    countEl.textContent = count + 1;
+                } else {
+                    btn.classList.remove("liked");
+                    countEl.textContent = count - 1;
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function buildTree(comments) {
+            const map = {};
+            const roots = [];
+
+            comments.forEach(comment => {
+                map[comment.id] = { ...comment, children: [] };
+            });
+
+            Object.values(map).forEach(comment => {
+                if (comment.parent_id && map[comment.parent_id]) {
+                    map[comment.parent_id].children.push(comment);
+                } else {
+                    roots.push(comment);
+                }
+            });
+
+            return roots;
+        }
+
+        function flattenComments(comment, map) {
+            map[comment.id] = comment;
+            comment.children.forEach(child => flattenComments(child, map));
+        }
+
+        function countAllDescendants(comment) {
+            let count = comment.children.length;
+            comment.children.forEach(child => {
+                count += countAllDescendants(child);
+            });
+            return count;
+        }
+
+        function renderComments(parentId) {
+            const container = document.getElementById("comments");
+            const tree = buildTree(allComments);
+
+            container.innerHTML = "";
+
+            if (commentStack.length > 0) {
+                const backBtn = document.createElement("button");
+                backBtn.className = "reply-back";
+                backBtn.textContent = "← Volver";
+                backBtn.onclick = goBackComment;
+                container.appendChild(backBtn);
+            }
+
+            let commentsToRender = tree;
+
+            if (parentId) {
+                const flatMap = {};
+                tree.forEach(root => flattenComments(root, flatMap));
+
+                const parentComment = flatMap[parentId];
+                commentsToRender = parentComment ? parentComment.children : [];
+
+                if (parentComment) {
+                    const parentDiv = renderSingleComment(parentComment, true);
+                    container.appendChild(parentDiv);
+                    renderFormAfter(parentDiv, parentId);
+                }
+            } else {
+                renderForm(container, null, true);
+            }
+
+            commentsToRender.forEach(comment => {
+                container.appendChild(renderSingleComment(comment, false));
+            });
+        }
+
+        function renderSingleComment(comment, isParent = false) {
+            const div = document.createElement("div");
+            div.className = "comment";
+            div.style.marginLeft = isParent ? "0px" : "20px";
+
+            const descendants = countAllDescendants(comment);
+
+            div.innerHTML = `
+                <strong>${comment.username}</strong>
+                <div class="comment-date">${formatDate(comment.created_at)}</div>
+                <p>${comment.content}</p>
+                <div class="comment-actions">
+                    <button type="button" onclick="enterThread(${comment.id})">Responder</button>
+                    ${descendants > 0 ? `<span class="view-replies" onclick="enterThread(${comment.id})">${descendants} respuestas</span>` : ""}
+                </div>
+            `;
+
+            return div;
+        }
+
+        function renderForm(container, parentId, isRoot = false) {
+            const form = document.createElement("div");
+            form.className = "comment-form";
+            form.innerHTML = `
+                <textarea id="commentInput" placeholder="Escribe un comentario..."></textarea>
+                <button type="button" onclick="addComment(${parentId === null ? "null" : parentId})">Comentar</button>
+            `;
+
+            if (isRoot) {
+                container.prepend(form);
+            } else {
+                container.appendChild(form);
+            }
+        }
+
+        function renderFormAfter(commentDiv, parentId) {
+            const form = document.createElement("div");
+            form.className = "comment-form";
+            form.innerHTML = `
+                <textarea id="commentInput" placeholder="Escribe un comentario..."></textarea>
+                <button type="button" onclick="addComment(${parentId})">Comentar</button>
+            `;
+            commentDiv.after(form);
+        }
+
+        function enterThread(commentId) {
+            commentStack.push(commentId);
+            renderComments(commentId);
+        }
+
+        function goBackComment() {
+            commentStack.pop();
+            renderComments(commentStack[commentStack.length - 1] || null);
+        }
+
+        async function addComment(parentId = null) {
+            if (!token) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const input = document.querySelector("#commentInput");
+            const content = input?.value.trim();
+
+            if (!content) {
+                return;
+            }
+
+            try {
+                await requestJson(apiUrl("/comments/create"), {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + token
+                    },
+                    body: JSON.stringify({ post_id: postId, content, parent_id: parentId })
+                });
+
+                await loadPost();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function goToTag(tag, event) {
+            event.stopPropagation();
+            window.location.href = `${publicUrl("explorar.html")}?tag=${tag}`;
+        }
+
+        loadPost().catch(error => alert(error.message));
+        </script>
+    </body>
+</html>

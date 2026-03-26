@@ -46,7 +46,7 @@ class Storage {
         ], $body);
 
         if ($response['status'] < 200 || $response['status'] >= 300) {
-            throw new RuntimeException('Error subiendo imagen a Supabase Storage: ' . $response['body']);
+            throw new RuntimeException('Error subiendo imagen: ' . $response['body']);
         }
     }
 
@@ -65,7 +65,7 @@ class Storage {
         ], $payload);
 
         if ($response['status'] < 200 || $response['status'] >= 300) {
-            throw new RuntimeException('Error eliminando imagen de Supabase Storage: ' . $response['body']);
+            throw new RuntimeException('Error eliminando imagen: ' . $response['body']);
         }
     }
 
