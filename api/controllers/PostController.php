@@ -183,9 +183,7 @@ class PostController {
 
         $user_id = null;
 
-        $headers = getallheaders();
-
-        if (isset($headers['Authorization'])) {
+        if (Auth::hasAuthorizationHeader()) {
             try {
                 $user = Auth::user();
                 $user_id = $user['id'];
@@ -364,9 +362,7 @@ class PostController {
 
         $user_id = null;
 
-        $headers = getallheaders();
-
-        if (isset($headers['Authorization'])) {
+        if (Auth::hasAuthorizationHeader()) {
             try {
                 $user = Auth::user();
                 $user_id = $user['id'];

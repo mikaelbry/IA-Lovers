@@ -6,16 +6,7 @@ require_once __DIR__ . '/Response.php';
 class Auth {
 
     public static function user() {
-
-        $headers = getallheaders();
-        $authHeader = null;
-
-        foreach ($headers as $key => $value) {
-            if (strtolower($key) === 'authorization') {
-                $authHeader = $value;
-                break;
-            }
-        }
+        $authHeader = self::authorizationHeader();
 
         if (!$authHeader) {
             Response::json(['error' => 'Login requerido'], 401);
@@ -47,5 +38,35 @@ class Auth {
         }
 
         return $user;
+    }
+
+    public static function hasAuthorizationHeader() {
+        return self::authorizationHeader() !== null;
+    }
+
+    private static function authorizationHeader() {
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+
+            foreach ($headers as $key => $value) {
+                if (strtolower($key) === 'authorization') {
+                    return $value;
+                }
+            }
+        }
+
+        $serverKeys = [
+            'HTTP_AUTHORIZATION',
+            'Authorization',
+            'REDIRECT_HTTP_AUTHORIZATION',
+        ];
+
+        foreach ($serverKeys as $key) {
+            if (!empty($_SERVER[$key])) {
+                return $_SERVER[$key];
+            }
+        }
+
+        return null;
     }
 }
