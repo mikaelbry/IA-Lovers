@@ -32,8 +32,13 @@ class Router {
     private function normalizeUri($uri) {
         $uri = parse_url($uri, PHP_URL_PATH) ?? '/';
 
-        $uri = str_replace('/IA-Lovers/api', '', $uri);
-        $uri = str_replace('/api', '', $uri);
+        $apiPos = strpos($uri, '/api/');
+        if ($apiPos !== false) {
+            $uri = substr($uri, $apiPos + 4);
+        } elseif (substr($uri, -4) === '/api') {
+            $uri = '/';
+        }
+
         $uri = str_replace('/index.php', '', $uri);
 
         $uri = '/' . ltrim($uri, '/');

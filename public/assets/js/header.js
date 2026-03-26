@@ -1,4 +1,18 @@
-window.APP_BASE = window.location.pathname.includes("/IA-Lovers/") ? "/IA-Lovers" : "";
+window.APP_BASE = (() => {
+    const path = window.location.pathname;
+    const publicIndex = path.indexOf("/public/");
+    const apiIndex = path.indexOf("/api/");
+
+    if (publicIndex > 0) {
+        return path.slice(0, publicIndex);
+    }
+
+    if (apiIndex > 0) {
+        return path.slice(0, apiIndex);
+    }
+
+    return "";
+})();
 window.API = `${window.APP_BASE}/api`;
 window.PUBLIC_BASE = `${window.APP_BASE}/public`;
 window.apiUrl = (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;

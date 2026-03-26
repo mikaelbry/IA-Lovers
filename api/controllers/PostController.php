@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Middleware.php';
+require_once __DIR__ . '/../core/Storage.php';
 
 class PostController {
 
@@ -42,17 +43,8 @@ class PostController {
             'image/webp' => '.webp'
         };
 
-        $uploadDir = __DIR__ . '/../../storage/uploads/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
         $filename = bin2hex(random_bytes(16)) . $extension;
-        $targetPath = $uploadDir . $filename;
-
-        move_uploaded_file($file['tmp_name'], $targetPath);
-
-        $file_path = '/IA-Lovers/storage/uploads/' . $filename;
+        Storage::uploadUserFile($user['id'], $file['tmp_name'], $filename, $mime);
 
         $title = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -68,60 +60,66 @@ class PostController {
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("
-            INSERT INTO posts (user_id, title, description, file_path, mime_type, size_bytes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            RETURNING id
-        ");
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO posts (user_id, title, description, file_path, mime_type, size_bytes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                RETURNING id
+            ");
 
-        $stmt->execute([
-            $user['id'],
-            htmlspecialchars($title),
-            htmlspecialchars($description),
-            $file_path,
-            $mime,
-            $file['size']
-        ]);
+            $stmt->execute([
+                $user['id'],
+                htmlspecialchars($title),
+                htmlspecialchars($description),
+                $filename,
+                $mime,
+                $file['size']
+            ]);
 
-        $postId = $stmt->fetchColumn();
+            $postId = $stmt->fetchColumn();
 
-        $tags = json_decode($_POST['tags'] ?? '[]', true);
+            $tags = json_decode($_POST['tags'] ?? '[]', true);
 
-        if ($tags) {
-            foreach ($tags as $name) {
-                $name = trim($name);
+            if ($tags) {
+                foreach ($tags as $name) {
+                    $name = trim($name);
 
-                if (strlen($name) > 24) {
-                    continue;
+                    if (strlen($name) > 24) {
+                        continue;
+                    }
+
+                    $name = ucfirst(strtolower($name));
+
+                    $stmt = $pdo->prepare("SELECT id FROM tags WHERE LOWER(name) = LOWER(?)");
+                    $stmt->execute([$name]);
+
+                    $tag = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                    if (!$tag) {
+                        $insert = $pdo->prepare("
+                            INSERT INTO tags (name)
+                            VALUES (?)
+                            RETURNING id
+                        ");
+                        $insert->execute([$name]);
+                        $tagId = $insert->fetchColumn();
+                    } else {
+                        $tagId = $tag['id'];
+                    }
+
+                    $pdo->prepare("
+                        INSERT INTO post_tags (post_id, tag_id)
+                        VALUES (?, ?)
+                    ")->execute([$postId, $tagId]);
                 }
-
-                $name = ucfirst(strtolower($name));
-
-                $stmt = $pdo->prepare("SELECT id FROM tags WHERE LOWER(name) = LOWER(?)");
-                $stmt->execute([$name]);
-
-                $tag = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                if (!$tag) {
-                    $insert = $pdo->prepare("
-                        INSERT INTO tags (name)
-                        VALUES (?)
-                        RETURNING id
-                    ");
-                    $insert->execute([$name]);
-                    $tagId = $insert->fetchColumn();
-                } else {
-                    $tagId = $tag['id'];
-                }
-
-                $pdo->prepare("
-                    INSERT INTO post_tags (post_id, tag_id)
-                    VALUES (?, ?)
-                ")->execute([$postId, $tagId]);
             }
-        }
 
-        $pdo->commit();
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            Storage::deleteFile($user['id'], $filename);
+            throw $e;
+        }
 
         Response::json(['message' => 'Post creado', 'id' => $postId]);
     }
@@ -158,12 +156,7 @@ class PostController {
             $pdo->prepare("DELETE FROM comments WHERE post_id = ?")->execute([$post_id]);
             $pdo->prepare("DELETE FROM post_tags WHERE post_id = ?")->execute([$post_id]);
             $pdo->prepare("DELETE FROM posts WHERE id = ?")->execute([$post_id]);
-
-            $filePath = __DIR__ . "/../../" . str_replace("/IA-Lovers/", "", $post['file_path']);
-
-            if (file_exists($filePath)) {
-                unlink($filePath);
-            }
+            Storage::deleteFile($post['user_id'], $post['file_path']);
 
             $pdo->commit();
 
@@ -307,7 +300,7 @@ class PostController {
         $stmt = $pdo->prepare($sql);
         $stmt->execute(array_merge([$user_id], $params));
 
-        $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $posts = Storage::mapPosts($stmt->fetchAll(PDO::FETCH_ASSOC));
 
         $nextCursor = null;
         $nextCursorLikes = null;
@@ -415,6 +408,8 @@ class PostController {
         if (!$post) {
             Response::json(['error' => 'Post no encontrado'], 404);
         }
+
+        $post = Storage::mapPost($post);
 
         $stmt = $pdo->prepare("
             SELECT

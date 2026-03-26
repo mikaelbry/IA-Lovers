@@ -4,6 +4,7 @@ require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
+require_once __DIR__ . '/../core/Storage.php';
 
 class UserController {
 
@@ -49,7 +50,7 @@ class UserController {
         ");
 
         $stmt->execute([$user['id'], $user['id']]);
-        $posts = $stmt->fetchAll();
+        $posts = Storage::mapPosts($stmt->fetchAll());
 
         Response::json([
             'user' => $user,
@@ -137,7 +138,7 @@ class UserController {
         ");
 
         $postsStmt->execute([$viewer_id, $user_id]);
-        $posts = $postsStmt->fetchAll();
+        $posts = Storage::mapPosts($postsStmt->fetchAll());
 
         Response::json([
             'user' => $user,
@@ -231,7 +232,7 @@ class UserController {
         ");
 
         $postsStmt->execute([$viewer_id, $user_id]);
-        $posts = $postsStmt->fetchAll();
+        $posts = Storage::mapPosts($postsStmt->fetchAll());
 
         Response::json([
             'user' => $user,
