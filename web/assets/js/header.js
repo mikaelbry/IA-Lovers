@@ -73,7 +73,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </a>
-            <a href="${webUrl("profile.html")}" data-page="profile">${user.username}</a>
+            <div class="nav-user-menu">
+                <a href="${webUrl("profile.html")}" data-page="profile" class="nav-user-trigger">
+                    <span class="nav-user-label">${user.username}</span>
+                    <svg class="nav-user-caret" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <div class="nav-user-dropdown">
+                    <a href="${webUrl("profile.html")}" class="nav-user-option">Perfil</a>
+                    <a href="${webUrl("profile_settings.html")}" class="nav-user-option">Ajustes</a>
+                </div>
+            </div>
             <a href="#" id="logout">Salir</a>
         `;
     } else {
@@ -95,7 +106,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "explorar.html": "explorar",
         "following.html": "following",
         "create.html": "create",
-        "profile.html": "profile"
+        "profile.html": "profile",
+        "profile_settings.html": "profile"
     };
 
     const currentKey = map[currentPage];

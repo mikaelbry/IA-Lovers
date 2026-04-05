@@ -14,7 +14,6 @@ require_once __DIR__ . '/core/RateLimiter.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/PostController.php';
 require_once __DIR__ . '/controllers/UserController.php';
-require_once __DIR__ . '/controllers/CartController.php';
 require_once __DIR__ . '/controllers/FollowController.php';
 require_once __DIR__ . '/controllers/NotificationController.php';
 require_once __DIR__ . '/controllers/CommentController.php';
@@ -29,9 +28,12 @@ $router = new Router();
 $router->get('/users/profile', fn() => UserController::profile());
 $router->get('/users/public', fn() => UserController::publicProfile());
 $router->get('/users/username', fn() => UserController::profileByUsername());
+$router->get('/users/check-username', fn() => UserController::checkUsername());
 $router->get('/users/followers', fn() => FollowController::followers());
 $router->get('/users/following', fn() => FollowController::following());
 $router->post('/user/update', fn() => UserController::update());
+$router->post('/user/avatar', fn() => UserController::updateAvatar());
+$router->post('/user/delete', fn() => UserController::delete());
 
 /* =======================
    POSTS

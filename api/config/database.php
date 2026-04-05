@@ -31,11 +31,17 @@ class Database {
 
         $sslmode = self::env('DB_SSLMODE', 'require');
         $hostaddr = self::env('DB_HOSTADDR');
+        $connectTimeout = self::env('DB_CONNECT_TIMEOUT');
+        $emulatePrepares = self::envBool('DB_EMULATE_PREPARES', (string) $port === '6543');
 
         $dsn = "pgsql:host=$host;port=$port;dbname=$db;sslmode=$sslmode";
 
         if ($hostaddr) {
             $dsn .= ";hostaddr=$hostaddr";
+        }
+
+        if ($connectTimeout) {
+            $dsn .= ";connect_timeout=$connectTimeout";
         }
 
         try {
@@ -46,14 +52,14 @@ class Database {
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_EMULATE_PREPARES => $emulatePrepares,
                 ]
             );
         } catch (PDOException $e) {
             $message = $e->getMessage();
 
             if (stripos($message, 'could not translate host name') !== false) {
-                $message .= ' | Error de conexión con la base de datos.';
+                $message .= ' | Error de conexion con la base de datos.';
             }
 
             throw new RuntimeException($message, 0, $e);
@@ -76,6 +82,26 @@ class Database {
         }
 
         return $value;
+    }
+
+    private static function envBool($key, $default = null) {
+        $value = self::env($key);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+            return true;
+        }
+
+        if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+            return false;
+        }
+
+        return $default;
     }
 
     private static function loadEnv() {

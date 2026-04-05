@@ -26,7 +26,11 @@ class User {
 
     public static function findById($id) {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("SELECT id, username, email, created_at FROM usuarios WHERE id = ?");
+        $stmt = $pdo->prepare("
+            SELECT id, username, email, created_at, avatar_path
+            FROM usuarios
+            WHERE id = ?
+        ");
         $stmt->execute([$id]);
         return $stmt->fetch();
     }
@@ -34,7 +38,7 @@ class User {
     public static function findByUsername($username) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
-            SELECT id, username
+            SELECT id, username, avatar_path
             FROM usuarios
             WHERE username = ?
         ");
@@ -63,5 +67,16 @@ class User {
         ");
 
         return $stmt->execute([$username, $email, $id]);
+    }
+
+    public static function updateAvatar($id, $avatarPath) {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("
+            UPDATE usuarios
+            SET avatar_path = ?
+            WHERE id = ?
+        ");
+
+        return $stmt->execute([$avatarPath, $id]);
     }
 }

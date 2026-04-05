@@ -26,8 +26,22 @@
         <script src="assets/js/posts.js?v=20260326-2"></script>
         <script>
 const token = localStorage.getItem("token");
-let myUser = null;
-let myFollowing = [];
+const profileEl = document.getElementById("profile");
+const modal = document.getElementById("followModal");
+const modalTitle = document.getElementById("modalTitle");
+const modalList = document.getElementById("modalList");
+const pendingFollows = new Set();
+
+const state = {
+    currentUser: null,
+    viewedUser: null,
+    posts: [],
+    viewedFollowers: [],
+    viewedFollowing: [],
+    myFollowing: [],
+    isFollowingViewedUser: false,
+    modalType: null
+};
 
 function getUsernameFromLocation() {
     const params = new URLSearchParams(window.location.search);
@@ -45,19 +59,243 @@ async function requestJson(url, options = {}) {
     return data;
 }
 
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
+}
+
+function upsertUser(list, username) {
+    if (!list.some((user) => user.username === username)) {
+        list.push({ username });
+    }
+}
+
+function removeUser(list, username) {
+    return list.filter((user) => user.username !== username);
+}
+
+function getProfileUrl(targetUsername) {
+    if (state.currentUser && targetUsername === state.currentUser.username) {
+        return publicUrl("profile.html");
+    }
+
+    return `${publicUrl("user.html")}?username=${encodeURIComponent(targetUsername)}`;
+}
+
+function isFollowing(username) {
+    return state.myFollowing.some((user) => user.username === username);
+}
+
+function buildFollowButton(targetUsername) {
+    if (!token) {
+        return "";
+    }
+
+    const isMe = state.currentUser && targetUsername === state.currentUser.username;
+    const following = isFollowing(targetUsername);
+    const isPending = pendingFollows.has(targetUsername);
+
+    return `
+        <button
+            class="follow-btn ${isMe ? "follow-btn-self" : ""} ${following ? "unfollow" : ""} ${isPending ? "loading" : ""}"
+            type="button"
+            data-username="${escapeHtml(targetUsername)}"
+            ${isMe || isPending ? "disabled" : ""}>
+            ${isMe ? "Tu" : (isPending ? "Actualizando..." : (following ? "Siguiendo" : "Seguir"))}
+        </button>
+    `;
+}
+
+function buildMainFollowButton() {
+    if (!token || !state.viewedUser) {
+        return "";
+    }
+
+    const username = state.viewedUser.username;
+    const isPending = pendingFollows.has(username);
+
+    return `
+        <button
+            type="button"
+            class="profile-main-action ${state.isFollowingViewedUser ? "unfollow" : ""} ${isPending ? "loading" : ""}"
+            data-main-follow="${escapeHtml(username)}"
+            ${isPending ? "disabled" : ""}>
+            ${isPending ? "Actualizando..." : (state.isFollowingViewedUser ? "Dejar de seguir" : "Seguir")}
+        </button>
+    `;
+}
+
+function getCurrentModalUsers() {
+    return state.modalType === "followers" ? state.viewedFollowers : state.viewedFollowing;
+}
+
+function renderProfile() {
+    if (!state.viewedUser) {
+        return;
+    }
+
+    const mainAction = buildMainFollowButton();
+    const avatarSrc = state.viewedUser.avatar_url || "assets/images/logo.jpg";
+
+    profileEl.innerHTML = `
+        <div class="profile-header">
+            <div class="profile-topbar">
+                <div class="profile-identity">
+                    <img src="${escapeHtml(avatarSrc)}" class="profile-pic">
+                    <div class="profile-meta">
+                        <div class="profile-title-row">
+                            <h2>${escapeHtml(state.viewedUser.username)}</h2>
+                        </div>
+                        <p class="profile-stats">
+                            <strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${state.viewedFollowers.length} |
+                            <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${state.viewedFollowing.length}
+                        </p>
+                    </div>
+                </div>
+                <div class="profile-actions">
+                    ${mainAction}
+                </div>
+            </div>
+            <hr class="profile-divider">
+        </div>
+    `;
+
+    document.getElementById("followersBtn")
+        .addEventListener("click", () => showFollowPopup("followers"));
+
+    document.getElementById("followingBtn")
+        .addEventListener("click", () => showFollowPopup("following"));
+}
+
+function renderModal() {
+    if (!state.modalType) {
+        return;
+    }
+
+    const users = getCurrentModalUsers();
+    modalTitle.textContent = state.modalType === "followers" ? "Seguidores" : "Siguiendo";
+
+    if (!users.length) {
+        modalList.innerHTML = '<li class="follow-empty">No hay usuarios para mostrar.</li>';
+        return;
+    }
+
+    modalList.innerHTML = users.map((user) => {
+        const username = user.username;
+        const isMe = state.currentUser && username === state.currentUser.username;
+        const label = isMe ? `${escapeHtml(username)} (Tu)` : escapeHtml(username);
+        const href = getProfileUrl(username);
+
+        return `
+            <li class="follow-item">
+                <a href="${href}">${label}</a>
+                ${buildFollowButton(username)}
+            </li>
+        `;
+    }).join("");
+}
+
+function showFollowPopup(type) {
+    state.modalType = type;
+    document.body.style.overflow = "hidden";
+    renderModal();
+    modal.classList.remove("hidden");
+}
+
+function closeModal() {
+    state.modalType = null;
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+}
+
+function syncFollowState(username, following) {
+    if (following) {
+        upsertUser(state.myFollowing, username);
+    } else {
+        state.myFollowing = removeUser(state.myFollowing, username);
+    }
+
+    if (state.viewedUser && username === state.viewedUser.username) {
+        state.isFollowingViewedUser = following;
+
+        if (state.currentUser) {
+            if (following) {
+                upsertUser(state.viewedFollowers, state.currentUser.username);
+            } else {
+                state.viewedFollowers = removeUser(state.viewedFollowers, state.currentUser.username);
+            }
+        }
+    }
+}
+
+async function toggleFollow(targetUsername) {
+    if (!token || pendingFollows.has(targetUsername)) {
+        return;
+    }
+
+    pendingFollows.add(targetUsername);
+    renderProfile();
+    renderModal();
+
+    try {
+        const response = await requestJson(apiUrl("/follow"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ username: targetUsername })
+        });
+
+        syncFollowState(targetUsername, response.following);
+        renderProfile();
+        renderModal();
+    } catch (error) {
+        alert(error.message);
+    } finally {
+        pendingFollows.delete(targetUsername);
+        renderProfile();
+        renderModal();
+    }
+}
+
+profileEl.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-main-follow]");
+
+    if (!button) {
+        return;
+    }
+
+    toggleFollow(button.dataset.mainFollow);
+});
+
+modalList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-username]");
+
+    if (!button) {
+        return;
+    }
+
+    toggleFollow(button.dataset.username);
+});
+
+document.getElementById("closeModal").onclick = closeModal;
+modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+        closeModal();
+    }
+});
+
 const username = getUsernameFromLocation();
 
 if (!username) {
     window.location.href = publicUrl("index.html");
 }
-
-const modal = document.getElementById("followModal");
-document.getElementById("closeModal").onclick = closeModal;
-modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-        closeModal();
-    }
-});
 
 async function loadUserPage() {
     if (token) {
@@ -67,14 +305,14 @@ async function loadUserPage() {
             });
 
             if (me?.user) {
-                myUser = me.user;
+                state.currentUser = me.user;
 
                 if (me.user.username === username) {
                     window.location.href = publicUrl("profile.html");
                     return;
                 }
 
-                myFollowing = await requestJson(apiUrl("/users/following"), {
+                state.myFollowing = await requestJson(apiUrl("/users/following"), {
                     headers: { Authorization: "Bearer " + token }
                 });
             }
@@ -86,100 +324,22 @@ async function loadUserPage() {
         headers: token ? { Authorization: "Bearer " + token } : {}
     });
 
-    const followersData = await requestJson(`${apiUrl("/users/followers")}?user_id=${data.user.id}`);
-    const followingData = await requestJson(`${apiUrl("/users/following")}?user_id=${data.user.id}`);
+    const [followers, following] = await Promise.all([
+        requestJson(`${apiUrl("/users/followers")}?user_id=${data.user.id}`),
+        requestJson(`${apiUrl("/users/following")}?user_id=${data.user.id}`)
+    ]);
 
-    const button = token
-        ? `<button type="button" onclick="toggleFollow('${escapeUsername(data.user.username)}')">
-            ${data.is_following ? "Dejar de seguir" : "Seguir"}
-        </button>`
-        : "";
+    state.viewedUser = data.user;
+    state.posts = data.posts;
+    state.viewedFollowers = followers;
+    state.viewedFollowing = following;
+    state.isFollowingViewedUser = Boolean(data.is_following);
 
-    document.getElementById("profile").innerHTML = `
-        <img src="assets/images/logo.jpg" class="profile-pic">
-        <h2>${data.user.username}</h2>
-        <p><strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${followersData.length} | <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${followingData.length}</p>
-        ${button}
-        <hr>
-    `;
-
-    renderPosts(data.posts, "posts");
-
-    document.getElementById("followersBtn")
-        .addEventListener("click", () => showFollowPopup("Seguidores", followersData));
-    document.getElementById("followingBtn")
-        .addEventListener("click", () => showFollowPopup("Siguiendo", followingData));
+    renderProfile();
+    renderPosts(state.posts, "posts");
 }
 
-function closeModal() {
-    modal.classList.add("hidden");
-    document.body.style.overflow = "";
-}
-
-function getProfileUrl(targetUsername) {
-    if (myUser && targetUsername === myUser.username) {
-        return publicUrl("profile.html");
-    }
-
-    return `${publicUrl("user.html")}?username=${encodeURIComponent(targetUsername)}`;
-}
-
-function escapeUsername(targetUsername) {
-    return String(targetUsername).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-}
-
-function buildFollowButton(targetUsername) {
-    if (!token) {
-        return "";
-    }
-
-    const isMe = myUser && targetUsername === myUser.username;
-    const isFollowing = myFollowing.some(f => f.username === targetUsername);
-
-    return `<button
-        class="follow-btn ${isMe ? "" : (isFollowing ? "unfollow" : "")}"
-        type="button"
-        onclick="${isMe ? "" : `toggleFollow('${escapeUsername(targetUsername)}')`}"
-        ${isMe ? "disabled" : ""}>
-        ${isMe ? "Tú" : (isFollowing ? "Siguiendo" : "Seguir")}
-    </button>`;
-}
-
-function showFollowPopup(title, list) {
-    document.body.style.overflow = "hidden";
-
-    const ul = document.getElementById("modalList");
-    document.getElementById("modalTitle").textContent = title;
-    ul.innerHTML = "";
-
-    list.forEach(u => {
-        const isMe = myUser && u.username === myUser.username;
-
-        ul.innerHTML += `
-            <li class="follow-item">
-                <a href="${getProfileUrl(u.username)}">
-                    ${isMe ? `${u.username} (Tú)` : u.username}
-                </a>
-                ${buildFollowButton(u.username)}
-            </li>
-        `;
-    });
-
-    modal.classList.remove("hidden");
-}
-
-function toggleFollow(targetUsername) {
-    fetch(apiUrl("/follow"), {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token
-        },
-        body: JSON.stringify({ username: targetUsername })
-    }).then(() => location.reload());
-}
-
-loadUserPage().catch(error => alert(error.message));
+loadUserPage().catch((error) => alert(error.message));
         </script>
     </body>
 </html>
