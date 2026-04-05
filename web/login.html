@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Login - IA Lovers</title>
@@ -7,19 +7,31 @@
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="assets/css/auth.css">
     <link rel="stylesheet" href="assets/css/header.css">
+    <script type="module" src="assets/js/vendor/altcha.min.js"></script>
 </head>
 <body>
 
 <nav class="navbar"></nav>
 <div class="auth-container">
-    <div class="auth-card">
+    <div class="auth-card auth-card-login">
         <h2>Bienvenido</h2>
-        <p>Inicia sesión para continuar</p>
+        <p>Inicia sesion para continuar</p>
 
-        <form onsubmit="login(event)">
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Contraseña" required>
-            <button class="btn-primary">Entrar</button>
+        <form class="auth-form" data-mode="login" onsubmit="login(event)">
+            <input type="email" id="email" placeholder="Email" autocomplete="email" required>
+            <input type="password" id="password" placeholder="Contrasena" autocomplete="current-password" required>
+
+            <div class="auth-altcha-shell">
+                <altcha-widget
+                    id="login-altcha"
+                    challengeurl="../api/altcha/challenge"
+                    blockspam="false"
+                    debug
+                ></altcha-widget>
+            </div>
+
+            <div class="auth-status" aria-live="polite"></div>
+            <button type="submit" class="btn-primary">Entrar</button>
         </form>
 
         <div class="auth-footer">
@@ -29,14 +41,9 @@
     </div>
 </div>
 
-<script>
-const params = new URLSearchParams(window.location.search);
-const redirect = params.get("redirect") || "index.html";
-document.getElementById("register-link").href = "register.html?redirect=" + redirect;
-</script>
-
-<script src="assets/js/header.js?v=20260326-2"></script>
-<script src="assets/js/auth.js?v=20260326-2"></script>
+<script src="assets/js/header.js?v=20260405-2"></script>
+<script src="assets/js/auth.js?v=20260405-2"></script>
 
 </body>
 </html>
+

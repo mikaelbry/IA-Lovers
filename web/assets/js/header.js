@@ -27,6 +27,35 @@ window.webUrl = (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path 
 window.publicUrl = window.webUrl;
 window.token = localStorage.getItem("token");
 
+const authRedirectFallback = "index.html";
+const blockedAuthRedirects = new Set(["login.html", "register.html"]);
+
+function sanitizeAuthRedirect(target) {
+    if (!target || typeof target !== "string") {
+        return authRedirectFallback;
+    }
+
+    const trimmed = target.trim();
+    if (!trimmed) {
+        return authRedirectFallback;
+    }
+
+    try {
+        const base = `${window.location.origin}${window.WEB_BASE.endsWith("/") ? window.WEB_BASE : `${window.WEB_BASE}/`}`;
+        const url = new URL(trimmed, base);
+
+        if (url.origin !== window.location.origin) {
+            return authRedirectFallback;
+        }
+
+        const page = url.pathname.split("/").pop() || authRedirectFallback;
+        return blockedAuthRedirects.has(page) ? authRedirectFallback : `${page}${url.search}${url.hash}`;
+    } catch (error) {
+        const page = trimmed.split("?")[0].split("/").pop() || authRedirectFallback;
+        return blockedAuthRedirects.has(page) ? authRedirectFallback : trimmed;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 
     const navbar = document.querySelector(".navbar");
@@ -89,10 +118,11 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     } else {
         const current = window.location.pathname.split("/").pop();
+        const redirect = sanitizeAuthRedirect(current);
 
         rightHTML = `
-            <a href="${webUrl("login.html")}?redirect=${current}">Login</a>
-            <a href="${webUrl("register.html")}?redirect=${current}" class="btn-primary">Registro</a>
+            <a href="${webUrl("login.html")}?redirect=${encodeURIComponent(redirect)}">Login</a>
+            <a href="${webUrl("register.html")}?redirect=${encodeURIComponent(redirect)}" class="btn-primary">Registro</a>
         `;
     }
 
