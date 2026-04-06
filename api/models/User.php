@@ -9,12 +9,18 @@ class User {
         $pdo = Database::getConnection();
         $hash = password_hash($password, PASSWORD_DEFAULT);
 
+        return self::createWithPasswordHash($username, $email, $hash);
+    }
+
+    public static function createWithPasswordHash($username, $email, $passwordHash) {
+        $pdo = Database::getConnection();
+
         $stmt = $pdo->prepare("
             INSERT INTO usuarios (username, email, password_hash, created_at)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
         ");
 
-        return $stmt->execute([$username, $email, $hash]);
+        return $stmt->execute([$username, $email, $passwordHash]);
     }
 
     public static function findByEmail($email) {

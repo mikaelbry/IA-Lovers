@@ -1,12 +1,18 @@
 <?php
 
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/PendingEmailChange.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
+require_once __DIR__ . '/../core/RateLimiter.php';
 require_once __DIR__ . '/../core/Storage.php';
+require_once __DIR__ . '/../core/GmailMailer.php';
 
 class UserController {
+    private const EMAIL_CHANGE_CODE_TTL = 600;
+    private const EMAIL_CHANGE_MAX_ATTEMPTS = 5;
+    private const EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS = 30;
 
     private static function withAvatarUrl(array $user) {
         $user['avatar_url'] = !empty($user['avatar_path'])
@@ -14,6 +20,17 @@ class UserController {
             : null;
 
         return $user;
+    }
+
+    private static function privateUserPayload(array $user) {
+        return [
+            'id' => $user['id'],
+            'username' => $user['username'],
+            'email' => $user['email'] ?? null,
+            'created_at' => $user['created_at'] ?? null,
+            'avatar_url' => $user['avatar_url'] ?? null,
+            'avatar_path' => $user['avatar_path'] ?? null,
+        ];
     }
 
     private static function avatarExtension($mime) {
@@ -25,9 +42,38 @@ class UserController {
         };
     }
 
+    private static function jsonBody() {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!is_array($data)) {
+            Response::json(['error' => 'JSON invalido'], 400);
+        }
+
+        return $data;
+    }
+
+    private static function generateVerificationCode() {
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    private static function emailChangeExpiresAt() {
+        return date('Y-m-d H:i:s', time() + self::EMAIL_CHANGE_CODE_TTL);
+    }
+
+    private static function maskedEmail($email) {
+        [$localPart, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        if ($localPart === '' || $domain === '') {
+            return $email;
+        }
+
+        $visible = substr($localPart, 0, min(2, strlen($localPart)));
+        return $visible . str_repeat('*', max(2, strlen($localPart) - strlen($visible))) . '@' . $domain;
+    }
+
     public static function profile() {
 
-        $user = self::withAvatarUrl(Middleware::auth());
+        $user = self::privateUserPayload(self::withAvatarUrl(Middleware::auth()));
         $pdo = Database::getConnection();
 
         $followersStmt = $pdo->prepare("
@@ -73,6 +119,26 @@ class UserController {
             'user' => $user,
             'followers' => $followers,
             'posts' => $posts
+        ]);
+    }
+
+    public static function settingsSummary() {
+
+        $user = self::privateUserPayload(self::withAvatarUrl(Middleware::auth()));
+        $pdo = Database::getConnection();
+
+        $statsStmt = $pdo->prepare("
+            SELECT
+                (SELECT COUNT(*) FROM follows WHERE following_id = ?) AS followers,
+                (SELECT COUNT(*) FROM posts WHERE user_id = ?) AS posts_count
+        ");
+        $statsStmt->execute([$user['id'], $user['id']]);
+        $stats = $statsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        Response::json([
+            'user' => $user,
+            'followers' => (int) ($stats['followers'] ?? 0),
+            'posts_count' => (int) ($stats['posts_count'] ?? 0),
         ]);
     }
 
@@ -312,8 +378,8 @@ class UserController {
             || $email !== $user['email']
             || $password !== '';
 
-        if ($password !== '' && strlen($password) < 6) {
-            Response::json(['error' => 'La contrasena debe tener al menos 6 caracteres'], 400);
+        if ($password !== '' && (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password))) {
+            Response::json(['error' => 'La contrasena debe tener al menos 8 caracteres e incluir letras y numeros'], 400);
         }
 
         if ($requiresCurrentPassword) {
@@ -380,6 +446,198 @@ class UserController {
             'avatar_path' => $filename,
             'avatar_url' => Storage::publicUrl($user['id'], $filename),
         ]);
+    }
+
+    public static function startEmailChange() {
+
+        RateLimiter::check('email_change_start_attempts', 5, 300);
+        $user = Middleware::auth();
+        PendingEmailChange::purgeExpired();
+        $data = self::jsonBody();
+
+        $newEmail = trim((string) ($data['new_email'] ?? ''));
+        $currentPassword = trim((string) ($data['current_password'] ?? ''));
+
+        if ($newEmail === '') {
+            Response::json(['error' => 'Debes introducir un nuevo correo'], 400);
+        }
+
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            Response::json(['error' => 'Email invalido'], 400);
+        }
+
+        if ($newEmail === $user['email']) {
+            Response::json(['error' => 'Introduce un correo distinto al actual'], 400);
+        }
+
+        if ($currentPassword === '') {
+            Response::json(['error' => 'Debes introducir tu contrasena actual'], 400);
+        }
+
+        if (!password_verify($currentPassword, $user['password_hash'])) {
+            Response::json(['error' => 'Contrasena actual incorrecta'], 401);
+        }
+
+        $existingUser = User::findByEmail($newEmail);
+        if ($existingUser && (int) $existingUser['id'] !== (int) $user['id']) {
+            Response::json(['error' => 'Ese correo ya esta en uso'], 409);
+        }
+
+        $existingPendingForEmail = PendingEmailChange::findByNewEmail($newEmail);
+        if ($existingPendingForEmail && (int) $existingPendingForEmail['user_id'] !== (int) $user['id']) {
+            Response::json(['error' => 'Ya hay una verificacion pendiente para ese correo'], 409);
+        }
+
+        $pending = PendingEmailChange::findByUserId($user['id']);
+        $verificationCode = self::generateVerificationCode();
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $expiresAt = self::emailChangeExpiresAt();
+        $created = false;
+
+        if ($pending) {
+            PendingEmailChange::updateRequest(
+                $pending['id'],
+                $newEmail,
+                $verificationCodeHash,
+                $expiresAt
+            );
+        } else {
+            PendingEmailChange::create(
+                $user['id'],
+                $newEmail,
+                $verificationCodeHash,
+                $expiresAt
+            );
+            $created = true;
+        }
+
+        try {
+            GmailMailer::sendEmailChangeCode($newEmail, $user['username'], $verificationCode);
+        } catch (Throwable $e) {
+            if ($created) {
+                PendingEmailChange::deleteByUserId($user['id']);
+            }
+
+            throw $e;
+        }
+
+        Response::json([
+            'message' => 'Codigo enviado al nuevo correo',
+            'new_email' => $newEmail,
+            'masked_email' => self::maskedEmail($newEmail),
+            'resend_cooldown' => self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS,
+        ]);
+    }
+
+    public static function resendEmailChange() {
+
+        RateLimiter::check('email_change_resend_attempts', 5, 300);
+        $user = Middleware::auth();
+        PendingEmailChange::purgeExpired();
+
+        $pending = PendingEmailChange::findByUserId($user['id']);
+
+        if (!$pending) {
+            Response::json(['error' => 'No hay una verificacion de correo pendiente'], 404);
+        }
+
+        $lastSent = strtotime($pending['last_sent_at']);
+        if ($lastSent && (time() - $lastSent) < self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS) {
+            $remaining = self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS - (time() - $lastSent);
+            Response::json([
+                'error' => 'Espera ' . $remaining . ' segundos antes de pedir otro codigo',
+                'retry_after' => $remaining,
+            ], 429);
+        }
+
+        $existingUser = User::findByEmail($pending['new_email']);
+        if ($existingUser && (int) $existingUser['id'] !== (int) $user['id']) {
+            PendingEmailChange::deleteById($pending['id']);
+            Response::json(['error' => 'Ese correo ya ha pasado a estar en uso'], 409);
+        }
+
+        $verificationCode = self::generateVerificationCode();
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $expiresAt = self::emailChangeExpiresAt();
+
+        PendingEmailChange::updateRequest(
+            $pending['id'],
+            $pending['new_email'],
+            $verificationCodeHash,
+            $expiresAt
+        );
+
+        GmailMailer::sendEmailChangeCode($pending['new_email'], $user['username'], $verificationCode);
+
+        Response::json([
+            'message' => 'Hemos reenviado un nuevo codigo',
+            'masked_email' => self::maskedEmail($pending['new_email']),
+            'resend_cooldown' => self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS,
+        ]);
+    }
+
+    public static function verifyEmailChange() {
+
+        RateLimiter::check('email_change_verify_attempts', 10, 300);
+        $user = Middleware::auth();
+        PendingEmailChange::purgeExpired();
+        $data = self::jsonBody();
+
+        $code = trim((string) ($data['code'] ?? ''));
+
+        if (!preg_match('/^\d{6}$/', $code)) {
+            Response::json(['error' => 'El codigo debe tener 6 digitos'], 400);
+        }
+
+        $pending = PendingEmailChange::findByUserId($user['id']);
+
+        if (!$pending) {
+            Response::json(['error' => 'La verificacion pendiente no existe o ya ha caducado'], 404);
+        }
+
+        if (strtotime($pending['verification_expires_at']) < time()) {
+            PendingEmailChange::deleteById($pending['id']);
+            Response::json(['error' => 'El codigo ha caducado. Solicita uno nuevo'], 410);
+        }
+
+        if ((int) $pending['verification_attempts'] >= self::EMAIL_CHANGE_MAX_ATTEMPTS) {
+            PendingEmailChange::deleteById($pending['id']);
+            Response::json(['error' => 'Se ha superado el numero maximo de intentos. Solicita un nuevo codigo'], 429);
+        }
+
+        if (!password_verify($code, $pending['verification_code_hash'])) {
+            PendingEmailChange::incrementAttempts($pending['id']);
+
+            if (((int) $pending['verification_attempts']) + 1 >= self::EMAIL_CHANGE_MAX_ATTEMPTS) {
+                PendingEmailChange::deleteById($pending['id']);
+                Response::json(['error' => 'Codigo incorrecto demasiadas veces. Vuelve a solicitar el cambio de correo'], 429);
+            }
+
+            Response::json(['error' => 'Codigo incorrecto'], 400);
+        }
+
+        $existingUser = User::findByEmail($pending['new_email']);
+        if ($existingUser && (int) $existingUser['id'] !== (int) $user['id']) {
+            PendingEmailChange::deleteById($pending['id']);
+            Response::json(['error' => 'Ese correo ya ha pasado a estar en uso'], 409);
+        }
+
+        User::update($user['id'], $user['username'], $pending['new_email']);
+        PendingEmailChange::deleteById($pending['id']);
+
+        Response::json([
+            'message' => 'Correo actualizado correctamente',
+            'email' => $pending['new_email'],
+        ]);
+    }
+
+    public static function cancelEmailChange() {
+
+        $user = Middleware::auth();
+        PendingEmailChange::purgeExpired();
+        PendingEmailChange::deleteByUserId($user['id']);
+
+        Response::json(['success' => true]);
     }
 
     public static function delete() {
@@ -486,6 +744,11 @@ class UserController {
 
             $pdo->prepare("
                 DELETE FROM user_tokens
+                WHERE user_id = ?
+            ")->execute([$user['id']]);
+
+            $pdo->prepare("
+                DELETE FROM pending_email_changes
                 WHERE user_id = ?
             ")->execute([$user['id']]);
 

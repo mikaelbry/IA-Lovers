@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -15,27 +15,44 @@
 
 <div class="auth-container">
     <div class="auth-card auth-card-register">
-        <h2>Crear cuenta</h2>
-        <p>Unete a la comunidad IA</p>
+        <div id="registerDataStep" class="auth-step auth-step-active">
+            <h2>Crear cuenta</h2>
+            <p>Unete a la comunidad IA</p>
 
-        <form class="auth-form" data-mode="register" onsubmit="register(event)">
-            <input type="text" id="username" placeholder="Usuario" autocomplete="username" required>
-            <input type="email" id="email" placeholder="Email" autocomplete="email" required>
-            <input type="password" id="password" placeholder="Contrasena" autocomplete="new-password" required>
-            <input type="password" id="password-confirm" placeholder="Repite la contrasena" autocomplete="new-password" required>
+            <form id="registerStartForm" class="auth-form" data-mode="register" onsubmit="register(event)">
+                <input type="text" id="username" placeholder="Usuario" autocomplete="username" required>
+                <input type="email" id="email" placeholder="Email" autocomplete="email" required>
+                <input type="password" id="password" placeholder="Contrasena" autocomplete="new-password" required>
+                <input type="password" id="password-confirm" placeholder="Repite la contrasena" autocomplete="new-password" required>
 
-            <div class="auth-altcha-shell">
-                <altcha-widget
-                    id="register-altcha"
-                    challengeurl="../api/altcha/challenge"
-                    blockspam="false"
-                    debug
-                ></altcha-widget>
+                <div class="auth-altcha-shell">
+                    <altcha-widget
+                        id="register-altcha"
+                        challengeurl="../api/altcha/challenge"
+                        blockspam="false"
+                    ></altcha-widget>
+                </div>
+
+                <div class="auth-status" aria-live="polite"></div>
+                <button type="submit" class="btn-primary">Continuar</button>
+            </form>
+        </div>
+
+        <div id="registerVerifyStep" class="auth-step hidden" aria-hidden="true">
+            <h2>Verificar correo</h2>
+            <p id="verifyEmailText">Introduce el codigo que te hemos enviado.</p>
+
+            <form id="registerVerifyForm" class="auth-form" onsubmit="verifyRegistration(event)">
+                <input type="text" id="verification-code" placeholder="Codigo de 6 digitos" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+                <div class="auth-status" aria-live="polite"></div>
+                <button type="submit" class="btn-primary">Crear cuenta</button>
+            </form>
+
+            <div class="auth-inline-actions">
+                <button type="button" id="resendCodeButton" class="auth-link-btn" onclick="resendRegistrationCode()">Reenviar codigo</button>
+                <button type="button" class="auth-link-btn auth-link-btn-danger" onclick="cancelRegistrationFlow()">Cancelar registro</button>
             </div>
-
-            <div class="auth-status" aria-live="polite"></div>
-            <button type="submit" class="btn-primary">Registrarse</button>
-        </form>
+        </div>
 
         <div class="auth-footer">
             ¿Ya tienes cuenta?
@@ -44,8 +61,7 @@
     </div>
 </div>
 
-<script src="assets/js/header.js?v=20260405-2"></script>
-<script src="assets/js/auth.js?v=20260405-2"></script>
+<script src="assets/js/header.js?v=20260405-4"></script>
+<script src="assets/js/auth.js?v=20260406-2"></script>
 </body>
 </html>
-

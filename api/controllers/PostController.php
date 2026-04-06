@@ -9,6 +9,14 @@ require_once __DIR__ . '/../core/Storage.php';
 
 class PostController {
 
+    private static function mapAuthorAvatar(array $record, $avatarPathKey = 'avatar_path', $avatarUrlKey = 'avatar_url') {
+        $record[$avatarUrlKey] = !empty($record[$avatarPathKey]) && !empty($record['user_id'])
+            ? Storage::publicUrl($record['user_id'], $record[$avatarPathKey])
+            : null;
+
+        return $record;
+    }
+
     public static function create() {
 
         $user = Middleware::auth();
@@ -270,6 +278,7 @@ class PostController {
             SELECT
                 posts.*,
                 usuarios.username,
+                usuarios.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -299,6 +308,7 @@ class PostController {
         $stmt->execute(array_merge([$user_id], $params));
 
         $posts = Storage::mapPosts($stmt->fetchAll(PDO::FETCH_ASSOC));
+        $posts = array_map(fn($post) => self::mapAuthorAvatar($post), $posts);
 
         $nextCursor = null;
         $nextCursorLikes = null;
@@ -374,6 +384,7 @@ class PostController {
             SELECT
                 posts.*,
                 usuarios.username,
+                usuarios.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -406,11 +417,13 @@ class PostController {
         }
 
         $post = Storage::mapPost($post);
+        $post = self::mapAuthorAvatar($post);
 
         $stmt = $pdo->prepare("
             SELECT
                 comments.*,
-                usuarios.username
+                usuarios.username,
+                usuarios.avatar_path
             FROM comments
             JOIN usuarios ON usuarios.id = comments.user_id
             WHERE comments.post_id = ?
@@ -420,6 +433,7 @@ class PostController {
         $stmt->execute([$id]);
 
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $comments = array_map(fn($comment) => self::mapAuthorAvatar($comment), $comments);
 
         Response::json([
             'post' => $post,

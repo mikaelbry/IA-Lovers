@@ -50,6 +50,28 @@ function formatDate(dateString) {
     return `${hours}:${minutes} - ${day}/${month}/${year}`;
 }
 
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
+}
+
+function getPostProfileUrl(post) {
+    if (window.user && window.user.username === post.username) {
+        return window.publicUrl("profile.html");
+    }
+
+    return `${window.publicUrl("user.html")}?username=${encodeURIComponent(post.username ?? "")}`;
+}
+
+function getPostAvatarUrl(post) {
+    return post.avatar_url || "assets/images/logo.jpg";
+}
+
 function renderPosts(posts, containerId = "posts") {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
@@ -68,12 +90,12 @@ function appendPosts(posts, containerId = "posts") {
     }
 
     posts.forEach(post => {
-        const profileUrl = `${window.publicUrl("user.html")}?username=${encodeURIComponent(post.username ?? "")}`;
+        const profileUrl = getPostProfileUrl(post);
 
         const tagsHTML = post.tags
             ? post.tags.split(",").map(t => `
                 <span class="tag" onclick="goToTag('${encodeURIComponent(t.trim())}', event)">
-                    #${t.trim()}
+                    #${escapeHtml(t.trim())}
                 </span>
             `).join(" ")
             : "";
@@ -95,8 +117,9 @@ function appendPosts(posts, containerId = "posts") {
                 </div>
 
                 <div class="post-header">
-                    <a href="${profileUrl}">
-                        ${post.username ?? ""}
+                    <a href="${profileUrl}" class="post-author-link">
+                        <img src="${escapeHtml(getPostAvatarUrl(post))}" alt="Avatar de ${escapeHtml(post.username ?? "")}" class="post-avatar">
+                        <span>${escapeHtml(post.username ?? "")}</span>
                     </a>
                 </div>
 
@@ -110,7 +133,7 @@ function appendPosts(posts, containerId = "posts") {
                      onclick="goToPost(${post.id})">
 
                 <div class="post-title">
-                    ${post.title ?? ""}
+                    ${escapeHtml(post.title ?? "")}
                 </div>
 
                 <div class="post-tags">

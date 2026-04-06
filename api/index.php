@@ -27,6 +27,7 @@ $router = new Router();
 ======================= */
 
 $router->get('/users/profile', fn() => UserController::profile());
+$router->get('/users/settings-summary', fn() => UserController::settingsSummary());
 $router->get('/users/public', fn() => UserController::publicProfile());
 $router->get('/users/username', fn() => UserController::profileByUsername());
 $router->get('/users/check-username', fn() => UserController::checkUsername());
@@ -34,6 +35,10 @@ $router->get('/users/followers', fn() => FollowController::followers());
 $router->get('/users/following', fn() => FollowController::following());
 $router->post('/user/update', fn() => UserController::update());
 $router->post('/user/avatar', fn() => UserController::updateAvatar());
+$router->post('/user/email-change/start', fn() => UserController::startEmailChange());
+$router->post('/user/email-change/resend', fn() => UserController::resendEmailChange());
+$router->post('/user/email-change/verify', fn() => UserController::verifyEmailChange());
+$router->post('/user/email-change/cancel', fn() => UserController::cancelEmailChange());
 $router->post('/user/delete', fn() => UserController::delete());
 
 /* =======================
@@ -52,6 +57,10 @@ $router->post('/posts/toggle-like', fn() => PostController::toggleLike());
 ======================= */
 
 $router->post('/register', fn() => AuthController::register());
+$router->post('/register/start', fn() => AuthController::startRegistration());
+$router->post('/register/verify', fn() => AuthController::verifyRegistration());
+$router->post('/register/resend', fn() => AuthController::resendRegistrationCode());
+$router->post('/register/cancel', fn() => AuthController::cancelPendingRegistration());
 $router->post('/login', fn() => AuthController::login());
 $router->get('/altcha/challenge', fn() => Response::json(Altcha::challenge()));
 

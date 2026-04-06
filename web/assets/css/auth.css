@@ -54,6 +54,15 @@
     gap: 14px;
 }
 
+.auth-step.hidden,
+.hidden {
+    display: none;
+}
+
+.auth-step-active {
+    display: block;
+}
+
 .auth-form > * {
     box-sizing: border-box;
 }
@@ -148,6 +157,32 @@ altcha-widget {
     color: #2481ce;
     font-weight: 700;
     cursor: pointer;
+}
+
+.auth-inline-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.auth-link-btn {
+    background: none;
+    border: none;
+    color: #2481ce;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.auth-link-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.auth-link-btn-danger {
+    color: #c43c4e;
 }
 
 @media (max-width: 640px) {
