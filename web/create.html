@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crear Post</title>
 <link rel="shortcut icon" href="assets/images/logo.png" />
 <link rel="stylesheet" href="assets/css/style.css">
@@ -11,24 +12,27 @@
 
 <style>
 html, body {
-    height: 100%;
+    min-height: 100%;
 }
 
 body {
     display: flex;
     flex-direction: column;
+    min-height: 100dvh;
     background-color: #f2f1f4;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .create-container {
     max-width: 900px;
-    width: 100%;
+    width: min(100% - 32px, 900px);
     margin: 40px auto 0 auto;
     background: white;
     padding: 40px;
     border-radius: 20px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
 }
 
 .create-container h2 {
@@ -42,6 +46,7 @@ input[type="text"] {
     border: 1px solid #ddd;
     font-size: 15px;
     margin-bottom: 15px;
+    box-sizing: border-box;
 }
 
 input[type="text"]:focus,
@@ -59,6 +64,7 @@ textarea {
     font-size: 15px;
     resize: none;
     overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .tag-box {
@@ -113,6 +119,7 @@ textarea {
     padding: 12px;
     border: 1px solid #ddd;
     border-radius: 10px;
+    box-sizing: border-box;
 }
 
 .suggestions {
@@ -176,6 +183,46 @@ input[type="file"] {
 
 .btn-primary {
     margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .create-container {
+        margin: 24px auto;
+        padding: 24px 18px;
+        border-radius: 16px;
+    }
+
+    .upload-robot {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .create-container {
+        width: calc(100% - 20px);
+        margin: 16px auto 20px auto;
+        padding: 20px 14px;
+        border-radius: 14px;
+    }
+
+    .create-container h2 {
+        margin-bottom: 20px;
+        font-size: 24px;
+    }
+
+    input[type="text"],
+    textarea,
+    .tag-search,
+    .quick-tag,
+    .tag,
+    .btn-primary {
+        font-size: 16px;
+    }
+
+    .quick-tags,
+    .tag-box {
+        gap: 10px;
+    }
 }
 </style>
 </head>
