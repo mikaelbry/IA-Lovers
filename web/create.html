@@ -185,6 +185,12 @@ input[type="file"] {
     margin-top: 20px;
 }
 
+.btn-primary[disabled] {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none;
+}
+
 @media (max-width: 768px) {
     .create-container {
         margin: 24px auto;
@@ -292,6 +298,7 @@ const MAX_TAG_LENGTH = 24;
 const MAX_TITLE = 80;
 const MAX_DESC = 500;
 const MAX_FILE = 2 * 1024 * 1024;
+let isSubmitting = false;
 
 const defaultTags = [
     "Meme", "Arte", "ChatGPT", "Mistral AI", "MidJourney", "Stable Diffusion"
@@ -358,6 +365,14 @@ function showMaxWarningFlash() {
 
 function showTagLengthWarning() {
     flashWarning(document.getElementById("tagLengthWarning"));
+}
+
+function setSubmittingState(submitting) {
+    const submitBtn = document.querySelector('#postForm button[type="submit"]');
+
+    isSubmitting = submitting;
+    submitBtn.disabled = submitting;
+    submitBtn.textContent = submitting ? "Publicando..." : "Publicar";
 }
 
 function renderQuickTags() {
@@ -479,23 +494,39 @@ document.getElementById("tagSearch").addEventListener("input", async function() 
 document.getElementById("postForm").addEventListener("submit", async function(e) {
     e.preventDefault();
 
-    const formData = new FormData(this);
-    formData.append("tags", JSON.stringify(selected.map(t => t.name)));
-
-    const res = await fetch(apiUrl("/posts/create"), {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token },
-        body: formData
-    });
-
-    const json = await res.json();
-
-    if (res.ok && json.id) {
-        window.location.href = `${publicUrl("post.html")}?id=${json.id}`;
+    if (isSubmitting) {
         return;
     }
 
-    alert(json.error || "Error al crear el post");
+    let postCreated = false;
+    setSubmittingState(true);
+
+    try {
+        const formData = new FormData(this);
+        formData.append("tags", JSON.stringify(selected.map(t => t.name)));
+
+        const res = await fetch(apiUrl("/posts/create"), {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+            body: formData
+        });
+
+        const json = await res.json();
+
+        if (res.ok && json.id) {
+            postCreated = true;
+            window.location.href = `${publicUrl("post.html")}?id=${json.id}`;
+            return;
+        }
+
+        alert(json.error || "Error al crear el post");
+    } catch (error) {
+        alert("No se pudo publicar el post. Inténtalo de nuevo.");
+    } finally {
+        if (!postCreated) {
+            setSubmittingState(false);
+        }
+    }
 });
 
 renderQuickTags();
