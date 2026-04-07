@@ -13,6 +13,8 @@ class UserController {
     private const EMAIL_CHANGE_CODE_TTL = 600;
     private const EMAIL_CHANGE_MAX_ATTEMPTS = 5;
     private const EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS = 30;
+    private const MAX_AVATAR_MB = 4;
+    private const MAX_AVATAR_BYTES = self::MAX_AVATAR_MB * 1024 * 1024;
 
     private static function withAvatarUrl(array $user) {
         $user['avatar_url'] = !empty($user['avatar_path'])
@@ -39,6 +41,15 @@ class UserController {
             'image/png' => '.png',
             'image/webp' => '.webp',
             default => null
+        };
+    }
+
+    private static function avatarUploadErrorMessage($errorCode) {
+        return match ($errorCode) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'El avatar no puede superar los ' . self::MAX_AVATAR_MB . ' MB',
+            UPLOAD_ERR_PARTIAL => 'La subida del avatar no se completo',
+            UPLOAD_ERR_NO_FILE => 'Avatar requerido',
+            default => 'Error al subir el avatar'
         };
     }
 
@@ -408,16 +419,15 @@ class UserController {
         $file = $_FILES['avatar'];
 
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            Response::json(['error' => 'Error al subir el avatar'], 400);
+            Response::json(['error' => self::avatarUploadErrorMessage($file['error'])], 400);
         }
 
-        if ($file['size'] > 2 * 1024 * 1024) {
-            Response::json(['error' => 'El avatar no puede superar los 2 MB'], 400);
+        if ($file['size'] > self::MAX_AVATAR_BYTES) {
+            Response::json(['error' => 'El avatar no puede superar los ' . self::MAX_AVATAR_MB . ' MB'], 400);
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
 
         $extension = self::avatarExtension($mime);
 

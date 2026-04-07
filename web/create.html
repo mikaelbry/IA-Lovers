@@ -297,7 +297,8 @@ const MAX_TAGS = 4;
 const MAX_TAG_LENGTH = 24;
 const MAX_TITLE = 80;
 const MAX_DESC = 500;
-const MAX_FILE = 2 * 1024 * 1024;
+const MAX_FILE_MB = 4;
+const MAX_FILE = MAX_FILE_MB * 1024 * 1024;
 let isSubmitting = false;
 
 const defaultTags = [
@@ -342,7 +343,7 @@ document.getElementById("imageInput").addEventListener("change", function() {
 
     if (file.size > MAX_FILE) {
         this.value = "";
-        warning.textContent = "Archivo demasiado grande (máx 2MB)";
+        warning.textContent = `Archivo demasiado grande (máx ${MAX_FILE_MB}MB)`;
         warning.classList.add("visible");
         return;
     }

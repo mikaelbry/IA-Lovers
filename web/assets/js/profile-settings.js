@@ -9,6 +9,8 @@ const saveButton = document.getElementById("saveButton");
 const cancelButton = document.getElementById("cancelButton");
 const statusEl = document.getElementById("formStatus");
 const summaryAvatar = document.getElementById("summaryAvatar");
+const MAX_AVATAR_FILE_MB = 4;
+const MAX_AVATAR_FILE = MAX_AVATAR_FILE_MB * 1024 * 1024;
 
 const state = {
     user: null,
@@ -487,10 +489,10 @@ function bindSectionEvents() {
                     return;
                 }
 
-                if (file.size > 2 * 1024 * 1024) {
+                if (file.size > MAX_AVATAR_FILE) {
                     avatarInput.value = "";
                     state.avatarFile = null;
-                    setStatus("El avatar no puede superar los 2 MB.", "error");
+                    setStatus(`El avatar no puede superar los ${MAX_AVATAR_FILE_MB} MB.`, "error");
                     updatePrimaryState();
                     return;
                 }

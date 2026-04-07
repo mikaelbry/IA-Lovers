@@ -106,11 +106,13 @@ class Storage {
             CURLOPT_POSTFIELDS => $body,
         ]);
 
-        $responseBody = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-
-        curl_close($ch);
+        try {
+            $responseBody = curl_exec($ch);
+            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+        } finally {
+            $ch = null;
+        }
 
         if ($responseBody === false) {
             throw new RuntimeException('Error de red con Supabase Storage: ' . $error);
