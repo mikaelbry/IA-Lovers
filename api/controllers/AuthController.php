@@ -37,7 +37,7 @@ class AuthController {
 
     private static function validateRegistrationData($data) {
         if (empty($data['username']) || empty($data['email']) || empty($data['password'])) {
-            Response::json(['error' => 'Nombre de usuario, correo y contrasena son obligatorios'], 400);
+            Response::json(['error' => 'Nombre de usuario, correo y contraseña son obligatorios'], 400);
         }
 
         $username = trim((string) $data['username']);
@@ -54,11 +54,11 @@ class AuthController {
         }
 
         if ($password !== $passwordConfirmation) {
-            Response::json(['error' => 'Las contrasenas no coinciden'], 400);
+            Response::json(['error' => 'Las contraseñas no coinciden'], 400);
         }
 
         if (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password)) {
-            Response::json(['error' => 'La contrasena debe tener al menos 8 caracteres e incluir letras y numeros'], 400);
+            Response::json(['error' => 'La contraseña debe tener al menos 8 caracteres e incluir letras y numeros'], 400);
         }
 
         return [$username, $email, $password];

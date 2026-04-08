@@ -390,7 +390,7 @@ class UserController {
             || $password !== '';
 
         if ($password !== '' && (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password))) {
-            Response::json(['error' => 'La contrasena debe tener al menos 8 caracteres e incluir letras y numeros'], 400);
+            Response::json(['error' => 'La contraseña debe tener al menos 8 caracteres e incluir letras y numeros'], 400);
         }
 
         if ($requiresCurrentPassword) {
@@ -399,7 +399,7 @@ class UserController {
             }
 
             if (!password_verify($currentPassword, $user['password_hash'])) {
-                Response::json(['error' => 'Contrasena actual incorrecta'], 401);
+                Response::json(['error' => 'Contraseña actual incorrecta'], 401);
             }
         }
 
@@ -481,11 +481,11 @@ class UserController {
         }
 
         if ($currentPassword === '') {
-            Response::json(['error' => 'Debes introducir tu contrasena actual'], 400);
+            Response::json(['error' => 'Debes introducir tu contraseña actual'], 400);
         }
 
         if (!password_verify($currentPassword, $user['password_hash'])) {
-            Response::json(['error' => 'Contrasena actual incorrecta'], 401);
+            Response::json(['error' => 'Contraseña actual incorrecta'], 401);
         }
 
         $existingUser = User::findByEmail($newEmail);
@@ -612,7 +612,7 @@ class UserController {
 
         if ((int) $pending['verification_attempts'] >= self::EMAIL_CHANGE_MAX_ATTEMPTS) {
             PendingEmailChange::deleteById($pending['id']);
-            Response::json(['error' => 'Se ha superado el numero maximo de intentos. Solicita un nuevo codigo'], 429);
+            Response::json(['error' => 'Se ha superado el número maximo de intentos. Solicita un nuevo codigo'], 429);
         }
 
         if (!password_verify($code, $pending['verification_code_hash'])) {
@@ -659,15 +659,15 @@ class UserController {
         $confirmText = trim($data['confirm_text'] ?? '');
 
         if ($currentPassword === '') {
-            Response::json(['error' => 'Debes introducir tu contrasena para borrar la cuenta'], 400);
+            Response::json(['error' => 'Debes introducir tu contraseña para borrar la cuenta'], 400);
         }
 
         if (!password_verify($currentPassword, $user['password_hash'])) {
-            Response::json(['error' => 'Contrasena actual incorrecta'], 401);
+            Response::json(['error' => 'Contraseña actual incorrecta'], 401);
         }
 
         if ($confirmText !== 'ELIMINAR MI CUENTA') {
-            Response::json(['error' => 'Falta la confirmacion final para borrar la cuenta'], 400);
+            Response::json(['error' => 'Falta la confirmación final para borrar la cuenta'], 400);
         }
 
         $pdo = Database::getConnection();
