@@ -8,6 +8,8 @@ require_once __DIR__ . '/../core/Middleware.php';
 require_once __DIR__ . '/../core/Storage.php';
 
 class PostController {
+    private const MAX_IMAGE_MB = 4;
+    private const MAX_IMAGE_BYTES = self::MAX_IMAGE_MB * 1024 * 1024;
 
     private static function mapAuthorAvatar(array $record, $avatarPathKey = 'avatar_path', $avatarUrlKey = 'avatar_url') {
         $record[$avatarUrlKey] = !empty($record[$avatarPathKey]) && !empty($record['user_id'])
@@ -15,6 +17,15 @@ class PostController {
             : null;
 
         return $record;
+    }
+
+    private static function imageUploadErrorMessage($errorCode) {
+        return match ($errorCode) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Archivo demasiado grande (max ' . self::MAX_IMAGE_MB . ' MB)',
+            UPLOAD_ERR_PARTIAL => 'La subida del archivo no se completo',
+            UPLOAD_ERR_NO_FILE => 'Imagen requerida',
+            default => 'Error al subir archivo'
+        };
     }
 
     public static function create() {
@@ -28,16 +39,15 @@ class PostController {
         $file = $_FILES['image'];
 
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            Response::json(['error' => 'Error al subir archivo'], 400);
+            Response::json(['error' => self::imageUploadErrorMessage($file['error'])], 400);
         }
 
-        if ($file['size'] > 2 * 1024 * 1024) {
-            Response::json(['error' => 'Archivo demasiado grande'], 400);
+        if ($file['size'] > self::MAX_IMAGE_BYTES) {
+            Response::json(['error' => 'Archivo demasiado grande (max ' . self::MAX_IMAGE_MB . ' MB)'], 400);
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
 
         $allowed = ['image/jpeg', 'image/png', 'image/webp'];
 

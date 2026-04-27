@@ -9,6 +9,8 @@ const saveButton = document.getElementById("saveButton");
 const cancelButton = document.getElementById("cancelButton");
 const statusEl = document.getElementById("formStatus");
 const summaryAvatar = document.getElementById("summaryAvatar");
+const MAX_AVATAR_FILE_MB = 4;
+const MAX_AVATAR_FILE = MAX_AVATAR_FILE_MB * 1024 * 1024;
 
 const state = {
     user: null,
@@ -86,7 +88,7 @@ function getSaveLabel() {
         avatar: "Guardar avatar",
         username: "Cambiar nombre de usuario",
         email: state.emailChange.pending ? "Confirmar codigo" : "Enviar codigo",
-        password: "Cambiar contrasena",
+        password: "Cambiar contraseña",
         delete: state.deleteFlow.confirmStep ? "Borrar cuenta definitivamente" : "Continuar"
     };
 
@@ -242,7 +244,7 @@ function getSections() {
                         <div id="usernameAvailability" class="settings-availability"></div>
                     </div>
                     <div class="settings-field settings-field-full">
-                        <label for="usernamePasswordInput">Contrasena actual</label>
+                        <label for="usernamePasswordInput">contraseña actual</label>
                         <input type="password" id="usernamePasswordInput" autocomplete="current-password" required>
                     </div>
                 </div>
@@ -273,7 +275,7 @@ function getSections() {
                         </div>
                     ` : `
                         <div class="settings-field settings-field-full">
-                            <label for="emailPasswordInput">Contrasena actual</label>
+                            <label for="emailPasswordInput">contraseña actual</label>
                             <input type="password" id="emailPasswordInput" autocomplete="current-password" required>
                         </div>
                     `}
@@ -285,20 +287,20 @@ function getSections() {
             }
         },
         password: {
-            title: "Cambiar contrasena",
+            title: "Cambiar contraseña",
             showActions: true,
             render: () => `
                 <div class="settings-form-grid">
                     <div class="settings-field settings-field-full">
-                        <label for="currentPasswordInput">Contrasena actual</label>
+                        <label for="currentPasswordInput">contraseña actual</label>
                         <input type="password" id="currentPasswordInput" autocomplete="current-password" required>
                     </div>
                     <div class="settings-field settings-field-full">
-                        <label for="passwordInput">Nueva contrasena</label>
+                        <label for="passwordInput">Nueva contraseña</label>
                         <input type="password" id="passwordInput" autocomplete="new-password" required>
                     </div>
                     <div class="settings-field settings-field-full">
-                        <label for="passwordConfirmInput">Confirmar contrasena</label>
+                        <label for="passwordConfirmInput">Confirmar contraseña</label>
                         <input type="password" id="passwordConfirmInput" autocomplete="new-password" required>
                     </div>
                 </div>
@@ -316,7 +318,7 @@ function getSections() {
                         <span class="settings-info-value">Esta accion es irreversible</span>
                     </div>
                     <div class="settings-field settings-field-full">
-                        <label for="deletePasswordInput">Contrasena actual</label>
+                        <label for="deletePasswordInput">contraseña actual</label>
                         <input type="password" id="deletePasswordInput" autocomplete="current-password" value="${escapeHtml(state.deleteFlow.password)}" required>
                     </div>
                     ${state.deleteFlow.confirmStep ? `
@@ -476,10 +478,10 @@ function bindSectionEvents() {
                     return;
                 }
 
-                if (file.size > 2 * 1024 * 1024) {
+                if (file.size > MAX_AVATAR_FILE) {
                     avatarInput.value = "";
                     state.avatarFile = null;
-                    setStatus("El avatar no puede superar los 2 MB.", "error");
+                    setStatus(`El avatar no puede superar los ${MAX_AVATAR_FILE_MB} MB.`, "error");
                     updatePrimaryState();
                     return;
                 }
@@ -763,7 +765,7 @@ async function handleSectionSubmit() {
         }
 
         if (!currentPassword) {
-            throw new Error("Debes introducir tu contrasena actual.");
+            throw new Error("Debes introducir tu contraseña actual.");
         }
 
         await updateProfile({
@@ -790,7 +792,7 @@ async function handleSectionSubmit() {
             }
 
             if (!currentPassword) {
-                throw new Error("Debes introducir tu contrasena actual.");
+                throw new Error("Debes introducir tu contraseña actual.");
             }
 
             const response = await startEmailChange({
@@ -837,15 +839,15 @@ async function handleSectionSubmit() {
         const confirm = document.getElementById("passwordConfirmInput").value.trim();
 
         if (!currentPassword) {
-            throw new Error("Debes introducir tu contrasena actual.");
+            throw new Error("Debes introducir tu contraseña actual.");
         }
 
         if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-            throw new Error("La contrasena debe tener al menos 8 caracteres e incluir letras y numeros.");
+            throw new Error("La contraseña debe tener al menos 8 caracteres e incluir letras y numeros.");
         }
 
         if (password !== confirm) {
-            throw new Error("Las contrasenas no coinciden.");
+            throw new Error("Las contraseñas no coinciden.");
         }
 
         await updateProfile({
@@ -855,14 +857,14 @@ async function handleSectionSubmit() {
             current_password: currentPassword
         });
         renderActiveSection();
-        setStatus("Contrasena actualizada correctamente.", "success");
+        setStatus("contraseña actualizada correctamente.", "success");
         return;
     }
 
     if (state.activeSection === "delete") {
         if (!state.deleteFlow.confirmStep) {
             if (!state.deleteFlow.password.trim()) {
-                throw new Error("Debes introducir tu contrasena para continuar.");
+                throw new Error("Debes introducir tu contraseña para continuar.");
             }
 
             state.deleteFlow.confirmStep = true;

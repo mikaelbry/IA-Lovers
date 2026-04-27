@@ -355,7 +355,7 @@ async function register(event) {
     const passwordConfirm = document.getElementById('password-confirm').value;
 
     if (password !== passwordConfirm) {
-        setStatus(form, 'Las contrasenas no coinciden.', 'error');
+        setStatus(form, 'Las contraseñas no coinciden.', 'error');
         return;
     }
 
