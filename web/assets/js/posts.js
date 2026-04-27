@@ -28,6 +28,10 @@ window.publicUrl ??= window.webUrl;
 window.token ??= localStorage.getItem("token");
 window.user = JSON.parse(localStorage.getItem("user"));
 
+async function postsRequestJson(url, options = {}) {
+    return await window.requestApiJson(url, options);
+}
+
 let cursor = null;
 let cursorLikes = null;
 let loading = false;
@@ -183,25 +187,30 @@ async function loadMore(fetchUrlBuilder, containerId) {
 
     loading = true;
 
-    const url = fetchUrlBuilder(cursor);
-    const headers = token ? { Authorization: "Bearer " + token } : {};
+    try {
+        const url = fetchUrlBuilder(cursor);
+        const headers = token ? { Authorization: "Bearer " + token } : {};
 
-    const res = await fetch(url, { headers });
-    const data = await res.json();
+        const data = await postsRequestJson(url, { headers });
 
-    appendPosts(data.posts, containerId);
+        appendPosts(data.posts, containerId);
 
-    cursor = data.next_cursor;
-    cursorLikes = data.next_cursor_likes ?? null;
+        cursor = data.next_cursor;
+        cursorLikes = data.next_cursor_likes ?? null;
 
-    if (!cursor) {
-        finished = true;
-        if (observer) {
-            observer.disconnect();
+        if (!cursor) {
+            finished = true;
+            if (observer) {
+                observer.disconnect();
+            }
         }
+    } catch (error) {
+        if (!error.authRedirected) {
+            console.error(error);
+        }
+    } finally {
+        loading = false;
     }
-
-    loading = false;
 }
 
 function resetAndLoad(fetchUrlBuilder, containerId = "posts") {
@@ -231,7 +240,7 @@ function toggleLike(event, id, btn) {
         return;
     }
 
-    fetch(apiUrl("/posts/toggle-like"), {
+    postsRequestJson(apiUrl("/posts/toggle-like"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -239,7 +248,6 @@ function toggleLike(event, id, btn) {
         },
         body: JSON.stringify({ post_id: id })
     })
-        .then(r => r.json())
         .then(data => {
             if (typeof data.liked === "undefined") {
                 throw new Error(data.error || "Error al dar like");
@@ -257,6 +265,9 @@ function toggleLike(event, id, btn) {
             }
         })
         .catch(error => {
+            if (error.authRedirected) {
+                return;
+            }
             alert(error.message);
         });
 }
@@ -304,7 +315,7 @@ function deletePost(id) {
         return;
     }
 
-    fetch(apiUrl("/posts/delete"), {
+    postsRequestJson(apiUrl("/posts/delete"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -312,7 +323,6 @@ function deletePost(id) {
         },
         body: JSON.stringify({ post_id: id })
     })
-        .then(r => r.json())
         .then(data => {
             if (data.success) {
                 const postEl = document.getElementById("post-" + id);
@@ -322,6 +332,12 @@ function deletePost(id) {
             } else {
                 alert(data.error || "Error al eliminar");
             }
+        })
+        .catch(error => {
+            if (error.authRedirected) {
+                return;
+            }
+            alert(error.message);
         });
 }
 

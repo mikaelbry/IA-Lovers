@@ -2,6 +2,7 @@ const headerPathname = window.location.pathname;
 const headerWebIndex = headerPathname.indexOf("/web/");
 const headerPublicIndex = headerPathname.indexOf("/public/");
 const headerApiIndex = headerPathname.indexOf("/api/");
+const AUTH_FLASH_KEY = "auth-flash";
 
 window.APP_BASE = (() => {
     const path = window.location.pathname;
@@ -26,6 +27,7 @@ window.apiUrl = (path = "") => `${window.API}${path.startsWith("/") ? path : `/$
 window.webUrl = (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 window.publicUrl = window.webUrl;
 window.token = localStorage.getItem("token");
+window.user = JSON.parse(localStorage.getItem("user") || "null");
 
 const authRedirectFallback = "index.html";
 const blockedAuthRedirects = new Set(["login.html", "register.html"]);
@@ -56,10 +58,161 @@ function sanitizeAuthRedirect(target) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function currentPageName() {
+    return window.location.pathname.split("/").pop() || authRedirectFallback;
+}
 
+function currentRedirectTarget() {
+    return sanitizeAuthRedirect(`${currentPageName()}${window.location.search}${window.location.hash}`);
+}
+
+function storeAuthFlash(message, type = "info") {
+    if (!message) {
+        sessionStorage.removeItem(AUTH_FLASH_KEY);
+        return;
+    }
+
+    sessionStorage.setItem(AUTH_FLASH_KEY, JSON.stringify({ message, type }));
+}
+
+window.consumeAuthFlash = () => {
+    const raw = sessionStorage.getItem(AUTH_FLASH_KEY);
+
+    if (!raw) {
+        return null;
+    }
+
+    sessionStorage.removeItem(AUTH_FLASH_KEY);
+
+    try {
+        return JSON.parse(raw);
+    } catch (error) {
+        return null;
+    }
+};
+
+window.clearAuthSession = async ({
+    redirectToLogin = false,
+    flashMessage = "",
+    flashType = "error",
+    skipServerLogout = false,
+} = {}) => {
+    const storedToken = localStorage.getItem("token");
+
+    if (storedToken && !skipServerLogout) {
+        fetch(apiUrl("/logout"), {
+            method: "POST",
+            headers: {
+                Authorization: "Bearer " + storedToken,
+            },
+            keepalive: true,
+        }).catch(() => {});
+    }
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.token = null;
+    window.user = null;
+
+    if (flashMessage) {
+        storeAuthFlash(flashMessage, flashType);
+    }
+
+    if (!redirectToLogin) {
+        return;
+    }
+
+    if (blockedAuthRedirects.has(currentPageName())) {
+        return;
+    }
+
+    const redirect = currentRedirectTarget();
+    window.location.href = `${webUrl("login.html")}?redirect=${encodeURIComponent(redirect)}`;
+};
+
+window.performLogout = async () => {
+    await window.clearAuthSession({
+        redirectToLogin: false,
+        flashMessage: "",
+        skipServerLogout: false,
+    });
+
+    window.location.href = webUrl("index.html");
+};
+
+window.requestApiJson = async (url, options = {}) => {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await response.json() : {};
+
+    if (response.status === 401 && localStorage.getItem("token")) {
+        const message = data.error || "Tu sesion ha caducado. Inicia sesion de nuevo.";
+
+        await window.clearAuthSession({
+            redirectToLogin: true,
+            flashMessage: message,
+            flashType: "error",
+            skipServerLogout: true,
+        });
+
+        const error = new Error(message);
+        error.status = response.status;
+        error.data = data;
+        error.authRedirected = true;
+        throw error;
+    }
+
+    if (!response.ok) {
+        const error = new Error(data.error || "Error");
+        error.status = response.status;
+        error.data = data;
+        throw error;
+    }
+
+    return data;
+};
+
+async function validateStoredSession() {
+    const storedToken = localStorage.getItem("token");
+
+    if (!storedToken) {
+        if (localStorage.getItem("user")) {
+            localStorage.removeItem("user");
+        }
+
+        window.token = null;
+        window.user = null;
+        return;
+    }
+
+    window.token = storedToken;
+
+    try {
+        const session = await window.requestApiJson(apiUrl("/session"), {
+            headers: {
+                Authorization: "Bearer " + storedToken,
+            },
+        });
+
+        if (session?.user) {
+            window.user = session.user;
+            localStorage.setItem("user", JSON.stringify(session.user));
+        }
+    } catch (error) {
+        if (error.status !== 401) {
+            console.error(error);
+        }
+    }
+}
+
+function renderNavbar() {
     const navbar = document.querySelector(".navbar");
-    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!navbar) {
+        return;
+    }
+
+    const user = window.user;
 
     navbar.innerHTML = `
         <div class="nav-left">
@@ -74,7 +227,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const center = document.getElementById("nav-center");
     const right = document.getElementById("nav-right");
 
-    // ===== CENTRO =====
     let centerHTML = `
         <a href="${webUrl("index.html")}" data-page="index">Inicio</a>
         <a href="${webUrl("explorar.html")}" data-page="explorar">Explorar</a>
@@ -88,7 +240,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     center.innerHTML = centerHTML;
 
-    // ===== DERECHA =====
     let rightHTML = "";
 
     if (user) {
@@ -96,9 +247,9 @@ document.addEventListener("DOMContentLoaded", () => {
             <a href="${webUrl("create.html")}" data-page="create">Publicar</a>
             <a href="notifications.html" class="icon-btn">
                 <svg class="icon" viewBox="0 0 24 24" fill="none">
-                    <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" 
+                    <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M13.73 21a2 2 0 01-3.46 0" 
+                    <path d="M13.73 21a2 2 0 01-3.46 0"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </a>
@@ -117,8 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <a href="#" id="logout">Salir</a>
         `;
     } else {
-        const current = window.location.pathname.split("/").pop();
-        const redirect = sanitizeAuthRedirect(current);
+        const redirect = currentRedirectTarget();
 
         rightHTML = `
             <a href="${webUrl("login.html")}?redirect=${encodeURIComponent(redirect)}">Login</a>
@@ -128,31 +278,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     right.innerHTML = rightHTML;
 
-    // ===== ACTIVE LINK =====
-    const currentPage = window.location.pathname.split("/").pop();
-
     const map = {
         "index.html": "index",
         "explorar.html": "explorar",
         "following.html": "following",
         "create.html": "create",
         "profile.html": "profile",
-        "profile_settings.html": "profile"
+        "profile_settings.html": "profile",
     };
 
-    const currentKey = map[currentPage];
+    const currentKey = map[currentPageName()];
 
     if (currentKey) {
         const activeLink = document.querySelector(`[data-page="${currentKey}"]`);
-        if (activeLink) activeLink.classList.add("active");
+        if (activeLink) {
+            activeLink.classList.add("active");
+        }
     }
 
-    // ===== LOGOUT =====
     if (user) {
-        document.getElementById("logout").addEventListener("click", () => {
-            localStorage.clear();
-            window.location.href = webUrl("index.html");
-        });
+        const logoutLink = document.getElementById("logout");
+        if (logoutLink) {
+            logoutLink.addEventListener("click", (event) => {
+                event.preventDefault();
+                window.performLogout();
+            });
+        }
     }
+}
 
+document.addEventListener("DOMContentLoaded", async () => {
+    await validateStoredSession();
+    renderNavbar();
 });

@@ -49,14 +49,7 @@ function getUsernameFromLocation() {
 }
 
 async function requestJson(url, options = {}) {
-    const res = await fetch(url, options);
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.error || "Error");
-    }
-
-    return data;
+    return await window.requestApiJson(url, options);
 }
 
 function escapeHtml(value) {
@@ -256,6 +249,9 @@ async function toggleFollow(targetUsername) {
         renderProfile();
         renderModal();
     } catch (error) {
+        if (error.authRedirected) {
+            return;
+        }
         alert(error.message);
     } finally {
         pendingFollows.delete(targetUsername);
@@ -339,7 +335,12 @@ async function loadUserPage() {
     renderPosts(state.posts, "posts");
 }
 
-loadUserPage().catch((error) => alert(error.message));
+loadUserPage().catch((error) => {
+    if (error.authRedirected) {
+        return;
+    }
+    alert(error.message);
+});
         </script>
     </body>
 </html>

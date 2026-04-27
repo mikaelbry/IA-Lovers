@@ -5,6 +5,8 @@ require_once __DIR__ . '/../models/PendingRegistration.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/RateLimiter.php';
 require_once __DIR__ . '/../core/Storage.php';
+require_once __DIR__ . '/../core/Auth.php';
+require_once __DIR__ . '/../core/Middleware.php';
 require_once __DIR__ . '/../core/Altcha.php';
 require_once __DIR__ . '/../core/GmailMailer.php';
 require_once __DIR__ . '/../config/database.php';
@@ -21,6 +23,17 @@ class AuthController {
             'avatar_url' => !empty($user['avatar_path'])
                 ? Storage::publicUrl($user['id'], $user['avatar_path'])
                 : null,
+        ];
+    }
+
+    private static function authResponsePayload($user) {
+        $session = Auth::issueToken($user['id']);
+
+        return [
+            'token' => $session['token'],
+            'expires_at' => $session['expires_at'],
+            'expires_in_days' => $session['expires_in_days'],
+            'user' => self::authUserPayload($user),
         ];
     }
 
@@ -102,11 +115,22 @@ class AuthController {
     }
 
     public static function startRegistration() {
+        self::startRegistrationFlow(true);
+    }
+
+    public static function mobileStartRegistration() {
+        self::startRegistrationFlow(false);
+    }
+
+    private static function startRegistrationFlow($requireAltcha) {
         RateLimiter::check('register_attempts', 5, 300);
         PendingRegistration::purgeExpired();
 
         $data = self::jsonBody();
-        Altcha::verifyOrFail($data['altcha'] ?? '');
+
+        if ($requireAltcha) {
+            Altcha::verifyOrFail($data['altcha'] ?? '');
+        }
 
         [$username, $email, $password] = self::validateRegistrationData($data);
         self::assertEmailAndUsernameAvailable($email, $username);
@@ -233,6 +257,10 @@ class AuthController {
         ]);
     }
 
+    public static function mobileVerifyRegistration() {
+        self::verifyRegistration();
+    }
+
     public static function resendRegistrationCode() {
         RateLimiter::check('register_resend_attempts', 5, 300);
         PendingRegistration::purgeExpired();
@@ -276,6 +304,10 @@ class AuthController {
         ]);
     }
 
+    public static function mobileResendRegistrationCode() {
+        self::resendRegistrationCode();
+    }
+
     public static function cancelPendingRegistration() {
         PendingRegistration::purgeExpired();
 
@@ -289,11 +321,43 @@ class AuthController {
         Response::json(['success' => true]);
     }
 
+    public static function mobileCancelPendingRegistration() {
+        self::cancelPendingRegistration();
+    }
+
+    public static function session() {
+        $user = Middleware::auth();
+
+        Response::json([
+            'authenticated' => true,
+            'expires_in_days' => Auth::tokenTtlDays(),
+            'user' => self::authUserPayload($user),
+        ]);
+    }
+
+    public static function logout() {
+        $user = Middleware::auth();
+        Auth::revokeToken($user['token'] ?? null);
+
+        Response::json(['success' => true]);
+    }
+
     public static function login() {
+        self::loginFlow(true);
+    }
+
+    public static function mobileLogin() {
+        self::loginFlow(false);
+    }
+
+    private static function loginFlow($requireAltcha) {
         RateLimiter::check('login_attempts', 8, 300);
 
         $data = self::jsonBody();
-        Altcha::verifyOrFail($data['altcha'] ?? '');
+
+        if ($requireAltcha) {
+            Altcha::verifyOrFail($data['altcha'] ?? '');
+        }
 
         $email = trim((string) ($data['email'] ?? ''));
         $password = (string) ($data['password'] ?? '');
@@ -303,19 +367,6 @@ class AuthController {
             Response::json(['error' => 'Credenciales incorrectas'], 401);
         }
 
-        $token = bin2hex(random_bytes(32));
-        $pdo = Database::getConnection();
-
-        $stmt = $pdo->prepare("
-            INSERT INTO user_tokens (user_id, token, expires_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP + INTERVAL '7 days')
-        ");
-
-        $stmt->execute([$user['id'], $token]);
-
-        Response::json([
-            'token' => $token,
-            'user' => self::authUserPayload($user)
-        ]);
+        Response::json(self::authResponsePayload($user));
     }
 }

@@ -4,6 +4,8 @@ header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
 header("Referrer-Policy: no-referrer");
+header("Cache-Control: no-store, private");
+header("Pragma: no-cache");
 header("Content-Type: application/json; charset=utf-8");
 
 require_once __DIR__ . '/core/Router.php';
@@ -62,6 +64,14 @@ $router->post('/register/verify', fn() => AuthController::verifyRegistration());
 $router->post('/register/resend', fn() => AuthController::resendRegistrationCode());
 $router->post('/register/cancel', fn() => AuthController::cancelPendingRegistration());
 $router->post('/login', fn() => AuthController::login());
+$router->get('/session', fn() => AuthController::session());
+$router->post('/logout', fn() => AuthController::logout());
+$router->post('/mobile/register/start', fn() => AuthController::mobileStartRegistration());
+$router->post('/mobile/register/verify', fn() => AuthController::mobileVerifyRegistration());
+$router->post('/mobile/register/resend', fn() => AuthController::mobileResendRegistrationCode());
+$router->post('/mobile/register/cancel', fn() => AuthController::mobileCancelPendingRegistration());
+$router->post('/mobile/login', fn() => AuthController::mobileLogin());
+$router->post('/mobile/logout', fn() => AuthController::logout());
 $router->get('/altcha/challenge', fn() => Response::json(Altcha::challenge()));
 
 /* =======================

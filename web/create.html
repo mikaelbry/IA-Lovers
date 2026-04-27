@@ -435,20 +435,25 @@ document.getElementById("postForm").addEventListener("submit", async function(e)
     const formData = new FormData(this);
     formData.append("tags", JSON.stringify(selected.map(t => t.name)));
 
-    const res = await fetch(apiUrl("/posts/create"), {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token },
-        body: formData
-    });
+    try {
+        const json = await window.requestApiJson(apiUrl("/posts/create"), {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+            body: formData
+        });
 
-    const json = await res.json();
+        if (json.id) {
+            window.location.href = `${publicUrl("post.html")}?id=${json.id}`;
+            return;
+        }
 
-    if (res.ok && json.id) {
-        window.location.href = `${publicUrl("post.html")}?id=${json.id}`;
-        return;
+        alert("Error al crear el post");
+    } catch (error) {
+        if (error.authRedirected) {
+            return;
+        }
+        alert(error.message);
     }
-
-    alert(json.error || "Error al crear el post");
 });
 
 renderQuickTags();

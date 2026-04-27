@@ -539,6 +539,8 @@ async function autoLogin(email, password, altchaPayload = '') {
 
     localStorage.setItem('token', json.token);
     localStorage.setItem('user', JSON.stringify(json.user));
+    window.token = json.token;
+    window.user = json.user;
 
     window.location.href = getRedirectUrl();
 }
@@ -596,12 +598,20 @@ function restoreAuthContext() {
     const email = params.get('email');
     const registered = params.get('registered');
     const loginForm = document.querySelector('form.auth-form[data-mode="login"]');
+    const flash = typeof window.consumeAuthFlash === 'function'
+        ? window.consumeAuthFlash()
+        : null;
 
     if (email) {
         const emailInput = document.getElementById('email');
         if (emailInput) {
             emailInput.value = email;
         }
+    }
+
+    if (flash && loginForm) {
+        setStatus(loginForm, flash.message || 'Tu sesion ha caducado. Inicia sesion de nuevo.', flash.type || 'error');
+        return;
     }
 
     if (registered === '1' && loginForm) {

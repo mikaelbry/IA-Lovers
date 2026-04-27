@@ -45,14 +45,7 @@ if (!token) {
 }
 
 async function requestJson(url, options = {}) {
-    const res = await fetch(url, options);
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.error || "Error");
-    }
-
-    return data;
+    return await window.requestApiJson(url, options);
 }
 
 function escapeHtml(value) {
@@ -212,6 +205,9 @@ async function toggleFollow(username) {
         renderProfile();
         renderModal();
     } catch (error) {
+        if (error.authRedirected) {
+            return;
+        }
         alert(error.message);
     } finally {
         pendingFollows.delete(username);
@@ -259,7 +255,12 @@ async function loadProfile() {
     renderPosts(state.posts, "posts");
 }
 
-loadProfile().catch((error) => alert(error.message));
+loadProfile().catch((error) => {
+    if (error.authRedirected) {
+        return;
+    }
+    alert(error.message);
+});
         </script>
     </body>
 </html>

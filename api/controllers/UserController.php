@@ -164,7 +164,7 @@ class UserController {
 
         $viewer = null;
 
-        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        if (Auth::hasAuthorizationHeader()) {
             try {
                 $viewer = Middleware::auth();
             } catch (Exception $e) {
@@ -262,7 +262,7 @@ class UserController {
 
         $viewer = null;
 
-        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        if (Auth::hasAuthorizationHeader()) {
             try {
                 $viewer = Middleware::auth();
             } catch (Exception $e) {
@@ -393,6 +393,10 @@ class UserController {
         }
 
         User::update($user['id'], $username, $email, $password !== '' ? $password : null);
+
+        if ($password !== '') {
+            Auth::revokeOtherTokens($user['id'], $user['token'] ?? null);
+        }
 
         Response::json(['message' => 'Perfil actualizado']);
     }

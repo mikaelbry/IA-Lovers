@@ -45,18 +45,7 @@ if (!token) {
 }
 
 async function requestJson(url, options = {}) {
-    const response = await fetch(url, options);
-    const contentType = response.headers.get("content-type") || "";
-    const data = contentType.includes("application/json") ? await response.json() : {};
-
-    if (!response.ok) {
-        const error = new Error(data.error || "Error");
-        error.status = response.status;
-        error.data = data;
-        throw error;
-    }
-
-    return data;
+    return await window.requestApiJson(url, options);
 }
 
 function escapeHtml(value) {
@@ -941,6 +930,9 @@ settingsForm.addEventListener("submit", async (event) => {
     try {
         await handleSectionSubmit();
     } catch (error) {
+        if (error.authRedirected) {
+            return;
+        }
         setStatus(error.message, "error");
     } finally {
         setLoading(false);
@@ -961,5 +953,8 @@ async function loadSettings() {
 }
 
 loadSettings().catch((error) => {
+    if (error.authRedirected) {
+        return;
+    }
     setStatus(error.message, "error");
 });
