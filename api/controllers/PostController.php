@@ -443,7 +443,15 @@ class PostController {
         $stmt->execute([$id]);
 
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $comments = array_map(fn($comment) => self::mapAuthorAvatar($comment), $comments);
+        $comments = array_map(function ($comment) {
+            foreach (['id', 'post_id', 'user_id', 'parent_id'] as $numericKey) {
+                if (isset($comment[$numericKey]) && $comment[$numericKey] !== null) {
+                    $comment[$numericKey] = (int) $comment[$numericKey];
+                }
+            }
+
+            return self::mapAuthorAvatar($comment);
+        }, $comments);
 
         Response::json([
             'post' => $post,

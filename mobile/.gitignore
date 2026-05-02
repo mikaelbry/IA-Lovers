@@ -1,0 +1,13 @@
+# Local machine config
+local.properties
+
+# Gradle/Android generated output
+.gradle/
+.gradle-user-home*/
+.kotlin/
+build/
+**/build/
+
+# IDE workspace files
+.idea/
+*.iml

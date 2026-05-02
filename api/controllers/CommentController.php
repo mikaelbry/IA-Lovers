@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/Comment.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
+require_once __DIR__ . '/../core/Storage.php';
 require_once __DIR__ . '/../config/database.php';
 
 class CommentController {
@@ -25,7 +26,7 @@ class CommentController {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            SELECT comments.*, usuarios.username
+            SELECT comments.*, usuarios.username, usuarios.avatar_path
             FROM comments
             JOIN usuarios ON usuarios.id = comments.user_id
             WHERE comments.id = ?
@@ -33,11 +34,23 @@ class CommentController {
         $stmt->execute([$commentId]);
         $newComment = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        if ($newComment) {
+            foreach (['id', 'post_id', 'user_id', 'parent_id'] as $numericKey) {
+                if (isset($newComment[$numericKey]) && $newComment[$numericKey] !== null) {
+                    $newComment[$numericKey] = (int) $newComment[$numericKey];
+                }
+            }
+
+            $newComment['avatar_url'] = !empty($newComment['avatar_path'])
+                ? Storage::publicUrl($newComment['user_id'], $newComment['avatar_path'])
+                : null;
+        }
+
         $count = Comment::countByPost($post_id);
 
         Response::json([
             'comment' => $newComment,
-            'comments_count' => $count
+            'comments_count' => (int) $count
         ]);
     }
 

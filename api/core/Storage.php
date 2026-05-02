@@ -24,6 +24,16 @@ class Storage {
             $post['file_path'] = self::publicUrl($post['user_id'], $post['file_path']);
         }
 
+        foreach (['id', 'user_id', 'likes_count', 'comments_count'] as $numericKey) {
+            if (isset($post[$numericKey])) {
+                $post[$numericKey] = (int) $post[$numericKey];
+            }
+        }
+
+        if (isset($post['liked_by_user'])) {
+            $post['liked_by_user'] = filter_var($post['liked_by_user'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         return $post;
     }
 

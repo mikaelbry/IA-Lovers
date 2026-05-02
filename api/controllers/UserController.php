@@ -128,7 +128,7 @@ class UserController {
 
         Response::json([
             'user' => $user,
-            'followers' => $followers,
+            'followers' => (int) $followers,
             'posts' => $posts
         ]);
     }
