@@ -238,7 +238,7 @@ class UserController {
 
         Response::json([
             'user' => $user,
-            'followers' => $followers,
+            'followers' => (int) $followers,
             'is_following' => $isFollowing,
             'posts' => $posts
         ]);
@@ -351,7 +351,7 @@ class UserController {
 
         Response::json([
             'user' => $user,
-            'followers' => $followers,
+            'followers' => (int) $followers,
             'is_following' => $isFollowing,
             'posts' => $posts
         ]);

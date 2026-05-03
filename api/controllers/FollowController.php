@@ -4,9 +4,18 @@ require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/Middleware.php';
+require_once __DIR__ . '/../core/Storage.php';
 require_once __DIR__ . '/../models/User.php';
 
 class FollowController {
+    private static function mapFollowUser(array $user) {
+        return [
+            'username' => $user['username'],
+            'avatar_url' => !empty($user['avatar_path'])
+                ? Storage::publicUrl($user['id'], $user['avatar_path'])
+                : null,
+        ];
+    }
 
     public static function follow() {
 
@@ -64,15 +73,16 @@ class FollowController {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            SELECT usuarios.username
+            SELECT usuarios.id, usuarios.username, usuarios.avatar_path
             FROM follows
             JOIN usuarios ON usuarios.id = follows.follower_id
             WHERE follows.following_id = ?
+            ORDER BY usuarios.username ASC
         ");
 
         $stmt->execute([$user_id]);
 
-        Response::json($stmt->fetchAll());
+        Response::json(array_map([self::class, 'mapFollowUser'], $stmt->fetchAll(PDO::FETCH_ASSOC)));
     }
 
     public static function following() {
@@ -87,14 +97,15 @@ class FollowController {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            SELECT usuarios.username
+            SELECT usuarios.id, usuarios.username, usuarios.avatar_path
             FROM follows
             JOIN usuarios ON usuarios.id = follows.following_id
             WHERE follows.follower_id = ?
+            ORDER BY usuarios.username ASC
         ");
 
         $stmt->execute([$user_id]);
 
-        Response::json($stmt->fetchAll());
+        Response::json(array_map([self::class, 'mapFollowUser'], $stmt->fetchAll(PDO::FETCH_ASSOC)));
     }
 }

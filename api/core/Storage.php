@@ -24,6 +24,12 @@ class Storage {
             $post['file_path'] = self::publicUrl($post['user_id'], $post['file_path']);
         }
 
+        foreach (['title', 'description'] as $textKey) {
+            if (isset($post[$textKey]) && $post[$textKey] !== null) {
+                $post[$textKey] = html_entity_decode($post[$textKey], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
         foreach (['id', 'user_id', 'likes_count', 'comments_count'] as $numericKey) {
             if (isset($post[$numericKey])) {
                 $post[$numericKey] = (int) $post[$numericKey];

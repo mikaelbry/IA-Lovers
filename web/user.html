@@ -62,9 +62,10 @@ function escapeHtml(value) {
     }[char]));
 }
 
-function upsertUser(list, username) {
-    if (!list.some((user) => user.username === username)) {
-        list.push({ username });
+function upsertUser(list, user) {
+    const normalizedUser = typeof user === "string" ? { username: user } : user;
+    if (!list.some((item) => item.username === normalizedUser.username)) {
+        list.push(normalizedUser);
     }
 }
 
@@ -146,7 +147,8 @@ function renderProfile() {
                         </div>
                         <p class="profile-stats">
                             <strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${state.viewedFollowers.length} |
-                            <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${state.viewedFollowing.length}
+                            <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${state.viewedFollowing.length} |
+                            <strong>Posts:</strong> ${state.posts.length}
                         </p>
                     </div>
                 </div>
@@ -183,10 +185,14 @@ function renderModal() {
         const isMe = state.currentUser && username === state.currentUser.username;
         const label = isMe ? `${escapeHtml(username)} (Tu)` : escapeHtml(username);
         const href = getProfileUrl(username);
+        const avatarSrc = user.avatar_url || "assets/images/logo.jpg";
 
         return `
             <li class="follow-item">
-                <a href="${href}">${label}</a>
+                <a href="${href}" class="follow-user-link">
+                    <img src="${escapeHtml(avatarSrc)}" class="follow-avatar" alt="">
+                    <span>${label}</span>
+                </a>
                 ${buildFollowButton(username)}
             </li>
         `;
@@ -208,7 +214,7 @@ function closeModal() {
 
 function syncFollowState(username, following) {
     if (following) {
-        upsertUser(state.myFollowing, username);
+        upsertUser(state.myFollowing, { username });
     } else {
         state.myFollowing = removeUser(state.myFollowing, username);
     }
@@ -218,7 +224,7 @@ function syncFollowState(username, following) {
 
         if (state.currentUser) {
             if (following) {
-                upsertUser(state.viewedFollowers, state.currentUser.username);
+                upsertUser(state.viewedFollowers, state.currentUser);
             } else {
                 state.viewedFollowers = removeUser(state.viewedFollowers, state.currentUser.username);
             }

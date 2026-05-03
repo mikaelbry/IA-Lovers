@@ -87,8 +87,8 @@ class PostController {
 
             $stmt->execute([
                 $user['id'],
-                htmlspecialchars($title),
-                htmlspecialchars($description),
+                $title,
+                $description,
                 $filename,
                 $mime,
                 $file['size']
@@ -448,6 +448,10 @@ class PostController {
                 if (isset($comment[$numericKey]) && $comment[$numericKey] !== null) {
                     $comment[$numericKey] = (int) $comment[$numericKey];
                 }
+            }
+
+            if (isset($comment['content']) && $comment['content'] !== null) {
+                $comment['content'] = html_entity_decode($comment['content'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
             }
 
             return self::mapAuthorAvatar($comment);

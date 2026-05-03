@@ -21,7 +21,7 @@ class CommentController {
             Response::json(['error' => 'Datos invalidos'], 400);
         }
 
-        $commentId = Comment::create($user['id'], $post_id, htmlspecialchars($content), $parent_id);
+        $commentId = Comment::create($user['id'], $post_id, $content, $parent_id);
 
         $pdo = Database::getConnection();
 
@@ -44,6 +44,10 @@ class CommentController {
             $newComment['avatar_url'] = !empty($newComment['avatar_path'])
                 ? Storage::publicUrl($newComment['user_id'], $newComment['avatar_path'])
                 : null;
+
+            if (isset($newComment['content']) && $newComment['content'] !== null) {
+                $newComment['content'] = html_entity_decode($newComment['content'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
         }
 
         $count = Comment::countByPost($post_id);

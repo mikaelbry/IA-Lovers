@@ -58,9 +58,10 @@ function escapeHtml(value) {
     }[char]));
 }
 
-function upsertUser(list, username) {
-    if (!list.some((user) => user.username === username)) {
-        list.push({ username });
+function upsertUser(list, user) {
+    const normalizedUser = typeof user === "string" ? { username: user } : user;
+    if (!list.some((item) => item.username === normalizedUser.username)) {
+        list.push(normalizedUser);
     }
 }
 
@@ -109,7 +110,8 @@ function renderProfile() {
                         </div>
                         <p class="profile-stats">
                             <strong id="followersBtn" style="cursor:pointer;">Seguidores:</strong> ${state.followers.length} |
-                            <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${state.following.length}
+                            <strong id="followingBtn" style="cursor:pointer;">Siguiendo:</strong> ${state.following.length} |
+                            <strong>Posts:</strong> ${state.posts.length}
                         </p>
                     </div>
                 </div>
@@ -155,10 +157,14 @@ function renderModal() {
         const isMe = username === state.user.username;
         const label = isMe ? `${escapeHtml(username)} (Tu)` : escapeHtml(username);
         const href = `${publicUrl("user.html")}?username=${encodeURIComponent(username)}`;
+        const avatarSrc = user.avatar_url || "assets/images/logo.jpg";
 
         return `
             <li class="follow-item" data-row-username="${escapeHtml(username)}">
-                <a href="${href}">${label}</a>
+                <a href="${href}" class="follow-user-link">
+                    <img src="${escapeHtml(avatarSrc)}" class="follow-avatar" alt="">
+                    <span>${label}</span>
+                </a>
                 ${isMe ? "" : buildFollowButton(username)}
             </li>
         `;
@@ -197,7 +203,7 @@ async function toggleFollow(username) {
         });
 
         if (response.following) {
-            upsertUser(state.following, username);
+            upsertUser(state.following, { username });
         } else {
             state.following = removeUser(state.following, username);
         }

@@ -29,7 +29,7 @@ class Altcha {
 
     public static function verifyOrFail($payload) {
         if (!self::verify($payload)) {
-            Response::json(['error' => 'Verificacion ALTCHA invalida o caducada'], 400);
+            Response::json(['error' => 'Verificacion CAPTCHA invalida o caducada'], 400);
         }
     }
 
