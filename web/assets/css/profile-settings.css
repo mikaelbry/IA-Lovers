@@ -82,8 +82,17 @@
     height: 84px;
     border-radius: 24px;
     object-fit: cover;
-    display: block;
     image-rendering: -webkit-optimize-contrast;
+}
+
+.avatar-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #0f4f82;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
 .settings-profile-card h2 {
@@ -231,6 +240,53 @@
     transform: translateY(-1px);
 }
 
+.password-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.password-wrapper input {
+    padding-right: 45px;
+    box-sizing: border-box;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #6b7786;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-toggle:hover {
+    color: #2481ce;
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.eye-open {
+    display: none;
+}
+
+.password-wrapper.show-password .eye-closed {
+    display: none;
+}
+
+.password-wrapper.show-password .eye-open {
+    display: block;
+}
+
 .settings-field input[readonly] {
     background: #f3f7fb;
     color: #526071;
@@ -318,6 +374,11 @@
     display: block;
     image-rendering: -webkit-optimize-contrast;
     background: #ffffff;
+}
+
+.settings-avatar.avatar-initial,
+.settings-avatar-preview.avatar-initial {
+    display: inline-flex;
 }
 
 .settings-avatar-note {

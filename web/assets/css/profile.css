@@ -91,6 +91,16 @@
     image-rendering: -webkit-optimize-contrast;
 }
 
+.avatar-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #0f4f82;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
 .profile-settings-link {
     width: 44px;
     height: 44px;

@@ -72,8 +72,18 @@ function getPostProfileUrl(post) {
     return `${window.publicUrl("user.html")}?username=${encodeURIComponent(post.username ?? "")}`;
 }
 
-function getPostAvatarUrl(post) {
-    return post.avatar_url || "assets/images/logo.jpg";
+function getInitial(value) {
+    return escapeHtml(String(value || "I").trim().charAt(0).toUpperCase() || "I");
+}
+
+function renderUserAvatar(user, className) {
+    const username = user?.username ?? "";
+
+    if (user?.avatar_url) {
+        return `<img src="${escapeHtml(user.avatar_url)}" alt="Avatar de ${escapeHtml(username)}" class="${className}">`;
+    }
+
+    return `<span class="${className} avatar-initial" aria-label="Avatar de ${escapeHtml(username)}">${getInitial(username)}</span>`;
 }
 
 function renderPosts(posts, containerId = "posts") {
@@ -122,7 +132,7 @@ function appendPosts(posts, containerId = "posts") {
 
                 <div class="post-header">
                     <a href="${profileUrl}" class="post-author-link">
-                        <img src="${escapeHtml(getPostAvatarUrl(post))}" alt="Avatar de ${escapeHtml(post.username ?? "")}" class="post-avatar">
+                        ${renderUserAvatar(post, "post-avatar")}
                         <span>${escapeHtml(post.username ?? "")}</span>
                     </a>
                 </div>

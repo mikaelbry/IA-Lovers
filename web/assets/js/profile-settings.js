@@ -8,9 +8,46 @@ const panelButtons = document.getElementById("panelButtons");
 const saveButton = document.getElementById("saveButton");
 const cancelButton = document.getElementById("cancelButton");
 const statusEl = document.getElementById("formStatus");
-const summaryAvatar = document.getElementById("summaryAvatar");
+const summaryAvatarWrap = document.getElementById("summaryAvatarWrap");
 const MAX_AVATAR_FILE_MB = 4;
 const MAX_AVATAR_FILE = MAX_AVATAR_FILE_MB * 1024 * 1024;
+
+function togglePassword(inputId, button) {
+    const input = document.getElementById(inputId);
+    const wrapper = button.closest('.password-wrapper');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        wrapper.classList.add('show-password');
+    } else {
+        input.type = 'password';
+        wrapper.classList.remove('show-password');
+    }
+}
+
+function passwordFieldHtml(id, label, autocomplete, required = true, readonly = false, value = '') {
+    const requiredAttr = required ? 'required' : '';
+    const readonlyAttr = readonly ? 'readonly' : '';
+    const valueAttr = value ? `value="${escapeHtml(value)}"` : '';
+    return `
+        <div class="settings-field settings-field-full">
+            <label for="${id}">${label}</label>
+            <div class="password-wrapper">
+                <input type="password" id="${id}" autocomplete="${autocomplete}" ${requiredAttr} ${readonlyAttr} ${valueAttr}>
+                <button type="button" class="password-toggle" onclick="togglePassword('${id}', this)" aria-label="Mostrar contraseña">
+                    <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                    <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+}
 
 const state = {
     user: null,
@@ -60,6 +97,21 @@ function escapeHtml(value) {
     }[char]));
 }
 
+function getInitial(value) {
+    return escapeHtml(String(value || "I").trim().charAt(0).toUpperCase() || "I");
+}
+
+function renderUserAvatar(user, className, overrideUrl = null) {
+    const username = user?.username ?? "";
+    const avatarUrl = overrideUrl || user?.avatar_url;
+
+    if (avatarUrl) {
+        return `<img src="${escapeHtml(avatarUrl)}" alt="Avatar de ${escapeHtml(username)}" class="${className}">`;
+    }
+
+    return `<span class="${className} avatar-initial" aria-label="Avatar de ${escapeHtml(username)}">${getInitial(username)}</span>`;
+}
+
 function formatCreatedAt(dateString) {
     if (!dateString) {
         return "Fecha no disponible";
@@ -105,7 +157,7 @@ function updateSummary() {
     document.getElementById("profileName").textContent = state.user.username;
     document.getElementById("profileEmail").textContent = state.user.email;
     document.getElementById("createdAtText").textContent = formatCreatedAt(state.user.created_at);
-    summaryAvatar.src = state.avatarPreview || state.user.avatar_url || "assets/images/logo.jpg";
+    summaryAvatarWrap.innerHTML = renderUserAvatar(state.user, "settings-avatar", state.avatarPreview);
 }
 
 function syncStoredUser() {
@@ -216,7 +268,9 @@ function getSections() {
             showActions: true,
             render: () => `
                 <div class="settings-avatar-panel">
-                    <img src="${state.avatarPreview || state.user.avatar_url || "assets/images/logo.jpg"}" alt="Preview del avatar" class="settings-avatar-preview" id="avatarPreviewImage">
+                    <div id="avatarPreviewHost">
+                        ${renderUserAvatar(state.user, "settings-avatar-preview", state.avatarPreview)}
+                    </div>
                     <div class="settings-field settings-field-full">
                         <label for="avatarInput">Nueva imagen</label>
                         <input type="file" id="avatarInput" class="settings-file-input" accept="image/png,image/jpeg,image/webp">
@@ -243,10 +297,7 @@ function getSections() {
                         <input type="text" id="usernameInput" value="" autocomplete="username" required>
                         <div id="usernameAvailability" class="settings-availability"></div>
                     </div>
-                    <div class="settings-field settings-field-full">
-                        <label for="usernamePasswordInput">contraseña actual</label>
-                        <input type="password" id="usernamePasswordInput" autocomplete="current-password" required>
-                    </div>
+                    ${passwordFieldHtml('usernamePasswordInput', 'contraseña actual', 'current-password')}
                 </div>
             `,
             onShow: () => setStatus(""),
@@ -274,10 +325,7 @@ function getSections() {
                             <button type="button" id="emailResendButton" class="settings-link-btn" onclick="resendEmailChangeCode()">Reenviar codigo</button>
                         </div>
                     ` : `
-                        <div class="settings-field settings-field-full">
-                            <label for="emailPasswordInput">contraseña actual</label>
-                            <input type="password" id="emailPasswordInput" autocomplete="current-password" required>
-                        </div>
+                        ${passwordFieldHtml('emailPasswordInput', 'contraseña actual', 'current-password')}
                     `}
                 </div>
             `,
@@ -291,18 +339,9 @@ function getSections() {
             showActions: true,
             render: () => `
                 <div class="settings-form-grid">
-                    <div class="settings-field settings-field-full">
-                        <label for="currentPasswordInput">contraseña actual</label>
-                        <input type="password" id="currentPasswordInput" autocomplete="current-password" required>
-                    </div>
-                    <div class="settings-field settings-field-full">
-                        <label for="passwordInput">Nueva contraseña</label>
-                        <input type="password" id="passwordInput" autocomplete="new-password" required>
-                    </div>
-                    <div class="settings-field settings-field-full">
-                        <label for="passwordConfirmInput">Confirmar contraseña</label>
-                        <input type="password" id="passwordConfirmInput" autocomplete="new-password" required>
-                    </div>
+                    ${passwordFieldHtml('currentPasswordInput', 'contraseña actual', 'current-password')}
+                    ${passwordFieldHtml('passwordInput', 'Nueva contraseña', 'new-password')}
+                    ${passwordFieldHtml('passwordConfirmInput', 'Confirmar contraseña', 'new-password')}
                 </div>
             `,
             onShow: () => setStatus(""),
@@ -317,10 +356,7 @@ function getSections() {
                         <span class="settings-info-label">Atencion</span>
                         <span class="settings-info-value">Esta accion es irreversible</span>
                     </div>
-                    <div class="settings-field settings-field-full">
-                        <label for="deletePasswordInput">contraseña actual</label>
-                        <input type="password" id="deletePasswordInput" autocomplete="current-password" value="${escapeHtml(state.deleteFlow.password)}" required>
-                    </div>
+                    ${passwordFieldHtml('deletePasswordInput', 'contraseña actual', 'current-password', true, false, state.deleteFlow.password)}
                     ${state.deleteFlow.confirmStep ? `
                         <div class="settings-field settings-field-full">
                             <label for="deleteConfirmInput">Escribe exactamente ELIMINAR MI CUENTA</label>
@@ -492,11 +528,11 @@ function bindSectionEvents() {
 
                 state.avatarFile = file;
                 state.avatarPreview = URL.createObjectURL(file);
-                summaryAvatar.src = state.avatarPreview;
+                updateSummary();
 
-                const previewImage = document.getElementById("avatarPreviewImage");
-                if (previewImage) {
-                    previewImage.src = state.avatarPreview;
+                const previewHost = document.getElementById("avatarPreviewHost");
+                if (previewHost) {
+                    previewHost.innerHTML = renderUserAvatar(state.user, "settings-avatar-preview", state.avatarPreview);
                 }
 
                 setStatus("Avatar listo para guardar.", "success");

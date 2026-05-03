@@ -62,6 +62,20 @@ function escapeHtml(value) {
     }[char]));
 }
 
+function getInitial(value) {
+    return escapeHtml(String(value || "I").trim().charAt(0).toUpperCase() || "I");
+}
+
+function renderUserAvatar(user, className) {
+    const username = user?.username ?? "";
+
+    if (user?.avatar_url) {
+        return `<img src="${escapeHtml(user.avatar_url)}" class="${className}" alt="Avatar de ${escapeHtml(username)}">`;
+    }
+
+    return `<span class="${className} avatar-initial" aria-label="Avatar de ${escapeHtml(username)}">${getInitial(username)}</span>`;
+}
+
 function upsertUser(list, user) {
     const normalizedUser = typeof user === "string" ? { username: user } : user;
     if (!list.some((item) => item.username === normalizedUser.username)) {
@@ -134,13 +148,11 @@ function renderProfile() {
     }
 
     const mainAction = buildMainFollowButton();
-    const avatarSrc = state.viewedUser.avatar_url || "assets/images/logo.jpg";
-
     profileEl.innerHTML = `
         <div class="profile-header">
             <div class="profile-topbar">
                 <div class="profile-identity">
-                    <img src="${escapeHtml(avatarSrc)}" class="profile-pic">
+                    ${renderUserAvatar(state.viewedUser, "profile-pic")}
                     <div class="profile-meta">
                         <div class="profile-title-row">
                             <h2>${escapeHtml(state.viewedUser.username)}</h2>
@@ -185,12 +197,11 @@ function renderModal() {
         const isMe = state.currentUser && username === state.currentUser.username;
         const label = isMe ? `${escapeHtml(username)} (Tu)` : escapeHtml(username);
         const href = getProfileUrl(username);
-        const avatarSrc = user.avatar_url || "assets/images/logo.jpg";
 
         return `
             <li class="follow-item">
                 <a href="${href}" class="follow-user-link">
-                    <img src="${escapeHtml(avatarSrc)}" class="follow-avatar" alt="">
+                    ${renderUserAvatar(user, "follow-avatar")}
                     <span>${label}</span>
                 </a>
                 ${buildFollowButton(username)}

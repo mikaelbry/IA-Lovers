@@ -44,8 +44,18 @@ function escapeHtml(value) {
     }[char]));
 }
 
-function getAvatarUrl(user) {
-    return user?.avatar_url || 'assets/images/logo.jpg';
+function getInitial(value) {
+    return escapeHtml(String(value || 'I').trim().charAt(0).toUpperCase() || 'I');
+}
+
+function renderUserAvatar(user, className) {
+    const username = user?.username ?? '';
+
+    if (user?.avatar_url) {
+        return `<img src="${escapeHtml(user.avatar_url)}" alt="Avatar de ${escapeHtml(username)}" class="${className}">`;
+    }
+
+    return `<span class="${className} avatar-initial" aria-label="Avatar de ${escapeHtml(username)}">${getInitial(username)}</span>`;
 }
 
 function getProfileUrl(username) {
@@ -81,7 +91,7 @@ async function loadPost() {
         <article class="post-detail-card">
             <div class="post-detail-header">
                 <a href="${getProfileUrl(post.username)}" class="post-detail-author-link">
-                    <img src="${escapeHtml(getAvatarUrl(post))}" alt="Avatar de ${escapeHtml(post.username)}" class="post-detail-avatar">
+                    ${renderUserAvatar(post, 'post-detail-avatar')}
                     <div class="post-detail-author-meta">
                         <h2>${escapeHtml(post.username)}</h2>
                         <div class="post-meta">${formatDate(post.created_at)}</div>
@@ -224,7 +234,7 @@ function renderSingleComment(comment, isParent = false) {
     div.innerHTML = `
         <div class="comment-header">
             <a href="${authorUrl}" class="comment-author-link">
-                <img src="${escapeHtml(getAvatarUrl(comment))}" alt="Avatar de ${escapeHtml(comment.username)}" class="comment-avatar">
+                ${renderUserAvatar(comment, 'comment-avatar')}
                 <div>
                     <strong>${escapeHtml(comment.username)}</strong>
                     <div class="comment-date">${formatDate(comment.created_at)}</div>

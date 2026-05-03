@@ -29,6 +29,16 @@
     flex-shrink: 0;
 }
 
+.avatar-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #0f4f82;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
 .post-image2 {
     width: 100%;
     max-height: 75vh;

@@ -11,6 +11,19 @@ const registerState = {
     resendTimer: null,
 };
 
+function togglePassword(inputId, button) {
+    const input = document.getElementById(inputId);
+    const wrapper = button.closest('.password-wrapper');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        wrapper.classList.add('show-password');
+    } else {
+        input.type = 'password';
+        wrapper.classList.remove('show-password');
+    }
+}
+
 function normalizeRedirect(target) {
     const fallback = 'index.html';
 
