@@ -53,6 +53,21 @@ data class ProfileResponse(
 )
 
 @Serializable
+data class FollowUser(
+    val username: String,
+    @SerialName("avatar_url")
+    val avatarUrl: String? = null,
+)
+
+@Serializable
+data class SettingsSummaryResponse(
+    val user: ProfileUser,
+    val followers: Int = 0,
+    @SerialName("posts_count")
+    val postsCount: Int = 0,
+)
+
+@Serializable
 data class FeedResponse(
     val posts: List<PostItem> = emptyList(),
     @SerialName("next_cursor")
@@ -97,6 +112,8 @@ data class CommentItem(
     val postId: Int,
     @SerialName("user_id")
     val userId: Int,
+    @SerialName("parent_id")
+    val parentId: Int? = null,
     val username: String,
     @SerialName("avatar_url")
     val avatarUrl: String? = null,
@@ -187,6 +204,87 @@ data class CreateCommentResponse(
     val comment: CommentItem,
     @SerialName("comments_count")
     val commentsCount: Int,
+)
+
+@Serializable
+data class CreatePostResponse(
+    val message: String? = null,
+    val id: Int,
+)
+
+@Serializable
+data class UpdateProfileRequest(
+    val username: String,
+    val email: String,
+    val password: String? = null,
+    @SerialName("current_password")
+    val currentPassword: String,
+)
+
+@Serializable
+data class UpdateProfileResponse(
+    val message: String? = null,
+)
+
+@Serializable
+data class CheckUsernameResponse(
+    val available: Boolean,
+)
+
+@Serializable
+data class AvatarResponse(
+    val message: String? = null,
+    @SerialName("avatar_path")
+    val avatarPath: String? = null,
+    @SerialName("avatar_url")
+    val avatarUrl: String? = null,
+)
+
+@Serializable
+data class StartEmailChangeRequest(
+    @SerialName("new_email")
+    val newEmail: String,
+    @SerialName("current_password")
+    val currentPassword: String,
+)
+
+@Serializable
+data class StartEmailChangeResponse(
+    val message: String? = null,
+    @SerialName("new_email")
+    val newEmail: String,
+    @SerialName("masked_email")
+    val maskedEmail: String,
+    @SerialName("resend_cooldown")
+    val resendCooldown: Int = 30,
+)
+
+@Serializable
+data class VerifyEmailChangeRequest(
+    val code: String,
+)
+
+@Serializable
+data class VerifyEmailChangeResponse(
+    val message: String? = null,
+    val email: String,
+)
+
+@Serializable
+data class ResendEmailChangeResponse(
+    val message: String? = null,
+    @SerialName("masked_email")
+    val maskedEmail: String? = null,
+    @SerialName("resend_cooldown")
+    val resendCooldown: Int = 30,
+)
+
+@Serializable
+data class DeleteAccountRequest(
+    @SerialName("current_password")
+    val currentPassword: String,
+    @SerialName("confirm_text")
+    val confirmText: String,
 )
 
 @Serializable

@@ -1,6 +1,8 @@
 package com.ialovers.mobile
 
 import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,22 +14,37 @@ import com.ialovers.mobile.data.ApiFactory
 import com.ialovers.mobile.data.ApiService
 import com.ialovers.mobile.data.CommentItem
 import com.ialovers.mobile.data.CreateCommentRequest
+import com.ialovers.mobile.data.DeleteAccountRequest
 import com.ialovers.mobile.data.FlowTokenRequest
+import com.ialovers.mobile.data.FollowUser
 import com.ialovers.mobile.data.LoginRequest
 import com.ialovers.mobile.data.PostItem
 import com.ialovers.mobile.data.ProfileResponse
 import com.ialovers.mobile.data.RegisterStartRequest
 import com.ialovers.mobile.data.RegisterVerifyRequest
 import com.ialovers.mobile.data.SessionStorage
+import com.ialovers.mobile.data.SettingsSummaryResponse
+import com.ialovers.mobile.data.StartEmailChangeRequest
 import com.ialovers.mobile.data.ToggleLikeRequest
+import com.ialovers.mobile.data.UpdateProfileRequest
+import com.ialovers.mobile.data.VerifyEmailChangeRequest
 import java.io.IOException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
 class AppViewModel(
     context: Context,
 ) : ViewModel() {
+    private val appContext = context.applicationContext
     private val api: ApiService
     private val sessionStorage: SessionStorage
     private val json = Json { ignoreUnknownKeys = true }
@@ -39,6 +56,12 @@ class AppViewModel(
         private set
 
     var activePostId by mutableStateOf<Int?>(null)
+        private set
+
+    var activeUserProfileUsername by mutableStateOf<String?>(null)
+        private set
+
+    var isSettingsOpen by mutableStateOf(false)
         private set
 
     var isBusy by mutableStateOf(false)
@@ -62,7 +85,16 @@ class AppViewModel(
     var profileState by mutableStateOf(ProfileUiState(isLoading = true))
         private set
 
+    var viewedProfileState by mutableStateOf(ProfileUiState())
+        private set
+
     var postDetailState by mutableStateOf(PostDetailUiState())
+        private set
+
+    var settingsState by mutableStateOf(SettingsUiState(isLoading = true))
+        private set
+
+    var createPostState by mutableStateOf(CreatePostUiState())
         private set
 
     init {
@@ -92,16 +124,20 @@ class AppViewModel(
 
     fun selectTab(tab: MainTab) {
         activePostId = null
+        activeUserProfileUsername = null
+        isSettingsOpen = false
         selectedTab = tab
 
         when (tab) {
             MainTab.Explore -> if (exploreState.posts.isEmpty()) refreshFeed(MainTab.Explore)
             MainTab.Following -> if (followingState.posts.isEmpty()) refreshFeed(MainTab.Following)
+            MainTab.Create -> Unit
             MainTab.Profile -> if (profileState.profile == null) refreshProfile()
         }
     }
 
     fun openPost(postId: Int) {
+        isSettingsOpen = false
         activePostId = postId
         loadPostDetail(postId)
     }
@@ -109,6 +145,55 @@ class AppViewModel(
     fun closePost() {
         activePostId = null
         postDetailState = PostDetailUiState()
+    }
+
+    fun openUserProfile(username: String) {
+        val cleanUsername = username.trim()
+        if (cleanUsername.isBlank()) return
+
+        val currentUsername = profileState.profile?.user?.username
+        if (currentUsername != null && cleanUsername.equals(currentUsername, ignoreCase = true)) {
+            activePostId = null
+            activeUserProfileUsername = null
+            isSettingsOpen = false
+            selectedTab = MainTab.Profile
+            if (profileState.profile == null) refreshProfile()
+            return
+        }
+
+        activePostId = null
+        isSettingsOpen = false
+        activeUserProfileUsername = cleanUsername
+        loadViewedProfile(cleanUsername)
+    }
+
+    fun closeUserProfile() {
+        activeUserProfileUsername = null
+        viewedProfileState = ProfileUiState()
+    }
+
+    fun openSettings(section: SettingsSection = SettingsSection.Account) {
+        activePostId = null
+        selectedTab = MainTab.Profile
+        isSettingsOpen = true
+        settingsState = settingsState.copy(activeSection = section, statusMessage = null, error = null)
+        loadSettings()
+    }
+
+    fun closeSettings() {
+        isSettingsOpen = false
+        settingsState = settingsState.copy(statusMessage = null, error = null)
+        refreshProfile()
+    }
+
+    fun selectSettingsSection(section: SettingsSection) {
+        settingsState = settingsState.copy(
+            activeSection = section,
+            statusMessage = null,
+            error = null,
+            emailChange = if (section == SettingsSection.Email) settingsState.emailChange else EmailChangeUiState(),
+            deleteConfirmStep = if (section == SettingsSection.Delete) settingsState.deleteConfirmStep else false,
+        )
     }
 
     fun login(email: String, password: String) {
@@ -370,6 +455,7 @@ class AppViewModel(
     fun createComment(content: String) {
         val postId = activePostId ?: return
         val trimmed = content.trim()
+        val parentId = postDetailState.commentThread.lastOrNull()
 
         if (trimmed.isBlank()) {
             return
@@ -383,6 +469,7 @@ class AppViewModel(
                     CreateCommentRequest(
                         postId = postId,
                         content = trimmed,
+                        parentId = parentId,
                     )
                 )
 
@@ -404,6 +491,18 @@ class AppViewModel(
         }
     }
 
+    fun enterCommentThread(commentId: Int) {
+        postDetailState = postDetailState.copy(
+            commentThread = postDetailState.commentThread + commentId,
+        )
+    }
+
+    fun leaveCommentThread() {
+        postDetailState = postDetailState.copy(
+            commentThread = postDetailState.commentThread.dropLast(1),
+        )
+    }
+
     fun logout() {
         val authorization = sessionStorage.authToken?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
 
@@ -414,8 +513,13 @@ class AppViewModel(
         exploreState = FeedUiState()
         followingState = FeedUiState()
         profileState = ProfileUiState(isLoading = false)
+        viewedProfileState = ProfileUiState()
         postDetailState = PostDetailUiState()
+        settingsState = SettingsUiState(isLoading = false)
+        createPostState = CreatePostUiState()
         activePostId = null
+        activeUserProfileUsername = null
+        isSettingsOpen = false
         selectedTab = MainTab.Explore
         rootDestination = RootDestination.AuthChoice
 
@@ -423,6 +527,69 @@ class AppViewModel(
             try {
                 api.mobileLogout(authorization)
             } catch (_: Throwable) {
+            }
+        }
+    }
+
+    fun setCreatePostImage(uri: Uri?) {
+        createPostState = CreatePostUiState(imageUri = uri)
+    }
+
+    fun publishPost(
+        title: String,
+        description: String,
+        tags: List<String>,
+    ) {
+        val imageUri = createPostState.imageUri
+
+        if (imageUri == null) {
+            createPostState = createPostState.copy(error = "Selecciona una imagen para publicar.")
+            return
+        }
+
+        val cleanTitle = title.trim()
+        val cleanDescription = description.trim()
+        val cleanTags = tags.map { it.trim().trimStart('#') }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }
+
+        if (cleanTitle.length > 80) {
+            createPostState = createPostState.copy(error = "El titulo no puede superar 80 caracteres.")
+            return
+        }
+
+        if (cleanDescription.length > 500) {
+            createPostState = createPostState.copy(error = "La descripcion no puede superar 500 caracteres.")
+            return
+        }
+
+        if (cleanTags.size > 4 || cleanTags.any { it.length > 24 }) {
+            createPostState = createPostState.copy(error = "Puedes usar hasta 4 hashtags de 24 caracteres.")
+            return
+        }
+
+        viewModelScope.launch {
+            createPostState = createPostState.copy(isPublishing = true, error = null, statusMessage = null)
+
+            try {
+                val image = imagePart(imageUri, "image")
+                val response = api.createPost(
+                    image = image,
+                    title = cleanTitle.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    description = cleanDescription.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    tags = Json.encodeToString(cleanTags).toRequestBody("text/plain".toMediaTypeOrNull()),
+                )
+
+                createPostState = CreatePostUiState(statusMessage = "Publicacion creada.")
+                selectedTab = MainTab.Explore
+                refreshFeed(MainTab.Explore)
+                refreshProfile()
+                openPost(response.id)
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    createPostState = createPostState.copy(
+                        isPublishing = false,
+                        error = errorMessage(error),
+                    )
+                }
             }
         }
     }
@@ -445,18 +612,319 @@ class AppViewModel(
         rootDestination = RootDestination.Main
         selectedTab = MainTab.Explore
         activePostId = null
+        activeUserProfileUsername = null
+        isSettingsOpen = false
         refreshFeed(MainTab.Explore)
         refreshProfile()
+    }
+
+    fun updateUsername(newUsername: String, currentPassword: String) {
+        val summary = settingsState.summary ?: return
+        val username = newUsername.trim()
+
+        if (username.isBlank() || currentPassword.isBlank()) {
+            settingsState = settingsState.copy(error = "Introduce el nuevo usuario y tu contrasena actual.")
+            return
+        }
+
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                val available = api.checkUsername(username).available
+                if (!available) {
+                    settingsState = settingsState.copy(isSaving = false, error = "Este nombre de usuario ya esta cogido.")
+                    return@launch
+                }
+
+                api.updateProfile(
+                    UpdateProfileRequest(
+                        username = username,
+                        email = summary.user.email.orEmpty(),
+                        currentPassword = currentPassword,
+                    )
+                )
+
+                loadSettingsInternal("Nombre de usuario actualizado correctamente.")
+                refreshProfile()
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun updatePassword(currentPassword: String, password: String, confirmation: String) {
+        val summary = settingsState.summary ?: return
+
+        if (currentPassword.isBlank() || password.isBlank() || confirmation.isBlank()) {
+            settingsState = settingsState.copy(error = "Completa todos los campos.")
+            return
+        }
+
+        if (password != confirmation) {
+            settingsState = settingsState.copy(error = "Las contrasenas no coinciden.")
+            return
+        }
+
+        if (password.length < 8 || !password.any { it.isLetter() } || !password.any { it.isDigit() }) {
+            settingsState = settingsState.copy(error = "La contrasena debe tener al menos 8 caracteres e incluir letras y numeros.")
+            return
+        }
+
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                api.updateProfile(
+                    UpdateProfileRequest(
+                        username = summary.user.username,
+                        email = summary.user.email.orEmpty(),
+                        password = password,
+                        currentPassword = currentPassword,
+                    )
+                )
+
+                settingsState = settingsState.copy(
+                    isSaving = false,
+                    statusMessage = "Contrasena actualizada correctamente.",
+                    error = null,
+                )
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun updateAvatar(uri: Uri) {
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                val part = imagePart(uri, "avatar")
+                api.updateAvatar(part)
+                loadSettingsInternal("Avatar actualizado correctamente.")
+                refreshProfile()
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun startEmailChange(newEmail: String, currentPassword: String) {
+        if (newEmail.isBlank() || currentPassword.isBlank()) {
+            settingsState = settingsState.copy(error = "Introduce el nuevo correo y tu contrasena actual.")
+            return
+        }
+
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                val response = api.startEmailChange(
+                    StartEmailChangeRequest(
+                        newEmail = newEmail.trim(),
+                        currentPassword = currentPassword,
+                    )
+                )
+
+                settingsState = settingsState.copy(
+                    isSaving = false,
+                    error = null,
+                    statusMessage = "Hemos enviado un codigo a ${response.maskedEmail}.",
+                    emailChange = EmailChangeUiState(
+                        pending = true,
+                        newEmail = response.newEmail,
+                        maskedEmail = response.maskedEmail,
+                        resendCooldown = response.resendCooldown,
+                    ),
+                )
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun verifyEmailChange(code: String) {
+        if (!Regex("^\\d{6}$").matches(code.trim())) {
+            settingsState = settingsState.copy(error = "El codigo debe tener 6 digitos.")
+            return
+        }
+
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                api.verifyEmailChange(VerifyEmailChangeRequest(code.trim()))
+                settingsState = settingsState.copy(emailChange = EmailChangeUiState())
+                loadSettingsInternal("Correo actualizado correctamente.")
+                refreshProfile()
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun resendEmailChange() {
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                val response = api.resendEmailChange()
+                settingsState = settingsState.copy(
+                    isSaving = false,
+                    statusMessage = "Hemos reenviado un nuevo codigo.",
+                    emailChange = settingsState.emailChange.copy(
+                        maskedEmail = response.maskedEmail ?: settingsState.emailChange.maskedEmail,
+                        resendCooldown = response.resendCooldown,
+                    ),
+                )
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun cancelEmailChange() {
+        viewModelScope.launch {
+            runCatching { api.cancelEmailChange() }
+            settingsState = settingsState.copy(
+                emailChange = EmailChangeUiState(),
+                statusMessage = null,
+                error = null,
+            )
+        }
+    }
+
+    fun requestDeleteConfirmation(currentPassword: String) {
+        if (currentPassword.isBlank()) {
+            settingsState = settingsState.copy(error = "Introduce tu contrasena para continuar.")
+            return
+        }
+
+        settingsState = settingsState.copy(
+            deleteConfirmStep = true,
+            deletePassword = currentPassword,
+            error = "Escribe ELIMINAR MI CUENTA para confirmar.",
+        )
+    }
+
+    fun deleteAccount(confirmText: String) {
+        if (confirmText.trim() != "ELIMINAR MI CUENTA") {
+            settingsState = settingsState.copy(error = "La confirmacion final no coincide.")
+            return
+        }
+
+        viewModelScope.launch {
+            settingsState = settingsState.copy(isSaving = true, error = null)
+
+            try {
+                api.deleteAccount(
+                    DeleteAccountRequest(
+                        currentPassword = settingsState.deletePassword,
+                        confirmText = confirmText.trim(),
+                    )
+                )
+                logout()
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    settingsState = settingsState.copy(isSaving = false, error = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            loadSettingsInternal()
+        }
+    }
+
+    private suspend fun loadSettingsInternal(statusMessage: String? = null) {
+        settingsState = settingsState.copy(isLoading = true, error = null)
+
+        try {
+            val response = api.settingsSummary()
+            settingsState = settingsState.copy(
+                isLoading = false,
+                isSaving = false,
+                summary = response,
+                statusMessage = statusMessage,
+                error = null,
+            )
+        } catch (error: Throwable) {
+            handleAuthenticatedError(error) {
+                settingsState = settingsState.copy(
+                    isLoading = false,
+                    isSaving = false,
+                    error = errorMessage(error),
+                )
+            }
+        }
+    }
+
+    private suspend fun imagePart(uri: Uri, formName: String): MultipartBody.Part = withContext(Dispatchers.IO) {
+        val resolver = appContext.contentResolver
+        val mimeType = resolver.getType(uri) ?: "application/octet-stream"
+
+        if (mimeType !in setOf("image/jpeg", "image/png", "image/webp")) {
+            val target = if (formName == "avatar") "avatar" else "imagen"
+            throw IllegalArgumentException("La $target debe ser JPG, PNG o WEBP.")
+        }
+
+        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw IOException("No se pudo leer la imagen seleccionada.")
+
+        val maxBytes = 4 * 1024 * 1024
+        if (bytes.size > maxBytes) {
+            val target = if (formName == "avatar") "avatar" else "imagen"
+            throw IllegalArgumentException("La $target no puede superar los 4 MB.")
+        }
+
+        val fileName = queryDisplayName(uri) ?: formName
+        val body = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+        MultipartBody.Part.createFormData(formName, fileName, body)
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        return appContext.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+        }
     }
 
     private suspend fun loadProfileInternal() {
         profileState = profileState.copy(isLoading = true, error = null)
 
         try {
-            val profile = api.userProfile()
+            val profileData = coroutineScope {
+                val profile = async { api.userProfile() }
+                val followers = async { api.followers() }
+                val following = async { api.following() }
+
+                ProfileData(
+                    profile = profile.await(),
+                    followers = followers.await(),
+                    following = following.await(),
+                )
+            }
+
             profileState = ProfileUiState(
                 isLoading = false,
-                profile = profile,
+                profile = profileData.profile,
+                followers = profileData.followers,
+                following = profileData.following,
             )
             authError = null
             authMessage = null
@@ -466,6 +934,48 @@ class AppViewModel(
                     isLoading = false,
                     error = errorMessage(error),
                 )
+            }
+        }
+    }
+
+    private fun loadViewedProfile(username: String) {
+        viewModelScope.launch {
+            viewedProfileState = ProfileUiState(isLoading = true)
+
+            try {
+                val profileData = coroutineScope {
+                    val profile = async { api.profileByUsername(username) }
+                    val loadedProfile = profile.await()
+                    val followers = async { api.followers(loadedProfile.user.id) }
+                    val following = async { api.following(loadedProfile.user.id) }
+
+                    ProfileData(
+                        profile = loadedProfile,
+                        followers = followers.await(),
+                        following = following.await(),
+                    )
+                }
+
+                val currentUsername = profileState.profile?.user?.username
+                if (currentUsername != null && profileData.profile.user.username.equals(currentUsername, ignoreCase = true)) {
+                    closeUserProfile()
+                    selectedTab = MainTab.Profile
+                    return@launch
+                }
+
+                viewedProfileState = ProfileUiState(
+                    isLoading = false,
+                    profile = profileData.profile,
+                    followers = profileData.followers,
+                    following = profileData.following,
+                )
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    viewedProfileState = ProfileUiState(
+                        isLoading = false,
+                        error = errorMessage(error),
+                    )
+                }
             }
         }
     }
@@ -526,6 +1036,7 @@ class AppViewModel(
         return when (tab) {
             MainTab.Explore -> exploreState
             MainTab.Following -> followingState
+            MainTab.Create -> FeedUiState()
             MainTab.Profile -> FeedUiState()
         }
     }
@@ -534,6 +1045,7 @@ class AppViewModel(
         when (tab) {
             MainTab.Explore -> exploreState = state
             MainTab.Following -> followingState = state
+            MainTab.Create -> Unit
             MainTab.Profile -> Unit
         }
     }
@@ -602,15 +1114,50 @@ data class FeedUiState(
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val profile: ProfileResponse? = null,
+    val followers: List<FollowUser> = emptyList(),
+    val following: List<FollowUser> = emptyList(),
     val error: String? = null,
+)
+
+private data class ProfileData(
+    val profile: ProfileResponse,
+    val followers: List<FollowUser>,
+    val following: List<FollowUser>,
 )
 
 data class PostDetailUiState(
     val isLoading: Boolean = false,
     val post: PostItem? = null,
     val comments: List<CommentItem> = emptyList(),
+    val commentThread: List<Int> = emptyList(),
     val error: String? = null,
     val isCommentSending: Boolean = false,
+)
+
+data class SettingsUiState(
+    val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
+    val activeSection: SettingsSection = SettingsSection.Account,
+    val summary: SettingsSummaryResponse? = null,
+    val emailChange: EmailChangeUiState = EmailChangeUiState(),
+    val deleteConfirmStep: Boolean = false,
+    val deletePassword: String = "",
+    val statusMessage: String? = null,
+    val error: String? = null,
+)
+
+data class CreatePostUiState(
+    val imageUri: Uri? = null,
+    val isPublishing: Boolean = false,
+    val statusMessage: String? = null,
+    val error: String? = null,
+)
+
+data class EmailChangeUiState(
+    val pending: Boolean = false,
+    val newEmail: String = "",
+    val maskedEmail: String = "",
+    val resendCooldown: Int = 30,
 )
 
 enum class RootDestination {
@@ -627,5 +1174,18 @@ enum class MainTab(
 ) {
     Explore("Explorar", "explore"),
     Following("Siguiendo", "following"),
+    Create("Publicar", "create"),
     Profile("Mi perfil", "me"),
+}
+
+enum class SettingsSection(
+    val label: String,
+) {
+    Account("Informacion"),
+    Avatar("Avatar"),
+    Username("Usuario"),
+    Email("Correo"),
+    Password("Contrasena"),
+    Delete("Borrar cuenta"),
+    Logout("Cerrar sesion"),
 }

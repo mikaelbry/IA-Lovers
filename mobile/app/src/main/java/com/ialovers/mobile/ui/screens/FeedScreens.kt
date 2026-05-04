@@ -27,6 +27,7 @@ fun FeedScreen(
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     onOpenPost: (Int) -> Unit,
+    onOpenUserProfile: (String) -> Unit,
     onToggleLike: (PostItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,6 +87,7 @@ fun FeedScreen(
                     PostCard(
                         post = post,
                         onOpen = onOpenPost,
+                        onOpenAuthor = onOpenUserProfile,
                         onToggleLike = onToggleLike,
                     )
                 }

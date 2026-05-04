@@ -10,9 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,9 +41,16 @@ fun PostDetailScreen(
     onBack: () -> Unit,
     onToggleLike: (PostItem) -> Unit,
     onCreateComment: (String) -> Unit,
+    onEnterCommentThread: (Int) -> Unit,
+    onLeaveCommentThread: () -> Unit,
+    onOpenUserProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var comment by rememberSaveable { mutableStateOf("") }
+    val commentTree = state.comments.toCommentTree()
+    val flatComments = commentTree.flattenById()
+    val activeComment = state.commentThread.lastOrNull()?.let { flatComments[it] }
+    val commentsToShow = activeComment?.children ?: commentTree
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -94,30 +102,65 @@ fun PostDetailScreen(
                         PostCard(
                             post = state.post,
                             onOpen = {},
+                            onOpenAuthor = onOpenUserProfile,
                             onToggleLike = onToggleLike,
                         )
                     }
 
                     item {
-                        Text(
-                            text = "Comentarios",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Comentarios",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            if (state.commentThread.isNotEmpty()) {
+                                TextButton(onClick = onLeaveCommentThread) {
+                                    Text("Volver al hilo anterior")
+                                }
+                            }
+                        }
                     }
 
-                    if (state.comments.isEmpty()) {
+                    if (activeComment != null) {
+                        item {
+                            CommentRow(
+                                comment = activeComment.comment,
+                                repliesCount = activeComment.descendantCount(),
+                                isParentFocus = true,
+                                onReply = onEnterCommentThread,
+                                onOpenUserProfile = onOpenUserProfile,
+                            )
+                        }
+                    }
+
+                    if (commentsToShow.isEmpty()) {
                         item {
                             Text(
-                                text = "Se el primero en comentar.",
+                                text = if (activeComment == null) {
+                                    "Se el primero en comentar."
+                                } else {
+                                    "Todavia no hay respuestas."
+                                },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     } else {
-                        items(state.comments, key = { it.id }) { item ->
-                            CommentRow(comment = item)
+                        items(commentsToShow, key = { it.comment.id }) { item ->
+                            CommentRow(
+                                comment = item.comment,
+                                repliesCount = item.descendantCount(),
+                                isParentFocus = false,
+                                onReply = onEnterCommentThread,
+                                onOpenUserProfile = onOpenUserProfile,
+                            )
                         }
                     }
                 }
@@ -158,7 +201,13 @@ fun PostDetailScreen(
 }
 
 @Composable
-private fun CommentRow(comment: CommentItem) {
+private fun CommentRow(
+    comment: CommentItem,
+    repliesCount: Int,
+    isParentFocus: Boolean,
+    onReply: (Int) -> Unit,
+    onOpenUserProfile: (String) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -166,6 +215,7 @@ private fun CommentRow(comment: CommentItem) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
+            modifier = Modifier.clickable { onOpenUserProfile(comment.username) },
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top,
         ) {
@@ -185,6 +235,54 @@ private fun CommentRow(comment: CommentItem) {
                 )
             }
         }
-        Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = { onReply(comment.id) }) {
+                Text("Responder")
+            }
+            if (repliesCount > 0 && !isParentFocus) {
+                TextButton(onClick = { onReply(comment.id) }) {
+                    Text("$repliesCount respuestas")
+                }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
     }
+}
+
+private data class CommentNode(
+    val comment: CommentItem,
+    val children: List<CommentNode>,
+)
+
+private fun List<CommentItem>.toCommentTree(): List<CommentNode> {
+    fun build(parentId: Int?): List<CommentNode> {
+        return filter { it.parentId == parentId }
+            .map { comment ->
+                CommentNode(
+                    comment = comment,
+                    children = build(comment.id),
+                )
+            }
+    }
+
+    return build(null)
+}
+
+private fun List<CommentNode>.flattenById(): Map<Int, CommentNode> {
+    val result = mutableMapOf<Int, CommentNode>()
+
+    fun visit(node: CommentNode) {
+        result[node.comment.id] = node
+        node.children.forEach(::visit)
+    }
+
+    forEach(::visit)
+    return result
+}
+
+private fun CommentNode.descendantCount(): Int {
+    return children.size + children.sumOf { it.descendantCount() }
 }

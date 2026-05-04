@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -20,15 +20,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.ialovers.mobile.data.PostItem
 
 @Composable
 fun PostCard(
     post: PostItem,
     onOpen: (Int) -> Unit,
+    onOpenAuthor: (String) -> Unit = {},
     onToggleLike: (PostItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -41,6 +44,9 @@ fun PostCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable {
+                    post.username?.takeIf { it.isNotBlank() }?.let(onOpenAuthor)
+                }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -57,8 +63,13 @@ fun PostCard(
         }
 
         if (!post.filePath.isNullOrBlank()) {
+            val context = LocalContext.current
             AsyncImage(
-                model = post.filePath,
+                model = ImageRequest.Builder(context)
+                    .data(post.filePath)
+                    .crossfade(false)
+                    .size(FEED_IMAGE_SIZE_PX)
+                    .build(),
                 contentDescription = post.title ?: post.description ?: "Publicacion",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -88,7 +99,7 @@ fun PostCard(
 
         PostText(post = post)
 
-        Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
     }
 }
 
@@ -149,8 +160,13 @@ fun Avatar(
         return
     }
 
+    val context = LocalContext.current
     AsyncImage(
-        model = url,
+        model = ImageRequest.Builder(context)
+            .data(url)
+            .crossfade(false)
+            .size(AVATAR_IMAGE_SIZE_PX)
+            .build(),
         contentDescription = "Avatar de $label",
         modifier = modifier
             .size(38.dp)
@@ -158,3 +174,6 @@ fun Avatar(
         contentScale = ContentScale.Crop,
     )
 }
+
+private const val FEED_IMAGE_SIZE_PX = 1080
+private const val AVATAR_IMAGE_SIZE_PX = 128
