@@ -30,7 +30,7 @@ window.token = localStorage.getItem("token");
 window.user = JSON.parse(localStorage.getItem("user") || "null");
 
 const authRedirectFallback = "index.html";
-const blockedAuthRedirects = new Set(["login.html", "register.html"]);
+const blockedAuthRedirects = new Set(["login.html", "register.html", "forgot_password.html"]);
 
 function sanitizeAuthRedirect(target) {
     if (!target || typeof target !== "string") {

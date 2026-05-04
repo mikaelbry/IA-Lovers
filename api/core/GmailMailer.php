@@ -57,6 +57,29 @@ class GmailMailer {
         self::send($toEmail, $subject, $html);
     }
 
+    public static function sendPasswordResetCode($toEmail, $username, $code) {
+        $appName = self::env('APP_NAME', 'IA-Lovers');
+        $subject = 'Restaura tu contraseña en ' . $appName;
+        $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+        $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+        $safeAppName = htmlspecialchars($appName, ENT_QUOTES, 'UTF-8');
+
+        $html = '
+            <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#13283d;line-height:1.6;">
+                <h1 style="font-size:24px;margin:0 0 16px;">Restaura tu contraseña</h1>
+                <p style="margin:0 0 12px;">Hola ' . $safeUsername . ',</p>
+                <p style="margin:0 0 12px;">Usa este codigo para crear una nueva contraseña en ' . $safeAppName . ':</p>
+                <div style="margin:20px 0;padding:18px 20px;border-radius:16px;background:#eef6fd;border:1px solid #cfe2f3;text-align:center;">
+                    <span style="font-size:34px;font-weight:700;letter-spacing:0.3em;color:#0e5f9d;">' . $safeCode . '</span>
+                </div>
+                <p style="margin:0 0 12px;">El codigo caduca en 10 minutos.</p>
+                <p style="margin:0;color:#6a7f90;font-size:13px;">Si no has pedido restaurar tu contraseña, ignora este correo.</p>
+            </div>
+        ';
+
+        self::send($toEmail, $subject, $html);
+    }
+
     private static function send($toEmail, $subject, $html) {
         $host = self::env('SMTP_HOST', 'smtp.gmail.com');
         $port = (int) self::env('SMTP_PORT', '587');

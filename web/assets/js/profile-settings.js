@@ -342,6 +342,9 @@ function getSections() {
                     ${passwordFieldHtml('currentPasswordInput', 'contraseña actual', 'current-password')}
                     ${passwordFieldHtml('passwordInput', 'Nueva contraseña', 'new-password')}
                     ${passwordFieldHtml('passwordConfirmInput', 'Confirmar contraseña', 'new-password')}
+                    <div class="settings-inline-actions settings-field-full settings-password-recovery">
+                        <a class="settings-link-btn" href="${publicUrl(`forgot_password.html?email=${encodeURIComponent(state.user.email)}&redirect=${encodeURIComponent('profile_settings.html')}`)}">He olvidado mi contraseña</a>
+                    </div>
                 </div>
             `,
             onShow: () => setStatus(""),

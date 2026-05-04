@@ -75,6 +75,18 @@ class User {
         return $stmt->execute([$username, $email, $id]);
     }
 
+    public static function updatePassword($id, $password) {
+        $pdo = Database::getConnection();
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("
+            UPDATE usuarios
+            SET password_hash = ?
+            WHERE id = ?
+        ");
+
+        return $stmt->execute([$hash, $id]);
+    }
+
     public static function updateAvatar($id, $avatarPath) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("

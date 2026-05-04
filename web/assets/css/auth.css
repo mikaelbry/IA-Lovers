@@ -200,7 +200,14 @@ altcha-widget {
     text-align: center;
 }
 
-.auth-footer a {
+.auth-secondary-link {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.auth-footer a,
+.auth-secondary-link a {
     color: #2481ce;
     font-weight: 700;
     cursor: pointer;

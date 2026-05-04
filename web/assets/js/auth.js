@@ -1,9 +1,19 @@
-const AUTH_PAGES = new Set(['login.html', 'register.html']);
+const AUTH_PAGES = new Set(['login.html', 'register.html', 'forgot_password.html']);
 const PENDING_REGISTRATION_KEY = 'pending-registration-flow';
+const PENDING_PASSWORD_RESET_KEY = 'pending-password-reset-flow';
 
 const registerState = {
     flowToken: null,
     email: null,
+    maskedEmail: null,
+    completed: false,
+    resendCooldownSeconds: 30,
+    resendAvailableAt: 0,
+    resendTimer: null,
+};
+
+const passwordResetState = {
+    flowToken: null,
     maskedEmail: null,
     completed: false,
     resendCooldownSeconds: 30,
@@ -64,6 +74,10 @@ function getApiUrl(path) {
 
 function isRegisterPage() {
     return Boolean(document.getElementById('registerStartForm'));
+}
+
+function isPasswordResetPage() {
+    return Boolean(document.getElementById('passwordResetStartForm'));
 }
 
 function getStatusElement(form) {
@@ -147,7 +161,7 @@ async function waitForAltchaVerification(widget, form) {
 
             if (state === 'error' || state === 'expired' || state === 'failed') {
                 cleanup();
-                reject(new Error('No se pudo completar ALTCHA. Vuelve a verificar que eres humano.'));
+                reject(new Error('No se pudo completar el CAPTCHA. Vuelve a verificar que eres humano.'));
             }
         };
 
@@ -201,6 +215,22 @@ function setButtonLoading(button, isLoading, idleText, loadingText = 'Verificand
     button.textContent = isLoading ? loadingText : idleText;
 }
 
+function formatCooldown(seconds) {
+    const totalSeconds = Math.max(0, Math.ceil(Number(seconds) || 0));
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    if (minutes <= 0) {
+        return `${remainingSeconds}s`;
+    }
+
+    return `${minutes}min ${remainingSeconds}s`;
+}
+
+function passwordResetLockMessage(seconds) {
+    return `Demasiados intentos. Espera ${formatCooldown(seconds)} antes de pedir otro codigo.`;
+}
+
 function getRegisterResendButton() {
     return document.getElementById('resendCodeButton');
 }
@@ -241,6 +271,46 @@ function startRegisterResendCooldown(seconds = registerState.resendCooldownSecon
     registerState.resendTimer = window.setInterval(updateRegisterResendButton, 1000);
 }
 
+function getPasswordResetResendButton() {
+    return document.getElementById('passwordResetResendButton');
+}
+
+function clearPasswordResetResendTimer() {
+    if (passwordResetState.resendTimer) {
+        window.clearInterval(passwordResetState.resendTimer);
+        passwordResetState.resendTimer = null;
+    }
+}
+
+function updatePasswordResetResendButton() {
+    const button = getPasswordResetResendButton();
+
+    if (!button) {
+        return;
+    }
+
+    const remainingMs = passwordResetState.resendAvailableAt - Date.now();
+
+    if (remainingMs > 0) {
+        const remainingSeconds = Math.ceil(remainingMs / 1000);
+        button.disabled = true;
+        button.textContent = `Reenviar codigo (${remainingSeconds}s)`;
+        return;
+    }
+
+    button.disabled = false;
+    button.textContent = 'Reenviar codigo';
+    clearPasswordResetResendTimer();
+}
+
+function startPasswordResetResendCooldown(seconds = passwordResetState.resendCooldownSeconds) {
+    passwordResetState.resendCooldownSeconds = seconds;
+    passwordResetState.resendAvailableAt = Date.now() + (seconds * 1000);
+    clearPasswordResetResendTimer();
+    updatePasswordResetResendButton();
+    passwordResetState.resendTimer = window.setInterval(updatePasswordResetResendButton, 1000);
+}
+
 function savePendingRegistration(flowToken, email, maskedEmail, resendCooldownSeconds = registerState.resendCooldownSeconds) {
     registerState.flowToken = flowToken;
     registerState.email = email;
@@ -266,9 +336,49 @@ function clearPendingRegistrationState() {
     updateRegisterResendButton();
 }
 
+function savePendingPasswordReset(flowToken, maskedEmail, resendCooldownSeconds = passwordResetState.resendCooldownSeconds) {
+    passwordResetState.flowToken = flowToken;
+    passwordResetState.maskedEmail = maskedEmail;
+    passwordResetState.completed = false;
+    passwordResetState.resendCooldownSeconds = resendCooldownSeconds;
+
+    sessionStorage.setItem(PENDING_PASSWORD_RESET_KEY, JSON.stringify({
+        flowToken,
+        maskedEmail,
+    }));
+}
+
+function clearPendingPasswordResetState() {
+    passwordResetState.flowToken = null;
+    passwordResetState.maskedEmail = null;
+    passwordResetState.completed = false;
+    passwordResetState.resendAvailableAt = 0;
+    clearPasswordResetResendTimer();
+    sessionStorage.removeItem(PENDING_PASSWORD_RESET_KEY);
+    updatePasswordResetResendButton();
+}
+
 function setRegisterStep(step) {
     const dataStep = document.getElementById('registerDataStep');
     const verifyStep = document.getElementById('registerVerifyStep');
+
+    if (!dataStep || !verifyStep) {
+        return;
+    }
+
+    const showVerify = step === 'verify';
+    dataStep.classList.toggle('hidden', showVerify);
+    dataStep.classList.toggle('auth-step-active', !showVerify);
+    dataStep.setAttribute('aria-hidden', showVerify ? 'true' : 'false');
+
+    verifyStep.classList.toggle('hidden', !showVerify);
+    verifyStep.classList.toggle('auth-step-active', showVerify);
+    verifyStep.setAttribute('aria-hidden', showVerify ? 'false' : 'true');
+}
+
+function setPasswordResetStep(step) {
+    const dataStep = document.getElementById('passwordResetDataStep');
+    const verifyStep = document.getElementById('passwordResetVerifyStep');
 
     if (!dataStep || !verifyStep) {
         return;
@@ -291,12 +401,27 @@ function updateVerifyEmailText(maskedEmail) {
     }
 }
 
+function updatePasswordResetEmailText(maskedEmail) {
+    const target = document.getElementById('passwordResetEmailText');
+    if (target) {
+        target.textContent = `Introduce el codigo de 6 digitos enviado a ${maskedEmail} y crea una nueva contraseña.`;
+    }
+}
+
 function getCancelBeaconPayload() {
     if (!registerState.flowToken) {
         return null;
     }
 
     return JSON.stringify({ flow_token: registerState.flowToken });
+}
+
+function getPasswordResetCancelBeaconPayload() {
+    if (!passwordResetState.flowToken) {
+        return null;
+    }
+
+    return JSON.stringify({ flow_token: passwordResetState.flowToken });
 }
 
 async function cancelPendingRegistration(options = {}) {
@@ -359,6 +484,66 @@ async function cancelPendingRegistration(options = {}) {
     }
 }
 
+async function cancelPendingPasswordReset(options = {}) {
+    const { useBeacon = false, silent = false, resetForm = false } = options;
+    const payload = getPasswordResetCancelBeaconPayload();
+
+    if (!payload) {
+        if (resetForm) {
+            setPasswordResetStep('form');
+        }
+        return;
+    }
+
+    const endpoint = getApiUrl('/password-reset/cancel');
+
+    try {
+        if (useBeacon && navigator.sendBeacon) {
+            const sent = navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
+
+            if (!sent) {
+                fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                    keepalive: true,
+                }).catch(() => {});
+            }
+        } else {
+            await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+                keepalive: true,
+            });
+        }
+    } catch (error) {
+    } finally {
+        clearPendingPasswordResetState();
+
+        if (resetForm) {
+            const startForm = document.getElementById('passwordResetStartForm');
+            const verifyForm = document.getElementById('passwordResetVerifyForm');
+            if (startForm) {
+                resetAltcha(startForm);
+                clearStatus(startForm);
+            }
+            if (verifyForm) {
+                clearStatus(verifyForm);
+                verifyForm.reset();
+            }
+            setPasswordResetStep('form');
+        }
+
+        if (!silent) {
+            const startForm = document.getElementById('passwordResetStartForm');
+            if (startForm) {
+                setStatus(startForm, 'La recuperacion pendiente ha sido cancelada.', 'info');
+            }
+        }
+    }
+}
+
 async function register(event) {
     event.preventDefault();
 
@@ -412,7 +597,7 @@ async function register(event) {
         setButtonLoading(btn, false, 'Continuar');
         setStatus(document.getElementById('registerVerifyForm'), 'Te hemos enviado un codigo al correo indicado.', 'success');
     } catch (err) {
-        resetAltcha(form, 'Completa una nueva verificacion ALTCHA para volver a intentarlo.');
+        resetAltcha(form, 'Completa una nueva verificacion CAPTCHA para volver a intentarlo.');
         setStatus(form, err.message, 'error');
         setButtonLoading(btn, false, 'Continuar');
     }
@@ -514,6 +699,203 @@ async function cancelRegistrationFlow() {
     await cancelPendingRegistration({ resetForm: true });
 }
 
+async function startPasswordReset(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    const email = document.getElementById('reset-email').value.trim();
+
+    clearStatus(form);
+    setButtonLoading(btn, true, 'Enviar codigo');
+
+    try {
+        const altcha = await ensureAltcha(form);
+
+        const res = await fetch(getApiUrl('/password-reset/start'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, altcha }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+            const error = new Error(json.error || 'Error');
+            error.status = res.status;
+            error.retryAfter = Number(json.retry_after) || 0;
+            error.locked = Boolean(json.locked);
+            throw error;
+        }
+
+        if (!json.flow_token) {
+            setStatus(form, json.message || 'Si existe una cuenta con ese correo, recibiras un codigo.', 'success');
+            resetAltcha(form);
+            setButtonLoading(btn, false, 'Enviar codigo');
+            return;
+        }
+
+        savePendingPasswordReset(
+            json.flow_token,
+            json.masked_email || email,
+            Number(json.resend_cooldown) || passwordResetState.resendCooldownSeconds
+        );
+        updatePasswordResetEmailText(json.masked_email || email);
+        document.getElementById('password-reset-code').value = '';
+        document.getElementById('reset-password').value = '';
+        document.getElementById('reset-password-confirm').value = '';
+        clearStatus(document.getElementById('passwordResetVerifyForm'));
+        setPasswordResetStep('verify');
+        startPasswordResetResendCooldown(Number(json.resend_cooldown) || passwordResetState.resendCooldownSeconds);
+        setButtonLoading(btn, false, 'Enviar codigo');
+        setStatus(document.getElementById('passwordResetVerifyForm'), 'Te hemos enviado un codigo al correo de la cuenta.', 'success');
+    } catch (err) {
+        if (err.locked && err.retryAfter > 0) {
+            clearPendingPasswordResetState();
+            setPasswordResetStep('form');
+            setStatus(form, passwordResetLockMessage(err.retryAfter), 'error');
+            resetAltcha(form);
+            setButtonLoading(btn, false, 'Enviar codigo');
+            return;
+        }
+
+        resetAltcha(form, 'Completa una nueva verificacion CAPTCHA para volver a intentarlo.');
+        setStatus(form, err.message, 'error');
+        setButtonLoading(btn, false, 'Enviar codigo');
+    }
+}
+
+async function completePasswordReset(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    const code = document.getElementById('password-reset-code').value.trim();
+    const password = document.getElementById('reset-password').value;
+    const passwordConfirm = document.getElementById('reset-password-confirm').value;
+
+    if (!passwordResetState.flowToken) {
+        setStatus(form, 'La recuperacion pendiente ya no esta disponible. Empieza de nuevo.', 'error');
+        setPasswordResetStep('form');
+        return;
+    }
+
+    if (password !== passwordConfirm) {
+        setStatus(form, 'Las contraseñas no coinciden.', 'error');
+        return;
+    }
+
+    clearStatus(form);
+    setButtonLoading(btn, true, 'Cambiar contraseña', 'Comprobando...');
+
+    try {
+        const res = await fetch(getApiUrl('/password-reset/complete'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                flow_token: passwordResetState.flowToken,
+                code,
+                password,
+                password_confirmation: passwordConfirm,
+            }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+            const error = new Error(json.error || 'Error');
+            error.status = res.status;
+            error.retryAfter = Number(json.retry_after) || 0;
+            error.locked = Boolean(json.locked);
+            throw error;
+        }
+
+        passwordResetState.completed = true;
+        clearPendingPasswordResetState();
+        if (typeof window.clearAuthSession === 'function') {
+            await window.clearAuthSession({ skipServerLogout: true });
+        }
+        window.location.href = `login.html?reset=1&email=${encodeURIComponent(document.getElementById('reset-email').value.trim())}&redirect=${encodeURIComponent(getRedirectUrl())}`;
+    } catch (err) {
+        if (err.locked && err.retryAfter > 0) {
+            clearPendingPasswordResetState();
+            setPasswordResetStep('form');
+            const startForm = document.getElementById('passwordResetStartForm');
+            if (startForm) {
+                setStatus(startForm, 'Has agotado los intentos. Vuelve a pedir un codigo después de 15 minutos.', 'error');
+            }
+            setButtonLoading(btn, false, 'Cambiar contraseña');
+            return;
+        }
+
+        setStatus(form, err.message, 'error');
+        setButtonLoading(btn, false, 'Cambiar contraseña');
+    }
+}
+
+async function resendPasswordResetCode() {
+    const form = document.getElementById('passwordResetVerifyForm');
+    const button = getPasswordResetResendButton();
+
+    if (!form || !passwordResetState.flowToken || (button && button.disabled)) {
+        return;
+    }
+
+    setStatus(form, 'Reenviando codigo...', 'info');
+    if (button) {
+        button.disabled = true;
+    }
+
+    try {
+        const res = await fetch(getApiUrl('/password-reset/resend'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ flow_token: passwordResetState.flowToken }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+            const error = new Error(json.error || 'Error');
+            error.status = res.status;
+            error.retryAfter = Number(json.retry_after) || 0;
+            error.locked = Boolean(json.locked);
+            throw error;
+        }
+
+        savePendingPasswordReset(
+            json.flow_token,
+            json.masked_email || passwordResetState.maskedEmail,
+            Number(json.resend_cooldown) || passwordResetState.resendCooldownSeconds
+        );
+        updatePasswordResetEmailText(json.masked_email || passwordResetState.maskedEmail);
+        startPasswordResetResendCooldown(Number(json.resend_cooldown) || passwordResetState.resendCooldownSeconds);
+        setStatus(form, json.message || 'Hemos reenviado un nuevo codigo.', 'success');
+    } catch (err) {
+        if (err.locked && err.retryAfter > 0) {
+            clearPendingPasswordResetState();
+            setPasswordResetStep('form');
+            const startForm = document.getElementById('passwordResetStartForm');
+            if (startForm) {
+                setStatus(startForm, 'Has agotado los intentos. Vuelve a pedir un codigo después de 15 minutos.', 'error');
+            }
+        } else if (err.retryAfter > 0) {
+            startPasswordResetResendCooldown(err.retryAfter);
+            setStatus(form, `Espera ${formatCooldown(err.retryAfter)} antes de pedir otro codigo.`, 'error');
+        } else {
+            updatePasswordResetResendButton();
+            setStatus(form, err.message, 'error');
+        }
+        return;
+    }
+
+    updatePasswordResetResendButton();
+}
+
+async function cancelPasswordResetFlow() {
+    await cancelPendingPasswordReset({ resetForm: true });
+}
+
 async function login(event) {
     event.preventDefault();
 
@@ -562,6 +944,7 @@ function wireAuthLinks() {
     const redirect = getRedirectUrl();
     const registerLink = document.getElementById('register-link');
     const loginLink = document.getElementById('login-link');
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
 
     if (registerLink) {
         registerLink.href = `register.html?redirect=${encodeURIComponent(redirect)}`;
@@ -569,6 +952,21 @@ function wireAuthLinks() {
 
     if (loginLink) {
         loginLink.href = `login.html?redirect=${encodeURIComponent(redirect)}`;
+    }
+
+    if (forgotPasswordLink) {
+        const buildForgotHref = () => {
+            const emailInput = document.getElementById('email');
+            const emailParam = emailInput && emailInput.value.trim()
+                ? `&email=${encodeURIComponent(emailInput.value.trim())}`
+                : '';
+            return `forgot_password.html?redirect=${encodeURIComponent(redirect)}${emailParam}`;
+        };
+
+        forgotPasswordLink.href = buildForgotHref();
+        forgotPasswordLink.addEventListener('click', () => {
+            forgotPasswordLink.href = buildForgotHref();
+        });
     }
 }
 
@@ -610,6 +1008,7 @@ function restoreAuthContext() {
     const params = new URLSearchParams(window.location.search);
     const email = params.get('email');
     const registered = params.get('registered');
+    const reset = params.get('reset');
     const loginForm = document.querySelector('form.auth-form[data-mode="login"]');
     const flash = typeof window.consumeAuthFlash === 'function'
         ? window.consumeAuthFlash()
@@ -628,7 +1027,11 @@ function restoreAuthContext() {
     }
 
     if (registered === '1' && loginForm) {
-        setStatus(loginForm, 'Cuenta creada correctamente. Completa ALTCHA e inicia sesion.', 'success');
+        setStatus(loginForm, 'Cuenta creada correctamente. Completa el CAPTCHA e inicia sesion.', 'success');
+    }
+
+    if (reset === '1' && loginForm) {
+        setStatus(loginForm, 'Contraseña actualizada correctamente. Completa el CAPTCHA e inicia sesion.', 'success');
     }
 }
 
@@ -638,6 +1041,14 @@ function clearOrphanPendingRegistration() {
     }
 
     clearPendingRegistrationState();
+}
+
+function clearOrphanPendingPasswordReset() {
+    if (!isPasswordResetPage()) {
+        return;
+    }
+
+    clearPendingPasswordResetState();
 }
 
 function bindRegisterPageLifecycle() {
@@ -652,12 +1063,34 @@ function bindRegisterPageLifecycle() {
     });
 }
 
+function bindPasswordResetPageLifecycle() {
+    if (!isPasswordResetPage()) {
+        return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get('email');
+    const resetEmailInput = document.getElementById('reset-email');
+    if (email && resetEmailInput) {
+        resetEmailInput.value = email;
+    }
+
+    window.addEventListener('pagehide', () => {
+        if (passwordResetState.flowToken && !passwordResetState.completed) {
+            cancelPendingPasswordReset({ useBeacon: true, silent: true });
+        }
+    });
+}
+
 async function initializeAuth() {
     wireAuthLinks();
     restoreAuthContext();
     clearOrphanPendingRegistration();
+    clearOrphanPendingPasswordReset();
     bindRegisterPageLifecycle();
+    bindPasswordResetPageLifecycle();
     updateRegisterResendButton();
+    updatePasswordResetResendButton();
 
     if (!window.isSecureContext) {
         document.querySelectorAll('.auth-form').forEach((form) => {
