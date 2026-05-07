@@ -93,6 +93,8 @@ $router->post('/follow', fn() => FollowController::follow());
 ======================= */
 
 $router->get('/notifications', fn() => NotificationController::get());
+$router->get('/notifications/unread-count', fn() => NotificationController::unreadCount());
+$router->post('/notifications/read', fn() => NotificationController::markRead());
 
 /* =======================
    COMMENTS

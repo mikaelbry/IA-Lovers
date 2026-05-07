@@ -5,6 +5,7 @@ require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
 require_once __DIR__ . '/../core/Storage.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/Notification.php';
 
 class CommentController {
 
@@ -24,6 +25,24 @@ class CommentController {
         $commentId = Comment::create($user['id'], $post_id, $content, $parent_id);
 
         $pdo = Database::getConnection();
+
+        $postOwnerStmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
+        $postOwnerStmt->execute([$post_id]);
+        $postOwnerId = $postOwnerStmt->fetchColumn();
+
+        if ($postOwnerId) {
+            Notification::create($postOwnerId, 'comment', $user['id'], $post_id);
+        }
+
+        if ($parent_id) {
+            $parentOwnerStmt = $pdo->prepare("SELECT user_id FROM comments WHERE id = ?");
+            $parentOwnerStmt->execute([$parent_id]);
+            $parentOwnerId = $parentOwnerStmt->fetchColumn();
+
+            if ($parentOwnerId && (int) $parentOwnerId !== (int) $postOwnerId) {
+                Notification::create($parentOwnerId, 'reply', $user['id'], $post_id);
+            }
+        }
 
         $stmt = $pdo->prepare("
             SELECT comments.*, usuarios.username, usuarios.avatar_path

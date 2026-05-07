@@ -6,6 +6,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/Middleware.php';
 require_once __DIR__ . '/../core/Storage.php';
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/Notification.php';
 
 class FollowController {
     private static function mapFollowUser(array $user) {
@@ -57,6 +58,7 @@ class FollowController {
             INSERT INTO follows (follower_id,following_id)
             VALUES (?,?)
         ")->execute([$user['id'], $target['id']]);
+        Notification::create($target['id'], 'follow', $user['id']);
 
         Response::json(['following'=>true]);
     }

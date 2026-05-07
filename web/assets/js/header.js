@@ -172,6 +172,245 @@ window.requestApiJson = async (url, options = {}) => {
     return data;
 };
 
+function escapeHeaderHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    }[char]));
+}
+
+function relativeNotificationTime(dateString) {
+    const date = new Date(dateString);
+    const timestamp = date.getTime();
+
+    if (!timestamp) {
+        return "";
+    }
+
+    const seconds = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+
+    if (seconds < 60) {
+        return "Ahora";
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+        return `${minutes} min`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+        return `${hours} h`;
+    }
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) {
+        return `${days} d`;
+    }
+
+    return date.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+    });
+}
+
+function notificationText(notification) {
+    const username = notification.from_username || "Alguien";
+
+    const messages = {
+        follow: `${username} ha empezado a seguirte.`,
+        like: `${username} le ha dado me gusta a tu post.`,
+        comment: `${username} ha comentado tu post.`,
+        reply: `${username} ha respondido en un post.`,
+    };
+
+    return messages[notification.type] || `${username} tiene una novedad para ti.`;
+}
+
+function notificationPostHref(notification) {
+    if (notification.post_id) {
+        return webUrl(`post.html?id=${encodeURIComponent(notification.post_id)}`);
+    }
+
+    return null;
+}
+
+function notificationUserHref(notification) {
+    if (notification.from_username) {
+        return webUrl(`user.html?username=${encodeURIComponent(notification.from_username)}`);
+    }
+
+    return "#";
+}
+
+function renderNotificationAvatar(notification) {
+    const username = notification.from_username || "I";
+
+    if (notification.from_avatar_url) {
+        return `<img src="${escapeHeaderHtml(notification.from_avatar_url)}" alt="" class="notification-avatar">`;
+    }
+
+    return `<span class="notification-avatar notification-avatar-initial">${escapeHeaderHtml(username.charAt(0).toUpperCase() || "I")}</span>`;
+}
+
+function renderNotificationPostThumb(notification) {
+    const postHref = notificationPostHref(notification);
+
+    if (!postHref || !notification.post_image_url) {
+        return notification.post_id
+            ? `<a class="notification-post-thumb notification-post-thumb-fallback" href="${postHref}" aria-label="Ver post"></a>`
+            : "";
+    }
+
+    return `
+        <a class="notification-post-thumb" href="${postHref}" aria-label="Ver post">
+            <img src="${escapeHeaderHtml(notification.post_image_url)}" alt="">
+        </a>
+    `;
+}
+
+function setNotificationBadge(count) {
+    const badge = document.getElementById("notificationsBadge");
+
+    if (!badge) {
+        return;
+    }
+
+    const unreadCount = Number(count || 0);
+    badge.textContent = unreadCount > 9 ? "9+" : String(unreadCount);
+    badge.classList.toggle("hidden", unreadCount <= 0);
+}
+
+function renderNotificationsList(notifications) {
+    const list = document.getElementById("notificationsList");
+
+    if (!list) {
+        return;
+    }
+
+    if (!notifications.length) {
+        list.innerHTML = `
+            <div class="notification-empty">
+                No tienes notificaciones nuevas.
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = notifications.map((notification) => {
+        const unreadClass = notification.is_read ? "" : " unread";
+        const postClass = notification.post_id ? "" : " no-post";
+        const userHref = notificationUserHref(notification);
+        return `
+            <article class="notification-item${unreadClass}${postClass}">
+                <a class="notification-user-link" href="${userHref}" aria-label="Ver usuario">
+                    ${renderNotificationAvatar(notification)}
+                </a>
+                <div class="notification-copy">
+                    <strong>
+                        <a href="${userHref}">${escapeHeaderHtml(notification.from_username || "Alguien")}</a>
+                        <span>${escapeHeaderHtml(notificationText(notification).replace(notification.from_username || "Alguien", "").trim())}</span>
+                    </strong>
+                    ${notification.post_title ? `<small>${escapeHeaderHtml(notification.post_title)}</small>` : ""}
+                    <em>${escapeHeaderHtml(relativeNotificationTime(notification.created_at))}</em>
+                </div>
+                ${renderNotificationPostThumb(notification)}
+            </article>
+        `;
+    }).join("");
+}
+
+async function loadNotifications({ markRead = false } = {}) {
+    const panel = document.getElementById("notificationsPanel");
+    const list = document.getElementById("notificationsList");
+
+    if (!panel || !list || !window.token) {
+        return;
+    }
+
+    list.innerHTML = `<div class="notification-empty">Cargando...</div>`;
+
+    try {
+        const data = await window.requestApiJson(apiUrl("/notifications"), {
+            headers: { Authorization: "Bearer " + window.token },
+        });
+
+        renderNotificationsList(data.notifications || []);
+        setNotificationBadge(data.unread_count || 0);
+
+        if (markRead && Number(data.unread_count || 0) > 0) {
+            await window.requestApiJson(apiUrl("/notifications/read"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + window.token,
+                },
+                body: JSON.stringify({}),
+            });
+            setNotificationBadge(0);
+            panel.querySelectorAll(".notification-item.unread").forEach((item) => item.classList.remove("unread"));
+        }
+    } catch (error) {
+        if (!error.authRedirected) {
+            list.innerHTML = `<div class="notification-empty">No se pudieron cargar las notificaciones.</div>`;
+        }
+    }
+}
+
+async function loadUnreadNotificationCount() {
+    if (!window.token) {
+        return;
+    }
+
+    try {
+        const data = await window.requestApiJson(apiUrl("/notifications/unread-count"), {
+            headers: { Authorization: "Bearer " + window.token },
+        });
+        setNotificationBadge(data.unread_count || 0);
+    } catch (error) {
+        if (!error.authRedirected) {
+            setNotificationBadge(0);
+        }
+    }
+}
+
+function bindNotificationsDropdown() {
+    const button = document.getElementById("notificationsButton");
+    const panel = document.getElementById("notificationsPanel");
+
+    if (!button || !panel) {
+        return;
+    }
+
+    button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const isOpen = panel.classList.toggle("open");
+        button.setAttribute("aria-expanded", isOpen ? "true" : "false");
+
+        if (isOpen) {
+            await loadNotifications({ markRead: true });
+        }
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!panel.classList.contains("open")) {
+            return;
+        }
+
+        if (panel.contains(event.target) || button.contains(event.target)) {
+            return;
+        }
+
+        panel.classList.remove("open");
+        button.setAttribute("aria-expanded", "false");
+    });
+}
+
 async function validateStoredSession() {
     const storedToken = localStorage.getItem("token");
 
@@ -245,14 +484,25 @@ function renderNavbar() {
     if (user) {
         rightHTML = `
             <a href="${webUrl("create.html")}" data-page="create">Publicar</a>
-            <a href="notifications.html" class="icon-btn">
+            <div class="notifications-menu">
+            <button type="button" id="notificationsButton" class="icon-btn notifications-button" aria-label="Notificaciones" aria-expanded="false" aria-haspopup="true">
                 <svg class="icon" viewBox="0 0 24 24" fill="none">
                     <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M13.73 21a2 2 0 01-3.46 0"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-            </a>
+                <span id="notificationsBadge" class="notifications-badge hidden">0</span>
+            </button>
+            <section id="notificationsPanel" class="notifications-panel" aria-label="Notificaciones">
+                <div class="notifications-panel-header">
+                    <strong>Notificaciones</strong>
+                </div>
+                <div id="notificationsList" class="notifications-list">
+                    <div class="notification-empty">Cargando...</div>
+                </div>
+            </section>
+            </div>
             <div class="nav-user-menu">
                 <a href="${webUrl("profile.html")}" data-page="profile" class="nav-user-trigger">
                     <span class="nav-user-label">${user.username}</span>
@@ -304,6 +554,9 @@ function renderNavbar() {
                 window.performLogout();
             });
         }
+
+        bindNotificationsDropdown();
+        loadUnreadNotificationCount();
     }
 }
 

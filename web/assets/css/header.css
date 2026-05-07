@@ -156,9 +156,15 @@
 /* ===== ICONOS ===== */
 
 .icon-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #333;
+    padding: 0;
 }
 
 .icon {
@@ -171,6 +177,205 @@
 /* activo icono */
 .icon-btn.active .icon {
     color: #2481ce;
+}
+
+.notifications-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notifications-button {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+}
+
+.notifications-button:hover {
+    color: #2481ce;
+    background: #f3f8fd;
+    transform: none;
+}
+
+.notifications-badge {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 16px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.notifications-badge.hidden {
+    display: none;
+}
+
+.notifications-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(460px, calc(100vh - 96px));
+    background: #ffffff;
+    border: 1px solid rgba(7, 44, 78, 0.1);
+    border-radius: 18px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+}
+
+.notifications-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.notifications-panel-header {
+    padding: 14px 16px;
+    color: #072c4e;
+    border-bottom: 1px solid rgba(7, 44, 78, 0.08);
+}
+
+.notifications-list {
+    max-height: 390px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.notification-item {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 48px;
+    gap: 12px;
+    padding: 13px 16px;
+    color: #1f2937;
+    white-space: normal;
+    border-bottom: 1px solid rgba(7, 44, 78, 0.06);
+    align-items: center;
+}
+
+.notification-item:hover {
+    background: #f6fbff;
+}
+
+.notification-item.unread {
+    background: #f0f7ff;
+}
+
+.notification-item.no-post {
+    grid-template-columns: 40px minmax(0, 1fr);
+}
+
+.notification-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.notification-user-link,
+.notification-post-thumb {
+    transform: none !important;
+}
+
+.notification-avatar-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    color: #0f4f82;
+    font-weight: 800;
+}
+
+.notification-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    line-height: 1.35;
+}
+
+.notification-copy strong {
+    color: #172033;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.notification-copy strong a {
+    display: inline;
+    color: #072c4e;
+    font-weight: 800;
+    white-space: normal;
+}
+
+.notification-copy strong a:hover {
+    color: #2481ce;
+    transform: none;
+}
+
+.notification-copy strong span {
+    font-weight: 600;
+}
+
+.notification-copy small {
+    color: #5f6f82;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-copy em {
+    color: #7b8796;
+    font-size: 12px;
+    font-style: normal;
+}
+
+.notification-empty {
+    padding: 24px 18px;
+    color: #6b7786;
+    text-align: center;
+    font-size: 14px;
+}
+
+.notification-post-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #e8eef5;
+}
+
+.notification-post-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.notification-post-thumb:hover {
+    transform: none;
+    opacity: 0.86;
+}
+
+.notification-post-thumb-fallback::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #dbeafe 0%, #edf6ff 100%);
 }
 
 /* ===== RESPONSIVE ===== */
@@ -196,6 +401,11 @@
     }
 
     .nav-user-dropdown {
+        left: 0;
+        right: auto;
+    }
+
+    .notifications-panel {
         left: 0;
         right: auto;
     }

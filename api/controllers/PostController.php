@@ -6,6 +6,7 @@ require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Middleware.php';
 require_once __DIR__ . '/../core/Storage.php';
+require_once __DIR__ . '/../models/Notification.php';
 
 class PostController {
     private const MAX_IMAGE_MB = 4;
@@ -349,6 +350,14 @@ class PostController {
 
         $pdo = Database::getConnection();
 
+        $postOwnerStmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
+        $postOwnerStmt->execute([$post_id]);
+        $postOwnerId = $postOwnerStmt->fetchColumn();
+
+        if (!$postOwnerId) {
+            Response::json(['error' => 'Post no encontrado'], 404);
+        }
+
         $check = $pdo->prepare("
             SELECT id FROM likes WHERE user_id = ? AND post_id = ?
         ");
@@ -358,6 +367,7 @@ class PostController {
             $pdo->prepare("
                 DELETE FROM likes WHERE user_id = ? AND post_id = ?
             ")->execute([$user['id'], $post_id]);
+            Notification::deleteLike($postOwnerId, $user['id'], $post_id);
 
             Response::json(['liked' => false]);
         }
@@ -366,6 +376,7 @@ class PostController {
             INSERT INTO likes (user_id, post_id)
             VALUES (?, ?)
         ")->execute([$user['id'], $post_id]);
+        Notification::create($postOwnerId, 'like', $user['id'], $post_id);
 
         Response::json(['liked' => true]);
     }
