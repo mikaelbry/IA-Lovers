@@ -1,0 +1,19 @@
+# Copy this file to local.properties on each machine and adjust the values.
+# local.properties is intentionally ignored by Git.
+
+# Android SDK path for your computer. Android Studio usually writes this automatically.
+# Windows example:
+# sdk.dir=C\:\\Users\\YOUR_USER\\AppData\\Local\\Android\\Sdk
+
+# API base URL used by the Android app.
+# Production API:
+iaLoversApiBaseUrl=https://ia-lovers.vercel.app/api/
+
+# Android emulator talking to XAMPP on the same PC:
+# iaLoversApiBaseUrl=http://10.0.2.2/IA-Lovers/api/
+
+# Physical Android device on the same Wi-Fi:
+# iaLoversApiBaseUrl=http://YOUR_PC_LAN_IP/IA-Lovers/api/
+
+# Other staging API:
+# iaLoversApiBaseUrl=https://your-domain.example/api/

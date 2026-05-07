@@ -1,1 +1,20 @@
+# Environment and local machine config
 .env
+.env.*
+!.env.example
+local.properties
+mobile/local.properties
+
+# Android/Gradle generated output and local caches
+.gradle/
+.gradle-user-home*/
+.kotlin/
+build/
+**/build/
+mobile/.gradle/
+mobile/.gradle-user-home*/
+mobile/.kotlin/
+
+# IDE workspace files
+.idea/
+*.iml

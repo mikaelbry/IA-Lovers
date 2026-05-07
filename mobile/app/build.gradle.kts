@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -7,8 +8,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) {
+        file.inputStream().use(::load)
+    }
+}
+
 val configuredApiBaseUrl = providers
     .gradleProperty("iaLoversApiBaseUrl")
+    .orElse(providers.provider { localProperties.getProperty("iaLoversApiBaseUrl") })
     .orElse("http://10.0.2.2/IA-Lovers/api/")
     .map { if (it.endsWith("/")) it else "$it/" }
 
