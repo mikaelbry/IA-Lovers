@@ -4,8 +4,6 @@
 <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IA-Lovers</title>
 <link rel="shortcut icon" href="assets/images/logo.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/header.css">
 <style>
@@ -13,11 +11,8 @@
 /* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* El body hereda el fondo blanco/gris de style.css y la fuente Poppins */
-
 /* ===== HERO — arranca en blanco igual que el navbar, luego transiciona ===== */
 .hero-wrapper {
-    /* Gradiente: blanco arriba (= navbar) → azul oscuro abajo */
     background: linear-gradient(180deg,
         #ffffff 0%,
         #eaf3fb 18%,
@@ -47,7 +42,7 @@
     bottom: 5%; left: 5%;
 }
 
-/* Grid de líneas sutil solo en la zona oscura */
+/* Grid de líneas sutil */
 .bg-grid {
     position: absolute;
     inset: 0;
@@ -61,7 +56,6 @@
 
 /* ===== HERO CONTENT ===== */
 .hero {
-    /* Quita el padding/background del .hero de style.css */
     background: none !important;
     padding: 80px 60px 100px !important;
     text-align: left;
@@ -94,7 +88,6 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Parte superior del hero (zona blanca/clara) — texto oscuro */
 .hero h1 {
     font-size: clamp(44px, 6vw, 76px);
     font-weight: 800;
@@ -129,7 +122,6 @@
     animation: heroIn 0.9s 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Botón primario — reutiliza el del header.css pero con clase local */
 .hero-actions .btn-primary {
     background: #2481ce;
     color: #ffffff !important;
@@ -170,7 +162,7 @@
     border-color: #154c79;
 }
 
-/* ===== ROBOT con marco blob/forma ===== */
+/* ===== ROBOT ===== */
 .hero-robot {
     flex: 0 0 auto;
     display: flex;
@@ -189,7 +181,7 @@
     position: relative;
     width: 340px;
     max-width: 36vw;
-    padding: 3px; 
+    padding: 3px;
     animation: float 6s ease-in-out infinite;
 }
 
@@ -198,7 +190,6 @@
     50% { transform: translateY(-16px); }
 }
 
-/* Forma blob detrás del robot */
 .robot-frame::before {
     content: '';
     position: absolute;
@@ -241,23 +232,7 @@
     display: block;
 }
 
-/* ===== DIVISOR WAVE entre hero y secciones claras ===== */
-.hero-wave {
-    display: block;
-    width: 100%;
-    overflow: hidden;
-    line-height: 0;
-    margin-top: -2px;
-}
-.hero-wave svg {
-    display: block;
-    width: 100%;
-    height: 80px;
-}
-
-/* ===== SECCIONES EN CLARO (categorías, about, cta) ===== */
-/* Heredan el fondo gris claro de style.css */
-
+/* ===== SECCIONES ===== */
 .section-categories {
     padding: 90px 40px;
     position: relative;
@@ -372,7 +347,7 @@
     .categories-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
 
-/* ===== SECCIÓN ABOUT ===== */
+/* ===== ABOUT ===== */
 .section-about {
     padding: 90px 40px;
     background: #ffffff;
@@ -512,7 +487,7 @@
     .section-about { padding: 60px 24px; }
 }
 
-/* ===== CTA FINAL ===== */
+/* ===== CTA ===== */
 .section-cta {
     padding: 110px 40px;
     text-align: center;
@@ -637,7 +612,6 @@
 
 <body>
 
-<!-- Fondo -->
 <div class="bg-canvas">
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
@@ -647,7 +621,6 @@
 
 <div class="page-wrapper">
 
-    <!-- Navbar -->
     <nav class="navbar"></nav>
 
     <!-- ===== HERO ===== -->
@@ -727,7 +700,6 @@
     <section class="section-about">
         <div class="about-inner">
 
-            <!-- Visual mockup -->
             <div class="about-visual reveal">
                 <div class="about-card">
                     <div class="mock-post">
@@ -758,11 +730,8 @@
                         <div class="mock-actions"><span>❤️ 1.2k</span><span>💬 87</span></div>
                     </div>
                 </div>
-
-
             </div>
 
-            <!-- Texto -->
             <div class="about-text reveal">
                 <div class="section-label">¿Qué es IA-Lovers?</div>
                 <h2 class="section-title" style="margin-bottom: 20px;">La comunidad que<br><span>la IA merece</span></h2>
@@ -821,7 +790,6 @@
 <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
 
 <script>
-// Scroll reveal
 const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry, i) => {
         if (entry.isIntersecting) {
