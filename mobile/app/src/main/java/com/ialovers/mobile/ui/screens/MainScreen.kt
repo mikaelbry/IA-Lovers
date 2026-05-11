@@ -15,8 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,10 +35,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ialovers.mobile.FeedUiState
 import com.ialovers.mobile.CreatePostUiState
 import com.ialovers.mobile.MainTab
+import com.ialovers.mobile.NotificationsUiState
 import com.ialovers.mobile.PostDetailUiState
 import com.ialovers.mobile.ProfileUiState
 import com.ialovers.mobile.SettingsSection
@@ -55,6 +61,8 @@ fun MainScreen(
     postDetailState: PostDetailUiState,
     settingsState: SettingsUiState,
     createPostState: CreatePostUiState,
+    notificationsState: NotificationsUiState,
+    notificationsUnreadCount: Int,
     onSelectTab: (MainTab) -> Unit,
     onOpenSettings: (SettingsSection) -> Unit,
     onCloseSettings: () -> Unit,
@@ -120,6 +128,7 @@ fun MainScreen(
                     onSelectTab = onSelectTab,
                     onOpenSettings = onOpenSettings,
                     onLogout = onLogout,
+                    unreadCount = notificationsUnreadCount,
                 )
             }
         },
@@ -206,6 +215,14 @@ fun MainScreen(
                 modifier = Modifier.padding(innerPadding),
             )
 
+            MainTab.Notifications -> NotificationsScreen(
+                state = notificationsState,
+                onRefresh = { onRefreshFeed(MainTab.Notifications) },
+                onOpenPost = onOpenPost,
+                onOpenUserProfile = onOpenUserProfile,
+                modifier = Modifier.padding(innerPadding),
+            )
+
             MainTab.Profile -> ProfileScreen(
                 state = profileState,
                 onRefresh = onRefreshProfile,
@@ -235,6 +252,7 @@ private fun BottomNavigation(
     onSelectTab: (MainTab) -> Unit,
     onOpenSettings: (SettingsSection) -> Unit,
     onLogout: () -> Unit,
+    unreadCount: Int = 0,
 ) {
     NavigationBar {
         MainTab.entries.forEach { tab ->
@@ -253,12 +271,38 @@ private fun BottomNavigation(
                     Modifier
                 },
                 icon = {
-                    Icon(
-                        imageVector = tab.icon,
-                        contentDescription = tab.label,
+                    if (tab == MainTab.Notifications) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadCount > 0) {
+                                    Badge {
+                                        Text(
+                                            text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.label,
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = tab.label,
+                        )
+                    }
+                },
+                label = {
+                    Text(
+                        text = tab.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 9.sp,
                     )
                 },
-                label = { Text(tab.label) },
             )
 
             if (isProfile) {
@@ -291,5 +335,6 @@ private val MainTab.icon: androidx.compose.ui.graphics.vector.ImageVector
         MainTab.Explore -> Icons.Outlined.Search
         MainTab.Following -> Icons.Outlined.Group
         MainTab.Create -> Icons.Outlined.AddBox
+        MainTab.Notifications -> Icons.Outlined.Notifications
         MainTab.Profile -> Icons.Outlined.Person
     }

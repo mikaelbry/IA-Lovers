@@ -82,6 +82,8 @@ private fun MobileApp(viewModel: AppViewModel) {
             postDetailState = viewModel.postDetailState,
             settingsState = viewModel.settingsState,
             createPostState = viewModel.createPostState,
+            notificationsState = viewModel.notificationsState,
+            notificationsUnreadCount = viewModel.notificationsUnreadCount,
             onSelectTab = viewModel::selectTab,
             onOpenSettings = viewModel::openSettings,
             onCloseSettings = viewModel::closeSettings,

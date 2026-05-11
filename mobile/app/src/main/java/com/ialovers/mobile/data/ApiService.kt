@@ -100,4 +100,13 @@ interface ApiService {
 
     @POST("follow")
     suspend fun toggleFollow(@Body request: ToggleFollowRequest): ToggleFollowResponse
+
+    @GET("notifications")
+    suspend fun notifications(): NotificationsResponse
+
+    @GET("notifications/unread-count")
+    suspend fun notificationsUnreadCount(): UnreadCountResponse
+
+    @POST("notifications/read")
+    suspend fun notificationsRead(@Body request: NotificationsReadRequest): SuccessResponse
 }

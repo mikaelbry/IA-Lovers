@@ -304,3 +304,43 @@ data class ToggleFollowRequest(
 data class ToggleFollowResponse(
     val following: Boolean,
 )
+
+@Serializable
+data class NotificationItem(
+    val id: Int,
+    val type: String,
+    @SerialName("from_user_id")
+    val fromUserId: Int? = null,
+    @SerialName("from_username")
+    val fromUsername: String? = null,
+    @SerialName("from_avatar_url")
+    val fromAvatarUrl: String? = null,
+    @SerialName("post_id")
+    val postId: Int? = null,
+    @SerialName("post_title")
+    val postTitle: String? = null,
+    @SerialName("post_image_url")
+    val postImageUrl: String? = null,
+    @SerialName("is_read")
+    val isRead: Boolean = false,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+)
+
+@Serializable
+data class NotificationsResponse(
+    val notifications: List<NotificationItem> = emptyList(),
+    @SerialName("unread_count")
+    val unreadCount: Int = 0,
+)
+
+@Serializable
+data class UnreadCountResponse(
+    @SerialName("unread_count")
+    val unreadCount: Int = 0,
+)
+
+@Serializable
+data class NotificationsReadRequest(
+    val id: Int? = null,
+)

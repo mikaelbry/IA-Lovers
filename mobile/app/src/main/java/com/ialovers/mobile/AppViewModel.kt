@@ -25,8 +25,11 @@ import com.ialovers.mobile.data.RegisterVerifyRequest
 import com.ialovers.mobile.data.SessionStorage
 import com.ialovers.mobile.data.SettingsSummaryResponse
 import com.ialovers.mobile.data.StartEmailChangeRequest
+import com.ialovers.mobile.data.NotificationItem
+import com.ialovers.mobile.data.NotificationsReadRequest
 import com.ialovers.mobile.data.ToggleFollowRequest
 import com.ialovers.mobile.data.ToggleLikeRequest
+import com.ialovers.mobile.data.UnreadCountResponse
 import com.ialovers.mobile.data.UpdateProfileRequest
 import com.ialovers.mobile.data.VerifyEmailChangeRequest
 import java.io.IOException
@@ -98,6 +101,12 @@ class AppViewModel(
     var createPostState by mutableStateOf(CreatePostUiState())
         private set
 
+    var notificationsState by mutableStateOf(NotificationsUiState())
+        private set
+
+    var notificationsUnreadCount by mutableStateOf(0)
+        private set
+
     init {
         val (service, storage) = ApiFactory.create(context)
         api = service
@@ -133,6 +142,7 @@ class AppViewModel(
             MainTab.Explore -> if (exploreState.posts.isEmpty()) refreshFeed(MainTab.Explore)
             MainTab.Following -> if (followingState.posts.isEmpty()) refreshFeed(MainTab.Following)
             MainTab.Create -> Unit
+            MainTab.Notifications -> loadNotifications()
             MainTab.Profile -> if (profileState.profile == null) refreshProfile()
         }
     }
@@ -376,6 +386,11 @@ class AppViewModel(
             return
         }
 
+        if (tab == MainTab.Notifications) {
+            loadNotifications()
+            return
+        }
+
         viewModelScope.launch {
             setFeedState(tab, feedState(tab).copy(isLoading = true, error = null))
 
@@ -399,7 +414,7 @@ class AppViewModel(
     }
 
     fun loadMoreFeed(tab: MainTab) {
-        if (tab == MainTab.Profile) return
+        if (tab == MainTab.Profile || tab == MainTab.Notifications) return
 
         val current = feedState(tab)
         val cursor = current.nextCursor ?: return
@@ -518,6 +533,8 @@ class AppViewModel(
         postDetailState = PostDetailUiState()
         settingsState = SettingsUiState(isLoading = false)
         createPostState = CreatePostUiState()
+        notificationsState = NotificationsUiState()
+        notificationsUnreadCount = 0
         activePostId = null
         activeUserProfileUsername = null
         isSettingsOpen = false
@@ -595,6 +612,53 @@ class AppViewModel(
         }
     }
 
+    fun loadNotifications() {
+        viewModelScope.launch {
+            notificationsState = notificationsState.copy(isLoading = true, error = null)
+
+            try {
+                val response = api.notifications()
+                notificationsState = NotificationsUiState(
+                    isLoading = false,
+                    notifications = response.notifications,
+                )
+                notificationsUnreadCount = response.unreadCount
+                markNotificationsRead()
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    notificationsState = notificationsState.copy(
+                        isLoading = false,
+                        error = errorMessage(error),
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadUnreadCount() {
+        viewModelScope.launch {
+            try {
+                val response = api.notificationsUnreadCount()
+                notificationsUnreadCount = response.unreadCount
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private fun markNotificationsRead() {
+        if (notificationsUnreadCount <= 0) return
+        viewModelScope.launch {
+            try {
+                api.notificationsRead(NotificationsReadRequest())
+                notificationsUnreadCount = 0
+                notificationsState = notificationsState.copy(
+                    notifications = notificationsState.notifications.map { it.copy(isRead = true) }
+                )
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
     private fun bootstrap() {
         viewModelScope.launch {
             val token = sessionStorage.authToken
@@ -617,6 +681,7 @@ class AppViewModel(
         isSettingsOpen = false
         refreshFeed(MainTab.Explore)
         refreshProfile()
+        loadUnreadCount()
     }
 
     fun updateUsername(newUsername: String, currentPassword: String) {
@@ -1088,6 +1153,7 @@ class AppViewModel(
             MainTab.Explore -> exploreState
             MainTab.Following -> followingState
             MainTab.Create -> FeedUiState()
+            MainTab.Notifications -> FeedUiState()
             MainTab.Profile -> FeedUiState()
         }
     }
@@ -1097,6 +1163,7 @@ class AppViewModel(
             MainTab.Explore -> exploreState = state
             MainTab.Following -> followingState = state
             MainTab.Create -> Unit
+            MainTab.Notifications -> Unit
             MainTab.Profile -> Unit
         }
     }
@@ -1206,6 +1273,12 @@ data class CreatePostUiState(
     val error: String? = null,
 )
 
+data class NotificationsUiState(
+    val isLoading: Boolean = false,
+    val notifications: List<NotificationItem> = emptyList(),
+    val error: String? = null,
+)
+
 data class EmailChangeUiState(
     val pending: Boolean = false,
     val newEmail: String = "",
@@ -1228,6 +1301,7 @@ enum class MainTab(
     Explore("Explorar", "explore"),
     Following("Siguiendo", "following"),
     Create("Publicar", "create"),
+    Notifications("Notificaciones", "notifications"),
     Profile("Mi perfil", "me"),
 }
 
