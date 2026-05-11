@@ -97,4 +97,7 @@ interface ApiService {
 
     @POST("mobile/logout")
     suspend fun mobileLogout(@Header("Authorization") authorization: String? = null): SuccessResponse
+
+    @POST("follow")
+    suspend fun toggleFollow(@Body request: ToggleFollowRequest): ToggleFollowResponse
 }

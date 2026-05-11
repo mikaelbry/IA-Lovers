@@ -25,6 +25,7 @@ import com.ialovers.mobile.data.RegisterVerifyRequest
 import com.ialovers.mobile.data.SessionStorage
 import com.ialovers.mobile.data.SettingsSummaryResponse
 import com.ialovers.mobile.data.StartEmailChangeRequest
+import com.ialovers.mobile.data.ToggleFollowRequest
 import com.ialovers.mobile.data.ToggleLikeRequest
 import com.ialovers.mobile.data.UpdateProfileRequest
 import com.ialovers.mobile.data.VerifyEmailChangeRequest
@@ -968,12 +969,62 @@ class AppViewModel(
                     profile = profileData.profile,
                     followers = profileData.followers,
                     following = profileData.following,
+                    isFollowing = profileData.profile.isFollowing,
                 )
             } catch (error: Throwable) {
                 handleAuthenticatedError(error) {
                     viewedProfileState = ProfileUiState(
                         isLoading = false,
                         error = errorMessage(error),
+                    )
+                }
+            }
+        }
+    }
+
+    fun toggleFollow(username: String) {
+        val currentState = viewedProfileState
+        val currentIsFollowing = currentState.isFollowing ?: return
+
+        viewedProfileState = currentState.copy(
+            isFollowing = !currentIsFollowing,
+            isFollowLoading = true,
+        )
+
+        viewModelScope.launch {
+            try {
+                val response = api.toggleFollow(ToggleFollowRequest(username))
+
+                val avatarUrl = currentState.profile?.user?.avatarUrl
+                val currentUser = profileState.profile?.user
+
+                val updatedFollowers = if (response.following) {
+                    currentState.followers + FollowUser(
+                        username = currentUser?.username.orEmpty(),
+                        avatarUrl = currentUser?.avatarUrl,
+                    )
+                } else {
+                    currentState.followers.filterNot { it.username.equals(currentUser?.username, ignoreCase = true) }
+                }
+
+                val updatedFollowing = if (response.following) {
+                    profileState.following + FollowUser(username = username, avatarUrl = avatarUrl)
+                } else {
+                    profileState.following.filterNot { it.username.equals(username, ignoreCase = true) }
+                }
+
+                viewedProfileState = viewedProfileState.copy(
+                    isFollowing = response.following,
+                    isFollowLoading = false,
+                    followers = updatedFollowers,
+                )
+                profileState = profileState.copy(following = updatedFollowing)
+
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    viewedProfileState = viewedProfileState.copy(
+                        isFollowing = currentIsFollowing,
+                        isFollowLoading = false,
                     )
                 }
             }
@@ -1116,6 +1167,8 @@ data class ProfileUiState(
     val profile: ProfileResponse? = null,
     val followers: List<FollowUser> = emptyList(),
     val following: List<FollowUser> = emptyList(),
+    val isFollowing: Boolean? = null,
+    val isFollowLoading: Boolean = false,
     val error: String? = null,
 )
 

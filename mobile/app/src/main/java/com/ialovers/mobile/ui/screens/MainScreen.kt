@@ -3,8 +3,15 @@ package com.ialovers.mobile.ui.screens
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.Group
@@ -18,6 +25,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +66,7 @@ fun MainScreen(
     onOpenUserProfile: (String) -> Unit,
     onCloseUserProfile: () -> Unit,
     onToggleLike: (PostItem) -> Unit,
+    onToggleFollow: (String) -> Unit,
     onCreateComment: (String) -> Unit,
     onEnterCommentThread: (Int) -> Unit,
     onLeaveCommentThread: () -> Unit,
@@ -74,16 +83,35 @@ fun MainScreen(
     onDeleteAccount: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
+    val exploreListState = rememberLazyListState()
+    val followingListState = rememberLazyListState()
+
     Scaffold(
         modifier = Modifier.statusBarsPadding(),
         topBar = {
-            AppHeader(
-                title = when {
-                    activePostId != null -> "IA Lovers"
-                    activeUserProfileUsername != null -> "Perfil"
-                    else -> selectedTab.label
-                },
-            )
+            when {
+                activePostId != null -> {}
+                activeUserProfileUsername != null -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Perfil",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                        )
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = onCloseUserProfile) {
+                            Text("Volver")
+                        }
+                    }
+                }
+                else -> AppHeader(title = selectedTab.label)
+            }
         },
         bottomBar = {
             if (activePostId == null && activeUserProfileUsername == null) {
@@ -119,8 +147,8 @@ fun MainScreen(
                 onOpenPost = onOpenPost,
                 onOpenUserProfile = onOpenUserProfile,
                 onToggleLike = onToggleLike,
+                onToggleFollow = onToggleFollow,
                 showSettings = false,
-                onBack = onCloseUserProfile,
                 modifier = Modifier.padding(innerPadding),
             )
             return@Scaffold
@@ -149,6 +177,7 @@ fun MainScreen(
         when (selectedTab) {
             MainTab.Explore -> FeedScreen(
                 state = exploreState,
+                listState = exploreListState,
                 emptyText = "Todavia no hay publicaciones para explorar.",
                 onRefresh = { onRefreshFeed(MainTab.Explore) },
                 onLoadMore = { onLoadMoreFeed(MainTab.Explore) },
@@ -160,6 +189,7 @@ fun MainScreen(
 
             MainTab.Following -> FeedScreen(
                 state = followingState,
+                listState = followingListState,
                 emptyText = "Cuando sigas a otros usuarios, sus publicaciones apareceran aqui.",
                 onRefresh = { onRefreshFeed(MainTab.Following) },
                 onLoadMore = { onLoadMoreFeed(MainTab.Following) },

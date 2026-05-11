@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,8 +49,8 @@ fun ProfileScreen(
     onOpenPost: (Int) -> Unit,
     onOpenUserProfile: (String) -> Unit,
     onToggleLike: (PostItem) -> Unit,
+    onToggleFollow: (String) -> Unit = {},
     showSettings: Boolean = true,
-    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val profile = state.profile
@@ -119,12 +120,6 @@ fun ProfileScreen(
                             modifier = Modifier.padding(18.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            if (onBack != null) {
-                                TextButton(onClick = onBack) {
-                                    Text("Volver")
-                                }
-                            }
-
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -146,6 +141,23 @@ fun ProfileScreen(
                                             imageVector = Icons.Outlined.Settings,
                                             contentDescription = "Ajustes",
                                         )
+                                    }
+                                } else {
+                                    val isFollowing = state.isFollowing
+                                    if (isFollowing == true) {
+                                        OutlinedButton(
+                                            onClick = { onToggleFollow(profile.user.username) },
+                                            enabled = !state.isFollowLoading,
+                                        ) {
+                                            Text(if (state.isFollowLoading) "..." else "Siguiendo")
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = { onToggleFollow(profile.user.username) },
+                                            enabled = !state.isFollowLoading,
+                                        ) {
+                                            Text(if (state.isFollowLoading) "..." else "Seguir")
+                                        }
                                     }
                                 }
                             }

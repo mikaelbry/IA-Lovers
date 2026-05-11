@@ -93,6 +93,7 @@ private fun MobileApp(viewModel: AppViewModel) {
             onOpenUserProfile = viewModel::openUserProfile,
             onCloseUserProfile = viewModel::closeUserProfile,
             onToggleLike = viewModel::toggleLike,
+            onToggleFollow = viewModel::toggleFollow,
             onCreateComment = viewModel::createComment,
             onEnterCommentThread = viewModel::enterCommentThread,
             onLeaveCommentThread = viewModel::leaveCommentThread,

@@ -49,6 +49,8 @@ data class SessionResponse(
 data class ProfileResponse(
     val user: ProfileUser,
     val followers: Int = 0,
+    @SerialName("is_following")
+    val isFollowing: Boolean = false,
     val posts: List<PostItem> = emptyList(),
 )
 
@@ -290,4 +292,15 @@ data class DeleteAccountRequest(
 @Serializable
 data class SuccessResponse(
     val success: Boolean = true,
+)
+
+@Serializable
+data class ToggleFollowRequest(
+    @SerialName("username")
+    val username: String,
+)
+
+@Serializable
+data class ToggleFollowResponse(
+    val following: Boolean,
 )
