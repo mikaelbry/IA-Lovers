@@ -6,15 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.ModeComment
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ialovers.mobile.data.PostItem
@@ -81,26 +88,71 @@ fun PostCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(
+            LikeButton(
+                liked = post.likedByUser,
+                count = post.likesCount,
                 onClick = { onToggleLike(post) },
-            ) {
-                Text(if (post.likedByUser) "Me gusta (${post.likesCount})" else "Me gusta (${post.likesCount})")
-            }
+            )
 
-            TextButton(
+            CommentButton(
+                count = post.commentsCount,
                 onClick = { onOpen(post.id) },
-            ) {
-                Text("Comentar (${post.commentsCount})")
-            }
+            )
         }
 
         PostText(post = post)
 
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
     }
+}
+
+@Composable
+private fun RowScope.LikeButton(
+    liked: Boolean,
+    count: Int,
+    onClick: () -> Unit,
+) {
+    val icon = if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder
+    val tint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = icon,
+            contentDescription = if (liked) "Quitar like" else "Dar like",
+            tint = tint,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+    Text(
+        text = count.toString(),
+        style = MaterialTheme.typography.bodySmall,
+        fontSize = 13.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun RowScope.CommentButton(
+    count: Int,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.Outlined.ModeComment,
+            contentDescription = "Comentar",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+    Text(
+        text = count.toString(),
+        style = MaterialTheme.typography.bodySmall,
+        fontSize = 13.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
