@@ -171,6 +171,7 @@ class PostController {
         $pdo->beginTransaction();
 
         try {
+            Notification::deletePostActivity($post_id);
             $pdo->prepare("DELETE FROM likes WHERE post_id = ?")->execute([$post_id]);
             $pdo->prepare("DELETE FROM comments WHERE post_id = ?")->execute([$post_id]);
             $pdo->prepare("DELETE FROM post_tags WHERE post_id = ?")->execute([$post_id]);

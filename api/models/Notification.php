@@ -42,6 +42,17 @@ class Notification {
         return $stmt->execute([$userId, $fromUserId, $postId]);
     }
 
+    public static function deletePostActivity($postId) {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("
+            DELETE FROM notifications
+            WHERE post_id = ?
+            AND type IN ('like', 'comment', 'reply')
+        ");
+
+        return $stmt->execute([$postId]);
+    }
+
     public static function purgeOld() {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
