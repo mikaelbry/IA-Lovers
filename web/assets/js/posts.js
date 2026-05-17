@@ -124,7 +124,7 @@ function appendPosts(posts, containerId = "posts") {
                         </div>
                         ${
                             window.user && window.user.username === post.username
-                                ? `<div class="menu-item delete" onclick="deletePost(${post.id})">Eliminar</div>`
+                                ? `<div class="menu-item delete" onclick="openDeletePostDialog(${post.id}, event)">Eliminar</div>`
                                 : ``
                         }
                     </div>
@@ -318,13 +318,45 @@ function copyPostLink(id, event) {
     }, 2000);
 }
 
-function deletePost(id) {
-    const confirmDelete = confirm("Estas seguro de que deseas borrar esta publicacion?\nEsta accion es irreversible.");
+function openDeletePostDialog(id, event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    document.querySelectorAll(".menu-dropdown")
+        .forEach(menu => menu.classList.remove("active"));
 
-    if (!confirmDelete) {
-        return;
+    const existingDialog = document.getElementById("deletePostDialog");
+    if (existingDialog) {
+        existingDialog.remove();
     }
 
+    const dialog = document.createElement("div");
+    dialog.id = "deletePostDialog";
+    dialog.className = "post-delete-dialog-backdrop";
+    dialog.innerHTML = `
+        <div class="post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deletePostTitle">
+            <h3 id="deletePostTitle">Eliminar publicacion</h3>
+            <p>Estas seguro de que deseas borrar esta publicacion? Esta accion es irreversible.</p>
+            <div class="post-delete-dialog-actions">
+                <button type="button" class="post-delete-cancel" onclick="closeDeletePostDialog()">Cancelar</button>
+                <button type="button" class="post-delete-confirm" onclick="deletePost(${id})">Eliminar</button>
+            </div>
+        </div>
+    `;
+
+    dialog.addEventListener("click", event => {
+        if (event.target === dialog) {
+            closeDeletePostDialog();
+        }
+    });
+
+    document.body.appendChild(dialog);
+}
+
+function closeDeletePostDialog() {
+    document.getElementById("deletePostDialog")?.remove();
+}
+
+function deletePost(id) {
     postsRequestJson(apiUrl("/posts/delete"), {
         method: "POST",
         headers: {
@@ -335,6 +367,7 @@ function deletePost(id) {
     })
         .then(data => {
             if (data.success) {
+                closeDeletePostDialog();
                 const postEl = document.getElementById("post-" + id);
                 if (postEl) {
                     postEl.remove();

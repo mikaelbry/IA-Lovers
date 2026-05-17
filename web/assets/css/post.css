@@ -326,6 +326,67 @@
     color: #e74c3c;
 }
 
+/* ===== DELETE POST DIALOG ===== */
+
+.post-delete-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 32, 48, 0.42);
+    backdrop-filter: blur(4px);
+}
+
+.post-delete-dialog {
+    width: min(100%, 420px);
+    background: #fff;
+    border: 1px solid #e4ecf3;
+    border-radius: 20px;
+    box-shadow: 0 24px 70px rgba(16, 38, 58, 0.22);
+    padding: 24px;
+}
+
+.post-delete-dialog h3 {
+    margin: 0;
+    color: #13283d;
+    font-size: 22px;
+}
+
+.post-delete-dialog p {
+    margin: 12px 0 0;
+    color: #536675;
+    line-height: 1.55;
+}
+
+.post-delete-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.post-delete-dialog-actions button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.post-delete-cancel {
+    background: #eef3f7;
+    color: #263745;
+}
+
+.post-delete-confirm {
+    background: #e74c3c;
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(231, 76, 60, 0.24);
+}
+
 /* ===== POST DETAIL ===== */
 
 .post-detail-page {
@@ -333,6 +394,7 @@
 }
 
 .post-detail-card {
+    position: relative;
     background: #fff;
     border: 1px solid #e4ecf3;
     border-radius: 24px;

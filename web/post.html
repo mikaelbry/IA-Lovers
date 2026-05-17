@@ -89,6 +89,20 @@ async function loadPost() {
 
     document.getElementById('post').innerHTML = `
         <article class="post-detail-card">
+            <div class="post-menu">
+                <button type="button" class="menu-btn" onclick="toggleMenu(event, ${post.id})">...</button>
+                <div class="menu-dropdown" id="menu-${post.id}">
+                    <div class="menu-item" id="copy-${post.id}" onclick="copyPostLink(${post.id}, event)">
+                        Compartir
+                    </div>
+                    ${
+                        storedUser && storedUser.username === post.username
+                            ? `<div class="menu-item delete" onclick="openDeletePostDialog(${post.id}, event)">Eliminar</div>`
+                            : ``
+                    }
+                </div>
+            </div>
+
             <div class="post-detail-header">
                 <a href="${getProfileUrl(post.username)}" class="post-detail-author-link">
                     ${renderUserAvatar(post, 'post-detail-avatar')}
@@ -146,6 +160,106 @@ async function toggleLike() {
             btn.classList.remove('liked');
             countEl.textContent = count - 1;
         }
+    } catch (error) {
+        if (error.authRedirected) {
+            return;
+        }
+        alert(error.message);
+    }
+}
+
+function toggleMenu(event, id) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    document.querySelectorAll('.menu-dropdown').forEach(menu => {
+        if (menu.id !== 'menu-' + id) {
+            menu.classList.remove('active');
+        }
+    });
+
+    document.getElementById('menu-' + id)?.classList.toggle('active');
+}
+
+document.addEventListener('click', () => {
+    document.querySelectorAll('.menu-dropdown')
+        .forEach(menu => menu.classList.remove('active'));
+});
+
+function copyPostLink(id, event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const url = `${window.location.origin}${publicUrl('post.html')}?id=${id}`;
+    navigator.clipboard.writeText(url);
+
+    const el = document.getElementById(`copy-${id}`);
+    if (!el) {
+        return;
+    }
+
+    el.textContent = 'Enlace copiado al portapapeles';
+    el.style.color = 'green';
+
+    setTimeout(() => {
+        el.textContent = 'Compartir';
+        el.style.color = '';
+    }, 2000);
+}
+
+function openDeletePostDialog(id, event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    document.querySelectorAll('.menu-dropdown')
+        .forEach(menu => menu.classList.remove('active'));
+
+    document.getElementById('deletePostDialog')?.remove();
+
+    const dialog = document.createElement('div');
+    dialog.id = 'deletePostDialog';
+    dialog.className = 'post-delete-dialog-backdrop';
+    dialog.innerHTML = `
+        <div class="post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deletePostTitle">
+            <h3 id="deletePostTitle">Eliminar publicacion</h3>
+            <p>Estas seguro de que deseas borrar esta publicacion? Esta accion es irreversible.</p>
+            <div class="post-delete-dialog-actions">
+                <button type="button" class="post-delete-cancel" onclick="closeDeletePostDialog()">Cancelar</button>
+                <button type="button" class="post-delete-confirm" onclick="deletePost(${id})">Eliminar</button>
+            </div>
+        </div>
+    `;
+
+    dialog.addEventListener('click', event => {
+        if (event.target === dialog) {
+            closeDeletePostDialog();
+        }
+    });
+
+    document.body.appendChild(dialog);
+}
+
+function closeDeletePostDialog() {
+    document.getElementById('deletePostDialog')?.remove();
+}
+
+async function deletePost(id) {
+    try {
+        const data = await requestJson(apiUrl('/posts/delete'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + token
+            },
+            body: JSON.stringify({ post_id: id })
+        });
+
+        if (data.success) {
+            closeDeletePostDialog();
+            window.history.back();
+            return;
+        }
+
+        alert(data.error || 'Error al eliminar');
     } catch (error) {
         if (error.authRedirected) {
             return;
