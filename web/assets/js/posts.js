@@ -86,6 +86,25 @@ function renderUserAvatar(user, className) {
     return `<span class="${className} avatar-initial" aria-label="Avatar de ${escapeHtml(username)}">${getInitial(username)}</span>`;
 }
 
+function renderLikeIcon() {
+    return `
+        <svg class="post-action-icon like-icon-outline" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"></path>
+        </svg>
+        <svg class="post-action-icon like-icon-filled" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+        </svg>
+    `;
+}
+
+function renderCommentIcon() {
+    return `
+        <svg class="post-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"></path>
+        </svg>
+    `;
+}
+
 function renderPosts(posts, containerId = "posts") {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
@@ -159,11 +178,11 @@ function appendPosts(posts, containerId = "posts") {
                         type="button"
                         class="like-btn ${post.liked_by_user == 1 ? "liked" : ""}"
                         onclick="toggleLike(event, ${post.id}, this)">
-                        ❤️ <span>${post.likes_count ?? 0}</span>
+                        ${renderLikeIcon()} <span>${post.likes_count ?? 0}</span>
                     </button>
 
                     <button type="button" class="comment-count" onclick="goToPost(${post.id})">
-                        💬 ${post.comments_count ?? 0}
+                        ${renderCommentIcon()} <span>${post.comments_count ?? 0}</span>
                     </button>
                 </div>
             </div>
@@ -250,6 +269,15 @@ function toggleLike(event, id, btn) {
         return;
     }
 
+    const span = btn.querySelector("span");
+    const previousLiked = btn.classList.contains("liked");
+    const previousCount = parseInt(span.textContent, 10) || 0;
+    const nextLiked = !previousLiked;
+    const nextCount = Math.max(0, previousCount + (nextLiked ? 1 : -1));
+
+    btn.classList.toggle("liked", nextLiked);
+    span.textContent = nextCount;
+
     postsRequestJson(apiUrl("/posts/toggle-like"), {
         method: "POST",
         headers: {
@@ -263,18 +291,15 @@ function toggleLike(event, id, btn) {
                 throw new Error(data.error || "Error al dar like");
             }
 
-            const span = btn.querySelector("span");
-            const count = parseInt(span.textContent, 10);
-
-            if (data.liked) {
-                btn.classList.add("liked");
-                span.textContent = count + 1;
-            } else {
-                btn.classList.remove("liked");
-                span.textContent = count - 1;
+            if (data.liked !== nextLiked) {
+                btn.classList.toggle("liked", data.liked);
+                span.textContent = Math.max(0, previousCount + (data.liked ? 1 : -1));
             }
         })
         .catch(error => {
+            btn.classList.toggle("liked", previousLiked);
+            span.textContent = previousCount;
+
             if (error.authRedirected) {
                 return;
             }
@@ -390,5 +415,5 @@ function goToPost(id) {
 
 function goToTag(tag, event) {
     event.stopPropagation();
-    window.location.href = `${window.publicUrl("explorar.html")}?tag=${tag}`;
+    window.location.href = `${window.publicUrl("explorar.html")}?q=${tag}`;
 }

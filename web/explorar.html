@@ -94,8 +94,7 @@
                 <h2>Explorar</h2>
             </div>
             <div class="explore-filters">
-                <input type="text" id="searchTitle" placeholder="Buscar por título">
-                <input type="text" id="searchTag" placeholder="Filtrar por tag">
+                <input type="text" id="searchQuery" placeholder="Buscar por titulo o tag">
                 <select id="orderSelect">
                     <option value="recent">Más recientes</option>
                     <option value="likes">Más likes</option>
@@ -113,11 +112,10 @@
         <script>
             function buildURL(cursor){
 
-                const title = document.getElementById("searchTitle").value;
-                const tag = document.getElementById("searchTag").value;
+                const q = document.getElementById("searchQuery").value;
                 const order = document.getElementById("orderSelect").value;
 
-                let url = `${apiUrl("/posts")}?type=explore&title=${encodeURIComponent(title)}&tag=${encodeURIComponent(tag)}&order=${order}`;
+                let url = `${apiUrl("/posts")}?type=explore&q=${encodeURIComponent(q)}&order=${order}`;
 
                 if(cursor){
                     url += `&cursor=${cursor}`;
@@ -132,14 +130,12 @@
 
             function applyFilters(){
 
-                const title = document.getElementById("searchTitle").value;
-                const tag = document.getElementById("searchTag").value;
+                const q = document.getElementById("searchQuery").value;
                 const order = document.getElementById("orderSelect").value;
 
                 const params = new URLSearchParams();
 
-                if(title) params.set("title", title);
-                if(tag) params.set("tag", tag);
+                if(q) params.set("q", q);
                 if(order && order !== "recent") params.set("order", order);
 
                 history.replaceState(null, "", "?" + params.toString());
@@ -150,8 +146,7 @@
 
             function clearFilters(){
 
-                document.getElementById("searchTitle").value = "";
-                document.getElementById("searchTag").value = "";
+                document.getElementById("searchQuery").value = "";
                 document.getElementById("orderSelect").value = "recent";
 
                 history.replaceState(null, "", window.location.pathname);
@@ -162,13 +157,12 @@
 
             function updateClearButton(){
 
-                const title = document.getElementById("searchTitle").value;
-                const tag = document.getElementById("searchTag").value;
+                const q = document.getElementById("searchQuery").value;
                 const order = document.getElementById("orderSelect").value;
 
                 const btn = document.getElementById("clearFiltersBtn");
 
-                if(title || tag || order !== "recent"){
+                if(q || order !== "recent"){
                     btn.style.display = "block";
                 }else{
                     btn.style.display = "none";
@@ -179,17 +173,14 @@
 
                 const params = new URLSearchParams(window.location.search);
 
-                const title = params.get("title");
-                const tag = params.get("tag");
+                const q = params.get("q");
                 const order = params.get("order");
 
-                if(title) document.getElementById("searchTitle").value = title;
-                if(tag) document.getElementById("searchTag").value = tag;
+                if(q) document.getElementById("searchQuery").value = q;
                 if(order) document.getElementById("orderSelect").value = order;
             }
 
-            document.getElementById("searchTitle").addEventListener("input", updateClearButton);
-            document.getElementById("searchTag").addEventListener("input", updateClearButton);
+            document.getElementById("searchQuery").addEventListener("input", updateClearButton);
             document.getElementById("orderSelect").addEventListener("change", updateClearButton);
 
             loadFiltersFromURL();

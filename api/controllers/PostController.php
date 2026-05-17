@@ -196,8 +196,7 @@ class PostController {
         $cursorLikes = $_GET['cursor_likes'] ?? null;
         $limit = 10;
 
-        $title = $_GET['title'] ?? '';
-        $tag = $_GET['tag'] ?? '';
+        $q = trim($_GET['q'] ?? '');
         $order = $_GET['order'] ?? 'recent';
         $userFilter = $_GET['id'] ?? null;
 
@@ -262,20 +261,19 @@ class PostController {
             $params[] = $cursor;
         }
 
-        if ($title !== '') {
-            $where[] = "posts.title ILIKE ?";
-            $params[] = "%$title%";
-        }
-
-        if ($tag !== '') {
-            $where[] = "EXISTS (
-                SELECT 1
-                FROM post_tags
-                JOIN tags ON tags.id = post_tags.tag_id
-                WHERE post_tags.post_id = posts.id
-                AND tags.name ILIKE ?
+        if ($q !== '') {
+            $where[] = "(
+                posts.title ILIKE ?
+                OR EXISTS (
+                    SELECT 1
+                    FROM post_tags
+                    JOIN tags ON tags.id = post_tags.tag_id
+                    WHERE post_tags.post_id = posts.id
+                    AND tags.name ILIKE ?
+                )
             )";
-            $params[] = "%$tag%";
+            $params[] = "%$q%";
+            $params[] = "%$q%";
         }
 
         $whereSQL = $where ? "WHERE " . implode(" AND ", $where) : "";
