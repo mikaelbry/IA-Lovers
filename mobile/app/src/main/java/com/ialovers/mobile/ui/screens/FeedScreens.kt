@@ -31,6 +31,8 @@ fun FeedScreen(
     onOpenPost: (Int) -> Unit,
     onOpenUserProfile: (String) -> Unit,
     onToggleLike: (PostItem) -> Unit,
+    currentUsername: String? = null,
+    onDeletePost: (PostItem) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -92,6 +94,8 @@ fun FeedScreen(
                         onOpen = onOpenPost,
                         onOpenAuthor = onOpenUserProfile,
                         onToggleLike = onToggleLike,
+                        currentUsername = currentUsername,
+                        onDeletePost = onDeletePost,
                     )
                 }
 

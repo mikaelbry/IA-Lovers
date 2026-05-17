@@ -74,6 +74,7 @@ interface ApiService {
         @Query("type") type: String,
         @Query("cursor") cursor: Int? = null,
         @Query("cursor_likes") cursorLikes: Int? = null,
+        @Query("q") query: String? = null,
         @Query("order") order: String = "recent",
     ): FeedResponse
 
@@ -82,6 +83,9 @@ interface ApiService {
 
     @POST("posts/toggle-like")
     suspend fun toggleLike(@Body request: ToggleLikeRequest): ToggleLikeResponse
+
+    @POST("posts/delete")
+    suspend fun deletePost(@Body request: DeletePostRequest): SuccessResponse
 
     @Multipart
     @POST("posts/create")

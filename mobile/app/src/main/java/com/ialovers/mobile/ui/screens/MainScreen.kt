@@ -2,18 +2,25 @@ package com.ialovers.mobile.ui.screens
 
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddBox
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
@@ -21,6 +28,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +37,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +64,7 @@ fun MainScreen(
     activeUserProfileUsername: String?,
     isSettingsOpen: Boolean,
     exploreState: FeedUiState,
+    exploreSearchQuery: String,
     followingState: FeedUiState,
     profileState: ProfileUiState,
     viewedProfileState: ProfileUiState,
@@ -68,12 +78,14 @@ fun MainScreen(
     onCloseSettings: () -> Unit,
     onRefreshFeed: (MainTab) -> Unit,
     onLoadMoreFeed: (MainTab) -> Unit,
+    onExploreSearchQueryChange: (String) -> Unit,
     onRefreshProfile: () -> Unit,
     onOpenPost: (Int) -> Unit,
     onClosePost: () -> Unit,
     onOpenUserProfile: (String) -> Unit,
     onCloseUserProfile: () -> Unit,
     onToggleLike: (PostItem) -> Unit,
+    onDeletePost: (PostItem) -> Unit,
     onToggleFollow: (String) -> Unit,
     onCreateComment: (String) -> Unit,
     onEnterCommentThread: (Int) -> Unit,
@@ -93,6 +105,7 @@ fun MainScreen(
 ) {
     val exploreListState = rememberLazyListState()
     val followingListState = rememberLazyListState()
+    val currentUsername = profileState.profile?.user?.username
 
     Scaffold(
         modifier = Modifier.statusBarsPadding(),
@@ -118,7 +131,11 @@ fun MainScreen(
                         }
                     }
                 }
-                else -> AppHeader(title = selectedTab.label)
+                else -> AppHeader(
+                    title = selectedTab.label,
+                    searchQuery = if (selectedTab == MainTab.Explore) exploreSearchQuery else null,
+                    onSearchQueryChange = if (selectedTab == MainTab.Explore) onExploreSearchQueryChange else null,
+                )
             }
         },
         bottomBar = {
@@ -143,6 +160,8 @@ fun MainScreen(
                 onEnterCommentThread = onEnterCommentThread,
                 onLeaveCommentThread = onLeaveCommentThread,
                 onOpenUserProfile = onOpenUserProfile,
+                currentUsername = currentUsername,
+                onDeletePost = onDeletePost,
                 modifier = Modifier.padding(innerPadding),
             )
             return@Scaffold
@@ -157,6 +176,8 @@ fun MainScreen(
                 onOpenUserProfile = onOpenUserProfile,
                 onToggleLike = onToggleLike,
                 onToggleFollow = onToggleFollow,
+                currentUsername = currentUsername,
+                onDeletePost = onDeletePost,
                 showSettings = false,
                 modifier = Modifier.padding(innerPadding),
             )
@@ -193,6 +214,8 @@ fun MainScreen(
                 onOpenPost = onOpenPost,
                 onOpenUserProfile = onOpenUserProfile,
                 onToggleLike = onToggleLike,
+                currentUsername = currentUsername,
+                onDeletePost = onDeletePost,
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -205,6 +228,8 @@ fun MainScreen(
                 onOpenPost = onOpenPost,
                 onOpenUserProfile = onOpenUserProfile,
                 onToggleLike = onToggleLike,
+                currentUsername = currentUsername,
+                onDeletePost = onDeletePost,
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -230,6 +255,8 @@ fun MainScreen(
                 onOpenPost = onOpenPost,
                 onOpenUserProfile = onOpenUserProfile,
                 onToggleLike = onToggleLike,
+                currentUsername = currentUsername,
+                onDeletePost = onDeletePost,
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -237,11 +264,103 @@ fun MainScreen(
 }
 
 @Composable
-private fun AppHeader(title: String) {
-    Text(
-        text = title,
-        modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
-        style = MaterialTheme.typography.titleLarge,
+private fun AppHeader(
+    title: String,
+    searchQuery: String? = null,
+    onSearchQueryChange: ((String) -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.weight(0.42f),
+        )
+
+        if (searchQuery != null && onSearchQueryChange != null) {
+            SearchField(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val textStyle = MaterialTheme.typography.bodyLarge.copy(
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 16.sp,
+    )
+
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        textStyle = textStyle,
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = CircleShape,
+            )
+            .padding(start = 18.dp, end = 8.dp),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (query.isBlank()) {
+                        Text(
+                            text = "Buscar",
+                            style = textStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                    innerTextField()
+                }
+
+                if (query.isNotBlank()) {
+                    IconButton(
+                        onClick = { onQueryChange("") },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Limpiar busqueda",
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(22.dp),
+                    )
+                }
+            }
+        },
     )
 }
 

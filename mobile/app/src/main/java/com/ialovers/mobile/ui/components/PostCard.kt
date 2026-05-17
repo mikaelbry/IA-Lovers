@@ -1,7 +1,7 @@
 package com.ialovers.mobile.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,27 +12,42 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.ModeComment
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.ialovers.mobile.BuildConfig
 import com.ialovers.mobile.data.PostItem
+import kotlinx.coroutines.delay
 
 @Composable
 fun PostCard(
@@ -40,6 +55,8 @@ fun PostCard(
     onOpen: (Int) -> Unit,
     onOpenAuthor: (String) -> Unit = {},
     onToggleLike: (PostItem) -> Unit,
+    currentUsername: String? = null,
+    onDeletePost: (PostItem) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -51,21 +68,34 @@ fun PostCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    post.username?.takeIf { it.isNotBlank() }?.let(onOpenAuthor)
-                }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Avatar(
-                url = post.avatarUrl,
-                label = post.username.orEmpty(),
-            )
-            Text(
-                text = post.username ?: "usuario",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        post.username?.takeIf { it.isNotBlank() }?.let(onOpenAuthor)
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Avatar(
+                    url = post.avatarUrl,
+                    label = post.username.orEmpty(),
+                )
+                Text(
+                    text = post.username ?: "usuario",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            PostOptionsMenu(
+                post = post,
+                isOwner = post.username != null && currentUsername != null &&
+                    post.username.equals(currentUsername, ignoreCase = true),
+                onDeletePost = onDeletePost,
             )
         }
 
@@ -106,6 +136,90 @@ fun PostCard(
         PostText(post = post)
 
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    }
+}
+
+@Composable
+private fun PostOptionsMenu(
+    post: PostItem,
+    isOwner: Boolean,
+    onDeletePost: (PostItem) -> Unit,
+) {
+    val clipboardManager = LocalClipboardManager.current
+    var expanded by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(2000)
+            copied = false
+        }
+    }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Mas opciones",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = if (copied) "Enlace copiado al portapapeles" else "Compartir",
+                        color = if (copied) Color(0xFF188038) else Color.Unspecified,
+                    )
+                },
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(post.shareUrl()))
+                    copied = true
+                },
+            )
+            if (isOwner) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Eliminar",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        showDeleteDialog = true
+                    },
+                )
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar publicacion") },
+            text = { Text("Estas seguro de que deseas borrar esta publicacion? Esta accion es irreversible.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeletePost(post)
+                    },
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            },
+        )
     }
 }
 
@@ -225,6 +339,12 @@ fun Avatar(
             .clip(CircleShape),
         contentScale = ContentScale.Crop,
     )
+}
+
+private fun PostItem.shareUrl(): String {
+    val apiBase = BuildConfig.API_BASE_URL.trimEnd('/')
+    val appBase = apiBase.removeSuffix("/api")
+    return "$appBase/web/post.html?id=$id"
 }
 
 private const val FEED_IMAGE_SIZE_PX = 1080

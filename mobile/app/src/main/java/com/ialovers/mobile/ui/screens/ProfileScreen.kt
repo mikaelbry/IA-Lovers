@@ -49,6 +49,8 @@ fun ProfileScreen(
     onOpenPost: (Int) -> Unit,
     onOpenUserProfile: (String) -> Unit,
     onToggleLike: (PostItem) -> Unit,
+    currentUsername: String? = null,
+    onDeletePost: (PostItem) -> Unit = {},
     onToggleFollow: (String) -> Unit = {},
     showSettings: Boolean = true,
     modifier: Modifier = Modifier,
@@ -197,6 +199,8 @@ fun ProfileScreen(
                             onOpen = onOpenPost,
                             onOpenAuthor = onOpenUserProfile,
                             onToggleLike = onToggleLike,
+                            currentUsername = currentUsername,
+                            onDeletePost = onDeletePost,
                         )
                     }
                 }

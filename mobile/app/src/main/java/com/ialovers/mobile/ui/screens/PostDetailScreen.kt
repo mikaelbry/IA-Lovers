@@ -46,6 +46,8 @@ fun PostDetailScreen(
     onEnterCommentThread: (Int) -> Unit,
     onLeaveCommentThread: () -> Unit,
     onOpenUserProfile: (String) -> Unit,
+    currentUsername: String? = null,
+    onDeletePost: (PostItem) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var comment by rememberSaveable { mutableStateOf("") }
@@ -107,6 +109,8 @@ fun PostDetailScreen(
                             onOpen = {},
                             onOpenAuthor = onOpenUserProfile,
                             onToggleLike = onToggleLike,
+                            currentUsername = currentUsername,
+                            onDeletePost = onDeletePost,
                         )
                     }
 

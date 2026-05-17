@@ -15,6 +15,7 @@ import com.ialovers.mobile.data.ApiService
 import com.ialovers.mobile.data.CommentItem
 import com.ialovers.mobile.data.CreateCommentRequest
 import com.ialovers.mobile.data.DeleteAccountRequest
+import com.ialovers.mobile.data.DeletePostRequest
 import com.ialovers.mobile.data.FlowTokenRequest
 import com.ialovers.mobile.data.FollowUser
 import com.ialovers.mobile.data.LoginRequest
@@ -34,8 +35,10 @@ import com.ialovers.mobile.data.UpdateProfileRequest
 import com.ialovers.mobile.data.VerifyEmailChangeRequest
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -83,6 +86,9 @@ class AppViewModel(
     var exploreState by mutableStateOf(FeedUiState())
         private set
 
+    var exploreSearchQuery by mutableStateOf("")
+        private set
+
     var followingState by mutableStateOf(FeedUiState())
         private set
 
@@ -106,6 +112,8 @@ class AppViewModel(
 
     var notificationsUnreadCount by mutableStateOf(0)
         private set
+
+    private var exploreSearchJob: Job? = null
 
     init {
         val (service, storage) = ApiFactory.create(context)
@@ -392,10 +400,17 @@ class AppViewModel(
         }
 
         viewModelScope.launch {
-            setFeedState(tab, feedState(tab).copy(isLoading = true, error = null))
+            setFeedState(tab, feedState(tab).copy(isLoading = true, posts = emptyList(), error = null))
 
             try {
-                val response = api.posts(type = tab.feedType)
+                val requestedQuery = if (tab == MainTab.Explore) exploreSearchQuery.cleanSearchQuery() else null
+                val response = api.posts(
+                    type = tab.feedType,
+                    query = requestedQuery,
+                )
+                if (tab == MainTab.Explore && requestedQuery != exploreSearchQuery.cleanSearchQuery()) {
+                    return@launch
+                }
                 setFeedState(
                     tab,
                     FeedUiState(
@@ -425,17 +440,22 @@ class AppViewModel(
             setFeedState(tab, current.copy(isLoadingMore = true, error = null))
 
             try {
+                val requestedQuery = if (tab == MainTab.Explore) exploreSearchQuery.cleanSearchQuery() else null
                 val response = api.posts(
                     type = tab.feedType,
                     cursor = cursor,
                     cursorLikes = current.nextCursorLikes,
+                    query = requestedQuery,
                 )
+                if (tab == MainTab.Explore && requestedQuery != exploreSearchQuery.cleanSearchQuery()) {
+                    return@launch
+                }
 
                 setFeedState(
                     tab,
                     feedState(tab).copy(
                         isLoadingMore = false,
-                        posts = feedState(tab).posts + response.posts,
+                        posts = (feedState(tab).posts + response.posts).distinctBy { it.id },
                         nextCursor = response.nextCursor,
                         nextCursorLikes = response.nextCursorLikes,
                     )
@@ -445,6 +465,19 @@ class AppViewModel(
                     setFeedState(tab, feedState(tab).copy(isLoadingMore = false, error = errorMessage(error)))
                 }
             }
+        }
+    }
+
+    fun updateExploreSearchQuery(query: String) {
+        exploreSearchQuery = query
+        if (selectedTab != MainTab.Explore || activePostId != null || activeUserProfileUsername != null || isSettingsOpen) {
+            return
+        }
+
+        exploreSearchJob?.cancel()
+        exploreSearchJob = viewModelScope.launch {
+            delay(350)
+            refreshFeed(MainTab.Explore)
         }
     }
 
@@ -464,6 +497,26 @@ class AppViewModel(
             } catch (error: Throwable) {
                 applyPostLike(post.id, post.likedByUser)
                 handleAuthenticatedError(error)
+            }
+        }
+    }
+
+    fun deletePost(post: PostItem) {
+        viewModelScope.launch {
+            try {
+                val response = api.deletePost(DeletePostRequest(post.id))
+                if (response.success) {
+                    removePostEverywhere(post.id)
+                }
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    val message = errorMessage(error)
+                    if (activePostId == post.id) {
+                        postDetailState = postDetailState.copy(error = message)
+                    } else {
+                        exploreState = exploreState.copy(error = message)
+                    }
+                }
             }
         }
     }
@@ -1148,6 +1201,26 @@ class AppViewModel(
         }
     }
 
+    private fun removePostEverywhere(postId: Int) {
+        exploreState = exploreState.copy(posts = exploreState.posts.filterNot { it.id == postId })
+        followingState = followingState.copy(posts = followingState.posts.filterNot { it.id == postId })
+        profileState = profileState.copy(
+            profile = profileState.profile?.copy(
+                posts = profileState.profile?.posts.orEmpty().filterNot { it.id == postId }
+            )
+        )
+        viewedProfileState = viewedProfileState.copy(
+            profile = viewedProfileState.profile?.copy(
+                posts = viewedProfileState.profile?.posts.orEmpty().filterNot { it.id == postId }
+            )
+        )
+
+        if (activePostId == postId) {
+            activePostId = null
+            postDetailState = PostDetailUiState()
+        }
+    }
+
     private fun feedState(tab: MainTab): FeedUiState {
         return when (tab) {
             MainTab.Explore -> exploreState
@@ -1166,6 +1239,10 @@ class AppViewModel(
             MainTab.Notifications -> Unit
             MainTab.Profile -> Unit
         }
+    }
+
+    private fun String.cleanSearchQuery(): String? {
+        return trim().takeIf { it.isNotBlank() }
     }
 
     private fun handleAuthenticatedError(error: Throwable, fallback: () -> Unit = {}) {

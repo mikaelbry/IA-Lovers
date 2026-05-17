@@ -188,6 +188,12 @@ data class ToggleLikeRequest(
 )
 
 @Serializable
+data class DeletePostRequest(
+    @SerialName("post_id")
+    val postId: Int,
+)
+
+@Serializable
 data class ToggleLikeResponse(
     val liked: Boolean,
 )
