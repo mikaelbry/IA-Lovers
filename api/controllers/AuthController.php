@@ -183,8 +183,8 @@ class AuthController {
 
         $flowToken = $pendingByEmail['flow_token'] ?? self::generateFlowToken();
         $verificationCode = self::generateVerificationCode();
-        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_BCRYPT, ['cost' => 12]);
+        $passwordHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         $expiresAt = self::expiresAt();
         $pendingId = null;
         $created = false;
@@ -329,7 +329,7 @@ class AuthController {
         self::assertEmailAndUsernameAvailable($pending['email'], $pending['username']);
 
         $verificationCode = self::generateVerificationCode();
-        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_BCRYPT, ['cost' => 12]);
         $expiresAt = self::expiresAt();
 
         PendingRegistration::updateCode($pending['id'], $pending['flow_token'], $verificationCodeHash, $expiresAt);
@@ -371,6 +371,7 @@ class AuthController {
             'authenticated' => true,
             'expires_in_days' => Auth::tokenTtlDays(),
             'user' => self::authUserPayload($user),
+            'csrf_token' => Auth::csrfToken($user['token']),
         ]);
     }
 
@@ -455,7 +456,7 @@ class AuthController {
 
         $flowToken = self::generateFlowToken();
         $verificationCode = self::generateVerificationCode();
-        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_BCRYPT, ['cost' => 12]);
         $expiresAt = self::expiresAt();
         $created = false;
 
@@ -529,7 +530,7 @@ class AuthController {
 
         $newFlowToken = self::generateFlowToken();
         $verificationCode = self::generateVerificationCode();
-        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_BCRYPT, ['cost' => 12]);
         $expiresAt = self::expiresAt();
 
         PendingPasswordReset::updateRequest($pending['id'], $newFlowToken, $verificationCodeHash, $expiresAt);

@@ -45,9 +45,9 @@ class CommentController {
         }
 
         $stmt = $pdo->prepare("
-            SELECT comments.*, usuarios.username, usuarios.avatar_path
+            SELECT comments.*, users.username, users.avatar_path
             FROM comments
-            JOIN usuarios ON usuarios.id = comments.user_id
+            JOIN users ON users.id = comments.user_id
             WHERE comments.id = ?
         ");
         $stmt->execute([$commentId]);

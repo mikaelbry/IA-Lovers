@@ -287,8 +287,8 @@ class PostController {
         $sql = "
             SELECT
                 posts.*,
-                usuarios.username,
-                usuarios.avatar_path,
+                users.username,
+                users.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -308,7 +308,7 @@ class PostController {
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id = posts.user_id
+            JOIN users ON users.id = posts.user_id
             $whereSQL
             ORDER BY $orderSQL
             LIMIT $limit
@@ -403,8 +403,8 @@ class PostController {
         $stmt = $pdo->prepare("
             SELECT
                 posts.*,
-                usuarios.username,
-                usuarios.avatar_path,
+                users.username,
+                users.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -424,7 +424,7 @@ class PostController {
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id = posts.user_id
+            JOIN users ON users.id = posts.user_id
             WHERE posts.id = ?
         ");
 
@@ -442,10 +442,10 @@ class PostController {
         $stmt = $pdo->prepare("
             SELECT
                 comments.*,
-                usuarios.username,
-                usuarios.avatar_path
+                users.username,
+                users.avatar_path
             FROM comments
-            JOIN usuarios ON usuarios.id = comments.user_id
+            JOIN users ON users.id = comments.user_id
             WHERE comments.post_id = ?
             ORDER BY comments.created_at ASC
         ");

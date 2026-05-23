@@ -36,9 +36,9 @@ class Comment {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            SELECT comments.*, usuarios.username
+            SELECT comments.*, users.username
             FROM comments
-            JOIN usuarios ON usuarios.id = comments.user_id
+            JOIN users ON users.id = comments.user_id
             WHERE post_id = ?
             ORDER BY created_at ASC
         ");

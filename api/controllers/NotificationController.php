@@ -29,7 +29,7 @@ class NotificationController {
                 p.file_path as post_file_path,
                 p.user_id as post_user_id
             FROM notifications n
-            LEFT JOIN usuarios u ON u.id = n.from_user_id
+            LEFT JOIN users u ON u.id = n.from_user_id
             LEFT JOIN posts p ON p.id = n.post_id
             WHERE n.user_id = ?
             ORDER BY n.created_at DESC

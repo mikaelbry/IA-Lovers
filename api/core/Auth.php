@@ -24,9 +24,9 @@ class Auth {
         self::cleanupExpiredTokens($pdo);
 
         $stmt = $pdo->prepare("
-            SELECT usuarios.*, user_tokens.token
+            SELECT users.*, user_tokens.token
             FROM user_tokens
-            JOIN usuarios ON usuarios.id = user_tokens.user_id
+            JOIN users ON users.id = user_tokens.user_id
             WHERE user_tokens.token = ?
             AND user_tokens.expires_at > CURRENT_TIMESTAMP
         ");
@@ -158,5 +158,17 @@ class Auth {
         }
 
         return null;
+    }
+
+    public static function csrfToken($authToken) {
+        $secret = $_ENV['ALTCHA_HMAC_KEY'] ?? 'change-me-csrf-secret-key';
+        return hash_hmac('sha256', 'csrf:' . $authToken, $secret);
+    }
+
+    public static function validateCsrfToken($authToken, $csrfToken) {
+        if (!is_string($csrfToken) || $csrfToken === '') {
+            return false;
+        }
+        return hash_equals(self::csrfToken($authToken), $csrfToken);
     }
 }

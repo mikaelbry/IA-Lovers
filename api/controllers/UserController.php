@@ -98,7 +98,7 @@ class UserController {
         $stmt = $pdo->prepare("
             SELECT
                 posts.*,
-                usuarios.username,
+                users.username,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -118,7 +118,7 @@ class UserController {
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id = posts.user_id
+            JOIN users ON users.id = posts.user_id
             WHERE posts.user_id = ?
             ORDER BY posts.created_at DESC
         ");
@@ -209,7 +209,7 @@ class UserController {
         $postsStmt = $pdo->prepare("
             SELECT
                 posts.*,
-                usuarios.username,
+                users.username,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
                 (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
@@ -228,7 +228,7 @@ class UserController {
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id = posts.user_id
+            JOIN users ON users.id = posts.user_id
             WHERE posts.user_id = ?
             ORDER BY posts.created_at DESC
         ");
@@ -284,7 +284,7 @@ class UserController {
 
         $userStmt = $pdo->prepare("
             SELECT id, username, avatar_path
-            FROM usuarios
+            FROM users
             WHERE id = ?
         ");
         $userStmt->execute([$user_id]);
@@ -321,7 +321,7 @@ class UserController {
         $postsStmt = $pdo->prepare("
             SELECT
                 posts.*,
-                usuarios.username,
+                users.username,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -341,7 +341,7 @@ class UserController {
                 ) as tags
 
             FROM posts
-            JOIN usuarios ON usuarios.id = posts.user_id
+            JOIN users ON users.id = posts.user_id
             WHERE posts.user_id = ?
             ORDER BY posts.created_at DESC
         ");
@@ -504,7 +504,7 @@ class UserController {
 
         $pending = PendingEmailChange::findByUserId($user['id']);
         $verificationCode = self::generateVerificationCode();
-        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_BCRYPT, ['cost' => 12]);
         $expiresAt = self::emailChangeExpiresAt();
         $created = false;
 
@@ -571,7 +571,7 @@ class UserController {
         }
 
         $verificationCode = self::generateVerificationCode();
-        $verificationCodeHash = password_hash($verificationCode, PASSWORD_DEFAULT);
+        $verificationCodeHash = password_hash($verificationCode, PASSWORD_BCRYPT, ['cost' => 12]);
         $expiresAt = self::emailChangeExpiresAt();
 
         PendingEmailChange::updateRequest(
@@ -767,7 +767,7 @@ class UserController {
             ")->execute([$user['id']]);
 
             $pdo->prepare("
-                DELETE FROM usuarios
+                DELETE FROM users
                 WHERE id = ?
             ")->execute([$user['id']]);
 

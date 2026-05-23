@@ -7,7 +7,7 @@ class User {
     public static function create($username, $email, $password) {
 
         $pdo = Database::getConnection();
-        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
         return self::createWithPasswordHash($username, $email, $hash);
     }
@@ -16,7 +16,7 @@ class User {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            INSERT INTO usuarios (username, email, password_hash, created_at)
+            INSERT INTO users (username, email, password_hash, created_at)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
         ");
 
@@ -25,7 +25,7 @@ class User {
 
     public static function findByEmail($email) {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         return $stmt->fetch();
     }
@@ -34,7 +34,7 @@ class User {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
             SELECT id, username, email, created_at, avatar_path
-            FROM usuarios
+            FROM users
             WHERE id = ?
         ");
         $stmt->execute([$id]);
@@ -45,7 +45,7 @@ class User {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
             SELECT id, username, avatar_path
-            FROM usuarios
+            FROM users
             WHERE username = ?
         ");
         $stmt->execute([$username]);
@@ -57,9 +57,9 @@ class User {
         $pdo = Database::getConnection();
 
         if ($password) {
-            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
             $stmt = $pdo->prepare("
-                UPDATE usuarios
+                UPDATE users
                 SET username = ?, email = ?, password_hash = ?
                 WHERE id = ?
             ");
@@ -67,7 +67,7 @@ class User {
         }
 
         $stmt = $pdo->prepare("
-            UPDATE usuarios
+            UPDATE users
             SET username = ?, email = ?
             WHERE id = ?
         ");
@@ -77,9 +77,9 @@ class User {
 
     public static function updatePassword($id, $password) {
         $pdo = Database::getConnection();
-        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         $stmt = $pdo->prepare("
-            UPDATE usuarios
+            UPDATE users
             SET password_hash = ?
             WHERE id = ?
         ");
@@ -90,7 +90,7 @@ class User {
     public static function updateAvatar($id, $avatarPath) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
-            UPDATE usuarios
+            UPDATE users
             SET avatar_path = ?
             WHERE id = ?
         ");

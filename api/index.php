@@ -8,6 +8,17 @@ header("Cache-Control: no-store, private");
 header("Pragma: no-cache");
 header("Content-Type: application/json; charset=utf-8");
 
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+header("Access-Control-Allow-Origin: $origin");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token");
+header("Access-Control-Max-Age: 86400");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 require_once __DIR__ . '/core/Router.php';
 require_once __DIR__ . '/core/Response.php';
 require_once __DIR__ . '/core/RateLimiter.php';
@@ -24,6 +35,17 @@ require_once __DIR__ . '/controllers/TagController.php';
 
 $router = new Router();
 
+function withCsrf($handler) {
+    return function() use ($handler) {
+        $user = Middleware::auth();
+        $header = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!Auth::validateCsrfToken($user['token'], $header)) {
+            Response::json(['error' => 'CSRF token invalido'], 403);
+        }
+        $handler();
+    };
+}
+
 /* =======================
    USER
 ======================= */
@@ -35,24 +57,24 @@ $router->get('/users/username', fn() => UserController::profileByUsername());
 $router->get('/users/check-username', fn() => UserController::checkUsername());
 $router->get('/users/followers', fn() => FollowController::followers());
 $router->get('/users/following', fn() => FollowController::following());
-$router->post('/user/update', fn() => UserController::update());
-$router->post('/user/avatar', fn() => UserController::updateAvatar());
-$router->post('/user/email-change/start', fn() => UserController::startEmailChange());
-$router->post('/user/email-change/resend', fn() => UserController::resendEmailChange());
-$router->post('/user/email-change/verify', fn() => UserController::verifyEmailChange());
-$router->post('/user/email-change/cancel', fn() => UserController::cancelEmailChange());
-$router->post('/user/delete', fn() => UserController::delete());
+$router->post('/user/update', withCsrf(fn() => UserController::update()));
+$router->post('/user/avatar', withCsrf(fn() => UserController::updateAvatar()));
+$router->post('/user/email-change/start', withCsrf(fn() => UserController::startEmailChange()));
+$router->post('/user/email-change/resend', withCsrf(fn() => UserController::resendEmailChange()));
+$router->post('/user/email-change/verify', withCsrf(fn() => UserController::verifyEmailChange()));
+$router->post('/user/email-change/cancel', withCsrf(fn() => UserController::cancelEmailChange()));
+$router->post('/user/delete', withCsrf(fn() => UserController::delete()));
 
 /* =======================
    POSTS
 ======================= */
 
-$router->post('/posts/create', fn() => PostController::create());
-$router->post('/posts/delete',fn() => PostController::delete());
+$router->post('/posts/create', withCsrf(fn() => PostController::create()));
+$router->post('/posts/delete', withCsrf(fn() => PostController::delete()));
 $router->get('/posts', fn() => PostController::feed());
 
 $router->get('/posts/show', fn() => PostController::show());
-$router->post('/posts/toggle-like', fn() => PostController::toggleLike());
+$router->post('/posts/toggle-like', withCsrf(fn() => PostController::toggleLike()));
 
 /* =======================
    AUTH
@@ -69,7 +91,7 @@ $router->post('/password-reset/resend', fn() => AuthController::resendPasswordRe
 $router->post('/password-reset/complete', fn() => AuthController::completePasswordReset());
 $router->post('/password-reset/cancel', fn() => AuthController::cancelPasswordReset());
 $router->get('/session', fn() => AuthController::session());
-$router->post('/logout', fn() => AuthController::logout());
+$router->post('/logout', withCsrf(fn() => AuthController::logout()));
 $router->post('/mobile/register/start', fn() => AuthController::mobileStartRegistration());
 $router->post('/mobile/register/verify', fn() => AuthController::mobileVerifyRegistration());
 $router->post('/mobile/register/resend', fn() => AuthController::mobileResendRegistrationCode());
@@ -79,14 +101,14 @@ $router->post('/mobile/password-reset/start', fn() => AuthController::mobileStar
 $router->post('/mobile/password-reset/resend', fn() => AuthController::mobileResendPasswordResetCode());
 $router->post('/mobile/password-reset/complete', fn() => AuthController::mobileCompletePasswordReset());
 $router->post('/mobile/password-reset/cancel', fn() => AuthController::mobileCancelPasswordReset());
-$router->post('/mobile/logout', fn() => AuthController::logout());
+$router->post('/mobile/logout', withCsrf(fn() => AuthController::logout()));
 $router->get('/altcha/challenge', fn() => Response::json(Altcha::challenge()));
 
 /* =======================
    FOLLOW
 ======================= */
 
-$router->post('/follow', fn() => FollowController::follow());
+$router->post('/follow', withCsrf(fn() => FollowController::follow()));
 
 /* =======================
    NOTIFICATIONS
@@ -94,21 +116,21 @@ $router->post('/follow', fn() => FollowController::follow());
 
 $router->get('/notifications', fn() => NotificationController::get());
 $router->get('/notifications/unread-count', fn() => NotificationController::unreadCount());
-$router->post('/notifications/read', fn() => NotificationController::markRead());
+$router->post('/notifications/read', withCsrf(fn() => NotificationController::markRead()));
 
 /* =======================
    COMMENTS
 ======================= */
 
-$router->post('/comments/create', fn() => CommentController::create());
-$router->post('/comments/delete', fn() => CommentController::delete());
+$router->post('/comments/create', withCsrf(fn() => CommentController::create()));
+$router->post('/comments/delete', withCsrf(fn() => CommentController::delete()));
 
 /* =======================
    TAGS
 ======================= */
 
 $router->get('/tags/search', fn() => TagController::search());
-$router->post('/tags/create', fn() => TagController::create());
+$router->post('/tags/create', withCsrf(fn() => TagController::create()));
 
 /* =======================
    DISPATCH

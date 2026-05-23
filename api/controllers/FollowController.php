@@ -75,11 +75,11 @@ class FollowController {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            SELECT usuarios.id, usuarios.username, usuarios.avatar_path
+            SELECT users.id, users.username, users.avatar_path
             FROM follows
-            JOIN usuarios ON usuarios.id = follows.follower_id
+            JOIN users ON users.id = follows.follower_id
             WHERE follows.following_id = ?
-            ORDER BY usuarios.username ASC
+            ORDER BY users.username ASC
         ");
 
         $stmt->execute([$user_id]);
@@ -99,11 +99,11 @@ class FollowController {
         $pdo = Database::getConnection();
 
         $stmt = $pdo->prepare("
-            SELECT usuarios.id, usuarios.username, usuarios.avatar_path
+            SELECT users.id, users.username, users.avatar_path
             FROM follows
-            JOIN usuarios ON usuarios.id = follows.following_id
+            JOIN users ON users.id = follows.following_id
             WHERE follows.follower_id = ?
-            ORDER BY usuarios.username ASC
+            ORDER BY users.username ASC
         ");
 
         $stmt->execute([$user_id]);

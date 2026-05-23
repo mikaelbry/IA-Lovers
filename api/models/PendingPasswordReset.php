@@ -16,9 +16,9 @@ class PendingPasswordReset {
     public static function findByFlowToken($flowToken) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
-            SELECT pending_password_resets.*, usuarios.email, usuarios.username
+            SELECT pending_password_resets.*, users.email, users.username
             FROM pending_password_resets
-            JOIN usuarios ON usuarios.id = pending_password_resets.user_id
+            JOIN users ON users.id = pending_password_resets.user_id
             WHERE flow_token = ?
         ');
         $stmt->execute([$flowToken]);
