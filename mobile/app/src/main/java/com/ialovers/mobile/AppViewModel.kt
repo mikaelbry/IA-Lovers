@@ -15,6 +15,7 @@ import com.ialovers.mobile.data.ApiService
 import com.ialovers.mobile.data.CommentItem
 import com.ialovers.mobile.data.CreateCommentRequest
 import com.ialovers.mobile.data.DeleteAccountRequest
+import com.ialovers.mobile.data.DeleteCommentRequest
 import com.ialovers.mobile.data.DeletePostRequest
 import com.ialovers.mobile.data.FlowTokenRequest
 import com.ialovers.mobile.data.FollowUser
@@ -555,6 +556,36 @@ class AppViewModel(
                         isCommentSending = false,
                         error = errorMessage(error),
                     )
+                }
+            }
+        }
+    }
+
+    fun deleteComment(comment: CommentItem) {
+        val postId = activePostId ?: return
+
+        viewModelScope.launch {
+            postDetailState = postDetailState.copy(error = null)
+
+            try {
+                val response = api.deleteComment(DeleteCommentRequest(comment.id))
+
+                if (response.deleted) {
+                    val currentPost = postDetailState.post
+                    postDetailState = postDetailState.copy(
+                        post = currentPost?.copy(commentsCount = response.commentsCount),
+                        commentThread = if (response.mode == "hard") {
+                            postDetailState.commentThread.filterNot { it == comment.id }
+                        } else {
+                            postDetailState.commentThread
+                        },
+                    )
+                    updatePostEverywhere(postId) { it.copy(commentsCount = response.commentsCount) }
+                    loadPostDetail(postId)
+                }
+            } catch (error: Throwable) {
+                handleAuthenticatedError(error) {
+                    postDetailState = postDetailState.copy(error = errorMessage(error))
                 }
             }
         }

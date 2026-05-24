@@ -55,6 +55,7 @@ import com.ialovers.mobile.PostDetailUiState
 import com.ialovers.mobile.ProfileUiState
 import com.ialovers.mobile.SettingsSection
 import com.ialovers.mobile.SettingsUiState
+import com.ialovers.mobile.data.CommentItem
 import com.ialovers.mobile.data.PostItem
 
 @Composable
@@ -88,6 +89,7 @@ fun MainScreen(
     onDeletePost: (PostItem) -> Unit,
     onToggleFollow: (String) -> Unit,
     onCreateComment: (String) -> Unit,
+    onDeleteComment: (CommentItem) -> Unit,
     onEnterCommentThread: (Int) -> Unit,
     onLeaveCommentThread: () -> Unit,
     onSelectCreatePostImage: (Uri?) -> Unit,
@@ -157,6 +159,7 @@ fun MainScreen(
                 onBack = onClosePost,
                 onToggleLike = onToggleLike,
                 onCreateComment = onCreateComment,
+                onDeleteComment = onDeleteComment,
                 onEnterCommentThread = onEnterCommentThread,
                 onLeaveCommentThread = onLeaveCommentThread,
                 onOpenUserProfile = onOpenUserProfile,

@@ -28,7 +28,6 @@ window.webUrl = (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path 
 window.publicUrl = window.webUrl;
 window.token = localStorage.getItem("token");
 window.user = JSON.parse(localStorage.getItem("user") || "null");
-window.csrfToken = null;
 
 const authRedirectFallback = "index.html";
 const blockedAuthRedirects = new Set(["login.html", "register.html", "forgot_password.html"]);
@@ -114,7 +113,6 @@ window.clearAuthSession = async ({
     localStorage.removeItem("user");
     window.token = null;
     window.user = null;
-    window.csrfToken = null;
 
     if (flashMessage) {
         storeAuthFlash(flashMessage, flashType);
@@ -144,10 +142,6 @@ window.performLogout = async () => {
 
 window.requestApiJson = async (url, options = {}) => {
     options.headers = options.headers || {};
-
-    if (window.csrfToken && (!options.method || options.method === 'POST')) {
-        options.headers['X-CSRF-Token'] = window.csrfToken;
-    }
 
     const response = await fetch(url, options);
     const contentType = response.headers.get("content-type") || "";
@@ -443,7 +437,6 @@ async function validateStoredSession() {
 
         if (session?.user) {
             window.user = session.user;
-            window.csrfToken = session.csrf_token || null;
             localStorage.setItem("user", JSON.stringify(session.user));
         }
     } catch (error) {

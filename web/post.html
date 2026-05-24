@@ -352,7 +352,9 @@ function renderComments(parentId) {
         if (parentComment) {
             const parentDiv = renderSingleComment(parentComment, true);
             commentsBody.appendChild(parentDiv);
-            renderFormAfter(parentDiv, parentId);
+            if (!parentComment.is_deleted) {
+                renderFormAfter(parentDiv, parentId);
+            }
         }
     } else {
         renderForm(commentsBody, null, true);
@@ -365,13 +367,23 @@ function renderComments(parentId) {
 
 function renderSingleComment(comment, isParent = false) {
     const div = document.createElement('div');
-    div.className = `comment ${isParent ? 'comment-parent-focus' : ''}`;
+    const isDeleted = Boolean(comment.is_deleted);
+    div.className = `comment ${isParent ? 'comment-parent-focus' : ''} ${isDeleted ? 'comment-deleted' : ''}`;
 
     const descendants = countAllDescendants(comment);
-    const authorUrl = getProfileUrl(comment.username);
-
-    div.innerHTML = `
-        <div class="comment-header">
+    const authorUrl = !isDeleted ? getProfileUrl(comment.username) : '';
+    const canDelete = !isDeleted && storedUser && Number(storedUser.id) === Number(comment.user_id);
+    const authorHtml = isDeleted
+        ? `
+            <div class="comment-author-link comment-deleted-author" aria-label="Comentario borrado">
+                <span class="comment-avatar comment-deleted-avatar" aria-hidden="true"></span>
+                <div>
+                    <strong>Comentario borrado</strong>
+                    <div class="comment-date">${formatDate(comment.created_at)}</div>
+                </div>
+            </div>
+        `
+        : `
             <a href="${authorUrl}" class="comment-author-link">
                 ${renderUserAvatar(comment, 'comment-avatar')}
                 <div>
@@ -379,15 +391,92 @@ function renderSingleComment(comment, isParent = false) {
                     <div class="comment-date">${formatDate(comment.created_at)}</div>
                 </div>
             </a>
+        `;
+
+    div.innerHTML = `
+        <div class="comment-header">
+            ${authorHtml}
+            ${
+                canDelete
+                    ? `<button type="button" class="comment-delete-btn" onclick="openDeleteCommentDialog(${comment.id}, event)">Eliminar</button>`
+                    : ``
+            }
         </div>
-        <p>${escapeHtml(comment.content)}</p>
+        <p>${isDeleted ? 'Comentario borrado' : escapeHtml(comment.content)}</p>
         <div class="comment-actions">
-            <button type="button" onclick="enterThread(${comment.id})">Responder</button>
+            ${!isDeleted ? `<button type="button" onclick="enterThread(${comment.id})">Responder</button>` : ''}
             ${descendants > 0 ? `<span class="view-replies" onclick="enterThread(${comment.id})">${descendants} respuestas</span>` : ''}
         </div>
     `;
 
     return div;
+}
+
+function openDeleteCommentDialog(id, event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    document.getElementById('deleteCommentDialog')?.remove();
+
+    const dialog = document.createElement('div');
+    dialog.id = 'deleteCommentDialog';
+    dialog.className = 'post-delete-dialog-backdrop';
+    dialog.innerHTML = `
+        <div class="post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteCommentTitle">
+            <h3 id="deleteCommentTitle">Eliminar comentario</h3>
+            <p>Estas seguro de que deseas borrar este comentario?</p>
+            <div class="post-delete-dialog-actions">
+                <button type="button" class="post-delete-cancel" onclick="closeDeleteCommentDialog()">Cancelar</button>
+                <button type="button" class="post-delete-confirm" onclick="deleteComment(${id})">Eliminar</button>
+            </div>
+        </div>
+    `;
+
+    dialog.addEventListener('click', event => {
+        if (event.target === dialog) {
+            closeDeleteCommentDialog();
+        }
+    });
+
+    document.body.appendChild(dialog);
+}
+
+function closeDeleteCommentDialog() {
+    document.getElementById('deleteCommentDialog')?.remove();
+}
+
+async function deleteComment(id) {
+    if (!token) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    try {
+        const data = await requestJson(apiUrl('/comments/delete'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + token
+            },
+            body: JSON.stringify({ comment_id: id })
+        });
+
+        if (data.deleted) {
+            closeDeleteCommentDialog();
+            if (data.mode === 'hard') {
+                commentStack = commentStack.filter(commentId => Number(commentId) !== Number(id));
+            }
+            await loadPost();
+            return;
+        }
+
+        alert(data.error || 'Error al eliminar');
+    } catch (error) {
+        if (error.authRedirected) {
+            return;
+        }
+        alert(error.message);
+    }
 }
 
 function renderForm(container, parentId, isRoot = false) {

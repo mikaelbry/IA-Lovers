@@ -371,7 +371,6 @@ class AuthController {
             'authenticated' => true,
             'expires_in_days' => Auth::tokenTtlDays(),
             'user' => self::authUserPayload($user),
-            'csrf_token' => Auth::csrfToken($user['token']),
         ]);
     }
 

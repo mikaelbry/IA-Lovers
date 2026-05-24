@@ -43,6 +43,7 @@ fun PostDetailScreen(
     onBack: () -> Unit,
     onToggleLike: (PostItem) -> Unit,
     onCreateComment: (String) -> Unit,
+    onDeleteComment: (CommentItem) -> Unit,
     onEnterCommentThread: (Int) -> Unit,
     onLeaveCommentThread: () -> Unit,
     onOpenUserProfile: (String) -> Unit,
@@ -142,7 +143,9 @@ fun PostDetailScreen(
                                 repliesCount = activeComment.descendantCount(),
                                 isParentFocus = true,
                                 onReply = onEnterCommentThread,
+                                onDelete = onDeleteComment,
                                 onOpenUserProfile = onOpenUserProfile,
+                                currentUsername = currentUsername,
                             )
                         }
                     }
@@ -166,7 +169,9 @@ fun PostDetailScreen(
                                 repliesCount = item.descendantCount(),
                                 isParentFocus = false,
                                 onReply = onEnterCommentThread,
+                                onDelete = onDeleteComment,
                                 onOpenUserProfile = onOpenUserProfile,
+                                currentUsername = currentUsername,
                             )
                         }
                     }
@@ -178,28 +183,30 @@ fun PostDetailScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = comment,
-                        onValueChange = { comment = it },
-                        label = { Text("Escribe un comentario") },
-                        modifier = Modifier.weight(1f),
-                        maxLines = 3,
-                    )
-                    Button(
-                        onClick = {
-                            onCreateComment(comment)
-                            comment = ""
-                        },
-                        enabled = comment.isNotBlank() && !state.isCommentSending,
+                if (activeComment?.comment?.isDeleted != true) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(if (state.isCommentSending) "..." else "Enviar")
+                        OutlinedTextField(
+                            value = comment,
+                            onValueChange = { comment = it },
+                            label = { Text("Escribe un comentario") },
+                            modifier = Modifier.weight(1f),
+                            maxLines = 3,
+                        )
+                        Button(
+                            onClick = {
+                                onCreateComment(comment)
+                                comment = ""
+                            },
+                            enabled = comment.isNotBlank() && !state.isCommentSending,
+                        ) {
+                            Text(if (state.isCommentSending) "..." else "Enviar")
+                        }
                     }
                 }
             }
@@ -213,8 +220,13 @@ private fun CommentRow(
     repliesCount: Int,
     isParentFocus: Boolean,
     onReply: (Int) -> Unit,
+    onDelete: (CommentItem) -> Unit,
     onOpenUserProfile: (String) -> Unit,
+    currentUsername: String?,
 ) {
+    val isDeleted = comment.isDeleted
+    val canDelete = !isDeleted && currentUsername != null && comment.username.equals(currentUsername, ignoreCase = true)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,23 +234,34 @@ private fun CommentRow(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
-            modifier = Modifier.clickable { onOpenUserProfile(comment.username) },
+            modifier = if (isDeleted) {
+                Modifier
+            } else {
+                Modifier.clickable { onOpenUserProfile(comment.username) }
+            },
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Avatar(
-                url = comment.avatarUrl,
-                label = comment.username,
-            )
+            if (!isDeleted) {
+                Avatar(
+                    url = comment.avatarUrl,
+                    label = comment.username,
+                )
+            }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = comment.username,
+                    text = if (isDeleted) "Comentario borrado" else comment.username,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = comment.content,
+                    text = if (isDeleted) "Comentario borrado" else comment.content,
                     style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDeleted) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 )
             }
         }
@@ -246,8 +269,15 @@ private fun CommentRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = { onReply(comment.id) }) {
-                Text("Responder")
+            if (!isDeleted) {
+                TextButton(onClick = { onReply(comment.id) }) {
+                    Text("Responder")
+                }
+            }
+            if (canDelete) {
+                TextButton(onClick = { onDelete(comment) }) {
+                    Text("Eliminar")
+                }
             }
             if (repliesCount > 0 && !isParentFocus) {
                 TextButton(onClick = { onReply(comment.id) }) {

@@ -113,7 +113,7 @@ data class CommentItem(
     @SerialName("post_id")
     val postId: Int,
     @SerialName("user_id")
-    val userId: Int,
+    val userId: Int? = null,
     @SerialName("parent_id")
     val parentId: Int? = null,
     val username: String,
@@ -122,6 +122,8 @@ data class CommentItem(
     val content: String,
     @SerialName("created_at")
     val createdAt: String? = null,
+    @SerialName("is_deleted")
+    val isDeleted: Boolean = false,
 )
 
 @Serializable
@@ -191,6 +193,20 @@ data class ToggleLikeRequest(
 data class DeletePostRequest(
     @SerialName("post_id")
     val postId: Int,
+)
+
+@Serializable
+data class DeleteCommentRequest(
+    @SerialName("comment_id")
+    val commentId: Int,
+)
+
+@Serializable
+data class DeleteCommentResponse(
+    val deleted: Boolean = false,
+    val mode: String? = null,
+    @SerialName("comments_count")
+    val commentsCount: Int = 0,
 )
 
 @Serializable

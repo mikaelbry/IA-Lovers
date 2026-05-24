@@ -161,6 +161,7 @@
 /* ===== COMMENTS ===== */
 
 .comment {
+    position: relative;
     padding: 16px 18px;
     border: 1px solid #e5edf4;
     border-radius: 18px;
@@ -183,6 +184,8 @@
 .comment-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .comment-author-link {
@@ -216,6 +219,33 @@
     color: #2481ce;
     cursor: pointer;
     font-size: 13px;
+}
+
+.comment-delete-btn {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.comment-deleted {
+    background: #f8fafc;
+    border-style: dashed;
+}
+
+.comment-deleted p {
+    color: #8495a3;
+    font-style: italic;
+}
+
+.comment-deleted-author {
+    cursor: default;
+}
+
+.comment-deleted-avatar {
+    background: #e5edf4;
 }
 
 .comment-form {

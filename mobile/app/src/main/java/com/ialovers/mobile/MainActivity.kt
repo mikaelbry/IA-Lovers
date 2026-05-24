@@ -100,6 +100,7 @@ private fun MobileApp(viewModel: AppViewModel) {
             onDeletePost = viewModel::deletePost,
             onToggleFollow = viewModel::toggleFollow,
             onCreateComment = viewModel::createComment,
+            onDeleteComment = viewModel::deleteComment,
             onEnterCommentThread = viewModel::enterCommentThread,
             onLeaveCommentThread = viewModel::leaveCommentThread,
             onSelectCreatePostImage = viewModel::setCreatePostImage,

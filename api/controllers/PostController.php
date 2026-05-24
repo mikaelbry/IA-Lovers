@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Comment.php';
+require_once __DIR__ . '/CommentController.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -454,17 +455,7 @@ class PostController {
 
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $comments = array_map(function ($comment) {
-            foreach (['id', 'post_id', 'user_id', 'parent_id'] as $numericKey) {
-                if (isset($comment[$numericKey]) && $comment[$numericKey] !== null) {
-                    $comment[$numericKey] = (int) $comment[$numericKey];
-                }
-            }
-
-            if (isset($comment['content']) && $comment['content'] !== null) {
-                $comment['content'] = html_entity_decode($comment['content'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
-
-            return self::mapAuthorAvatar($comment);
+            return CommentController::mapCommentResponse($comment);
         }, $comments);
 
         Response::json([

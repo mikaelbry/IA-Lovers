@@ -8,6 +8,36 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Notification.php';
 
 class CommentController {
+    public static function mapCommentResponse(array $comment) {
+        $isDeleted = !empty($comment['deleted_at']);
+
+        foreach (['id', 'post_id', 'user_id', 'parent_id'] as $numericKey) {
+            if (isset($comment[$numericKey]) && $comment[$numericKey] !== null) {
+                $comment[$numericKey] = (int) $comment[$numericKey];
+            }
+        }
+
+        if (isset($comment['content']) && $comment['content'] !== null) {
+            $comment['content'] = html_entity_decode($comment['content'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        $comment['is_deleted'] = $isDeleted;
+
+        if ($isDeleted) {
+            $comment['user_id'] = null;
+            $comment['username'] = 'Comentario borrado';
+            $comment['avatar_path'] = null;
+            $comment['avatar_url'] = null;
+            $comment['content'] = '';
+            return $comment;
+        }
+
+        $comment['avatar_url'] = !empty($comment['avatar_path'])
+            ? Storage::publicUrl($comment['user_id'], $comment['avatar_path'])
+            : null;
+
+        return $comment;
+    }
 
     public static function create() {
 
@@ -22,26 +52,46 @@ class CommentController {
             Response::json(['error' => 'Datos invalidos'], 400);
         }
 
-        $commentId = Comment::create($user['id'], $post_id, $content, $parent_id);
-
         $pdo = Database::getConnection();
 
         $postOwnerStmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
         $postOwnerStmt->execute([$post_id]);
         $postOwnerId = $postOwnerStmt->fetchColumn();
 
+        if (!$postOwnerId) {
+            Response::json(['error' => 'Post no encontrado'], 404);
+        }
+
+        $parentOwnerId = null;
+
+        if ($parent_id) {
+            $parentStmt = $pdo->prepare("
+                SELECT user_id, post_id, deleted_at
+                FROM comments
+                WHERE id = ?
+            ");
+            $parentStmt->execute([$parent_id]);
+            $parent = $parentStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$parent || (int) $parent['post_id'] !== (int) $post_id) {
+                Response::json(['error' => 'Comentario padre no encontrado'], 404);
+            }
+
+            if (!empty($parent['deleted_at'])) {
+                Response::json(['error' => 'No se puede responder a un comentario borrado'], 400);
+            }
+
+            $parentOwnerId = $parent['user_id'];
+        }
+
+        $commentId = Comment::create($user['id'], $post_id, $content, $parent_id);
+
         if ($postOwnerId) {
             Notification::create($postOwnerId, 'comment', $user['id'], $post_id);
         }
 
-        if ($parent_id) {
-            $parentOwnerStmt = $pdo->prepare("SELECT user_id FROM comments WHERE id = ?");
-            $parentOwnerStmt->execute([$parent_id]);
-            $parentOwnerId = $parentOwnerStmt->fetchColumn();
-
-            if ($parentOwnerId && (int) $parentOwnerId !== (int) $postOwnerId) {
-                Notification::create($parentOwnerId, 'reply', $user['id'], $post_id);
-            }
+        if ($parentOwnerId && (int) $parentOwnerId !== (int) $postOwnerId) {
+            Notification::create($parentOwnerId, 'reply', $user['id'], $post_id);
         }
 
         $stmt = $pdo->prepare("
@@ -54,19 +104,7 @@ class CommentController {
         $newComment = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($newComment) {
-            foreach (['id', 'post_id', 'user_id', 'parent_id'] as $numericKey) {
-                if (isset($newComment[$numericKey]) && $newComment[$numericKey] !== null) {
-                    $newComment[$numericKey] = (int) $newComment[$numericKey];
-                }
-            }
-
-            $newComment['avatar_url'] = !empty($newComment['avatar_path'])
-                ? Storage::publicUrl($newComment['user_id'], $newComment['avatar_path'])
-                : null;
-
-            if (isset($newComment['content']) && $newComment['content'] !== null) {
-                $newComment['content'] = html_entity_decode($newComment['content'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
+            $newComment = self::mapCommentResponse($newComment);
         }
 
         $count = Comment::countByPost($post_id);
@@ -88,8 +126,18 @@ class CommentController {
             Response::json(['error' => 'ID requerido'], 400);
         }
 
-        Comment::delete($comment_id, $user['id']);
+        $result = Comment::delete($comment_id, $user['id']);
 
-        Response::json(['deleted' => true]);
+        if (!$result) {
+            Response::json(['error' => 'Comentario no encontrado'], 404);
+        }
+
+        $count = Comment::countByPost($result['post_id']);
+
+        Response::json([
+            'deleted' => true,
+            'mode' => $result['mode'],
+            'comments_count' => (int) $count
+        ]);
     }
 }

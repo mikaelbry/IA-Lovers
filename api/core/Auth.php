@@ -160,15 +160,4 @@ class Auth {
         return null;
     }
 
-    public static function csrfToken($authToken) {
-        $secret = $_ENV['ALTCHA_HMAC_KEY'] ?? 'change-me-csrf-secret-key';
-        return hash_hmac('sha256', 'csrf:' . $authToken, $secret);
-    }
-
-    public static function validateCsrfToken($authToken, $csrfToken) {
-        if (!is_string($csrfToken) || $csrfToken === '') {
-            return false;
-        }
-        return hash_equals(self::csrfToken($authToken), $csrfToken);
-    }
 }

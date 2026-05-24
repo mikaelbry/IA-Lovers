@@ -99,7 +99,10 @@ interface ApiService {
     @POST("comments/create")
     suspend fun createComment(@Body request: CreateCommentRequest): CreateCommentResponse
 
-    @POST("mobile/logout")
+    @POST("comments/delete")
+    suspend fun deleteComment(@Body request: DeleteCommentRequest): DeleteCommentResponse
+
+    @POST("logout")
     suspend fun mobileLogout(@Header("Authorization") authorization: String? = null): SuccessResponse
 
     @POST("follow")

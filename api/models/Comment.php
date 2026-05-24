@@ -22,13 +22,59 @@ class Comment {
     public static function delete($comment_id, $user_id) {
 
         $pdo = Database::getConnection();
+        $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("
-            DELETE FROM comments
-            WHERE id = ? AND user_id = ?
-        ");
+        try {
+            $stmt = $pdo->prepare("
+                SELECT id, post_id
+                FROM comments
+                WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+                FOR UPDATE
+            ");
+            $stmt->execute([$comment_id, $user_id]);
+            $comment = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $stmt->execute([$comment_id, $user_id]);
+            if (!$comment) {
+                $pdo->rollBack();
+                return null;
+            }
+
+            $childrenStmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM comments
+                WHERE parent_id = ?
+            ");
+            $childrenStmt->execute([$comment_id]);
+            $hasChildren = ((int) $childrenStmt->fetchColumn()) > 0;
+
+            if ($hasChildren) {
+                $deleteStmt = $pdo->prepare("
+                    UPDATE comments
+                    SET deleted_at = CURRENT_TIMESTAMP,
+                        content = ''
+                    WHERE id = ?
+                ");
+                $deleteStmt->execute([$comment_id]);
+                $mode = 'soft';
+            } else {
+                $deleteStmt = $pdo->prepare("
+                    DELETE FROM comments
+                    WHERE id = ?
+                ");
+                $deleteStmt->execute([$comment_id]);
+                $mode = 'hard';
+            }
+
+            $pdo->commit();
+
+            return [
+                'mode' => $mode,
+                'post_id' => (int) $comment['post_id'],
+            ];
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 
     public static function getByPost($post_id) {
