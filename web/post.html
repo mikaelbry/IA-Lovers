@@ -427,7 +427,7 @@ function openDeleteCommentDialog(id, event) {
             <p>Estas seguro de que deseas borrar este comentario?</p>
             <div class="post-delete-dialog-actions">
                 <button type="button" class="post-delete-cancel" onclick="closeDeleteCommentDialog()">Cancelar</button>
-                <button type="button" class="post-delete-confirm" onclick="deleteComment(${id})">Eliminar</button>
+                <button type="button" class="post-delete-confirm" id="deleteCommentConfirmBtn" onclick="deleteComment(${id})">Eliminar</button>
             </div>
         </div>
     `;
@@ -449,6 +449,12 @@ async function deleteComment(id) {
     if (!token) {
         window.location.href = 'login.html';
         return;
+    }
+
+    const btn = document.getElementById('deleteCommentConfirmBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Eliminando...';
     }
 
     try {
@@ -476,6 +482,11 @@ async function deleteComment(id) {
             return;
         }
         alert(error.message);
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Eliminar';
     }
 }
 
@@ -527,6 +538,13 @@ async function addComment(parentId = null) {
         return;
     }
 
+    const form = input?.closest('.comment-form');
+    const btn = form?.querySelector('button');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Publicando...';
+    }
+
     try {
         await requestJson(apiUrl('/comments/create'), {
             method: 'POST',
@@ -543,6 +561,10 @@ async function addComment(parentId = null) {
             return;
         }
         alert(error.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Comentar';
+        }
     }
 }
 
