@@ -1,9 +1,12 @@
 <?php
-
+/**
+ * Modelo de acceso a datos de solicitudes de restablecimiento de contrasena.
+ */
 require_once __DIR__ . '/../config/Database.php';
 
 class PendingPasswordReset {
 
+    /** Elimina solicitudes vencidas (respeta locked_until). */
     public static function purgeExpired() {
         $pdo = Database::getConnection();
         $pdo->prepare('
@@ -13,6 +16,7 @@ class PendingPasswordReset {
         ')->execute();
     }
 
+    /** Busca por token de flujo, incluye email y username del usuario (JOIN). */
     public static function findByFlowToken($flowToken) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -25,6 +29,7 @@ class PendingPasswordReset {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Busca solicitud por ID de usuario. */
     public static function findByUserId($userId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -36,6 +41,7 @@ class PendingPasswordReset {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Crea una nueva solicitud de restablecimiento. */
     public static function create($userId, $flowToken, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -60,6 +66,7 @@ class PendingPasswordReset {
         ]);
     }
 
+    /** Actualiza solicitud con nuevo flow_token, codigo, resetea intentos y desbloquea. */
     public static function updateRequest($id, $flowToken, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -82,6 +89,7 @@ class PendingPasswordReset {
         ]);
     }
 
+    /** Incrementa el contador de intentos de verificacion. */
     public static function incrementAttempts($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -94,6 +102,7 @@ class PendingPasswordReset {
         return $stmt->execute([$id]);
     }
 
+    /** Bloquea la solicitud hasta una fecha (por demasiados intentos fallidos). */
     public static function lock($id, $lockedUntil) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -107,6 +116,7 @@ class PendingPasswordReset {
         return $stmt->execute([$lockedUntil, $id]);
     }
 
+    /** Elimina solicitudes de un usuario. */
     public static function deleteByUserId($userId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -117,6 +127,7 @@ class PendingPasswordReset {
         return $stmt->execute([$userId]);
     }
 
+    /** Elimina solicitud por ID. */
     public static function deleteById($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -127,6 +138,7 @@ class PendingPasswordReset {
         return $stmt->execute([$id]);
     }
 
+    /** Elimina solicitud solo si no esta bloqueada o el bloqueo expiro. */
     public static function deleteUnlockedById($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('

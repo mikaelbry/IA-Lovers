@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Logica de negocio para el flujo de restablecimiento de contrasena.
+ * Incluye inicio, reenvio de codigo, verificacion y cancelacion.
+ * Versiones para web (con CAPTCHA) y mobile (sin CAPTCHA).
+ */
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/PendingPasswordReset.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -12,14 +16,17 @@ require_once __DIR__ . '/GmailMailer.php';
 
 class PasswordResetService {
 
+    /** Inicia restablecimiento web (con CAPTCHA). */
     public static function startPasswordReset() {
         self::startPasswordResetFlow(true);
     }
 
+    /** Inicia restablecimiento mobile (sin CAPTCHA). */
     public static function mobileStartPasswordReset() {
         self::startPasswordResetFlow(false);
     }
 
+    /** Reenvia el codigo de restablecimiento. Rate-limited. Verifica bloqueos y cooldown. */
     public static function resendPasswordResetCode() {
         RateLimiter::check('password_reset_resend_attempts', 5, 300);
         PendingPasswordReset::purgeExpired();
@@ -83,6 +90,10 @@ class PasswordResetService {
         self::resendPasswordResetCode();
     }
 
+    /**
+     * Completa el restablecimiento: valida codigo, verifica contraseña nueva,
+     * actualiza en BD, revoca todos los tokens y elimina el pending.
+     */
     public static function completePasswordReset() {
         RateLimiter::check('password_reset_verify_attempts', 10, 300);
         PendingPasswordReset::purgeExpired();
@@ -172,6 +183,7 @@ class PasswordResetService {
         self::completePasswordReset();
     }
 
+    /** Cancela un restablecimiento pendiente (solo si no esta bloqueado). */
     public static function cancelPasswordReset() {
         PendingPasswordReset::purgeExpired();
 
@@ -192,6 +204,11 @@ class PasswordResetService {
         self::cancelPasswordReset();
     }
 
+    /**
+     * Flujo comun de inicio de restablecimiento: rate limiting, CAPTCHA opcional,
+     * busca usuario (responde igual exista o no), verifica bloqueos,
+     * genera flow_token y codigo, envia email.
+     */
     private static function startPasswordResetFlow($requireAltcha) {
         RateLimiter::check('password_reset_start_attempts', 5, 300);
         PendingPasswordReset::purgeExpired();

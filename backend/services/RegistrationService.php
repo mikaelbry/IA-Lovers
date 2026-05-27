@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Logica de negocio para el flujo de registro de usuarios.
+ * Incluye inicio de registro, verificacion por email, reenvio de codigo
+ * y cancelacion. Versiones para web (con CAPTCHA) y mobile (sin CAPTCHA).
+ */
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/PendingRegistration.php';
 require_once __DIR__ . '/../core/Response.php';
@@ -11,18 +15,26 @@ require_once __DIR__ . '/GmailMailer.php';
 
 class RegistrationService {
 
+    /** Alias de startRegistration() para compatibilidad. */
     public static function register() {
         self::startRegistration();
     }
 
+    /** Inicia registro web (con CAPTCHA). */
     public static function startRegistration() {
         self::startRegistrationFlow(true);
     }
 
+    /** Inicia registro mobile (sin CAPTCHA). */
     public static function mobileStartRegistration() {
         self::startRegistrationFlow(false);
     }
 
+    /**
+     * Verifica el codigo de registro: valida formato, busca por flow_token,
+     * verifica expiracion e intentos. Si es correcto, crea el usuario
+     * en transaccion y elimina el pending.
+     */
     public static function verifyRegistration() {
         RateLimiter::check('register_verify_attempts', 10, 300);
         PendingRegistration::purgeExpired();
@@ -90,6 +102,7 @@ class RegistrationService {
         self::verifyRegistration();
     }
 
+    /** Reenvia codigo de verificacion con cooldown de 30s. Verifica disponibilidad de email/username. */
     public static function resendRegistrationCode() {
         RateLimiter::check('register_resend_attempts', 5, 300);
         PendingRegistration::purgeExpired();
@@ -137,6 +150,7 @@ class RegistrationService {
         self::resendRegistrationCode();
     }
 
+    /** Cancela registro pendiente por flow_token. */
     public static function cancelPendingRegistration() {
         PendingRegistration::purgeExpired();
 
@@ -154,6 +168,11 @@ class RegistrationService {
         self::cancelPendingRegistration();
     }
 
+    /**
+     * Flujo comun de inicio de registro: rate limiting, CAPTCHA opcional,
+     * valida datos, verifica disponibilidad, guarda pending y envia email.
+     * Si falla el envio, revierte la creacion.
+     */
     private static function startRegistrationFlow($requireAltcha) {
         RateLimiter::check('register_attempts', 5, 300);
         PendingRegistration::purgeExpired();

@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * Controlador de notificaciones.
+ * Gestiona la consulta de notificaciones, conteo de no leidas y marcado como leidas.
+ */
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../config/Database.php';
@@ -9,6 +12,7 @@ require_once __DIR__ . '/../models/Notification.php';
 
 class NotificationController {
 
+    /** Obtiene las ultimas 30 notificaciones del usuario autenticado con datos del actor y el post. */
     public static function get() {
 
         $user = Middleware::auth();
@@ -53,6 +57,7 @@ class NotificationController {
         ]);
     }
 
+    /** Devuelve el numero de notificaciones no leidas del usuario. */
     public static function unreadCount() {
         $user = Middleware::auth();
         $pdo = Database::getConnection();
@@ -69,6 +74,7 @@ class NotificationController {
         Response::json(['unread_count' => (int) $stmt->fetchColumn()]);
     }
 
+    /** Marca como leida una notificacion especifica o todas las del usuario. */
     public static function markRead() {
         $user = Middleware::auth();
         $data = json_decode(file_get_contents("php://input"), true);
@@ -96,6 +102,7 @@ class NotificationController {
         Response::json(['success' => true]);
     }
 
+    /** Transforma una notificacion de BD a formato respuesta (tipos, URLs, etc.). */
     private static function mapNotification($notification) {
         $fromUserId = $notification['from_user_id'] ?? null;
         $avatarPath = $notification['from_avatar_path'] ?? null;

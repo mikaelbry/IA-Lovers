@@ -1,10 +1,18 @@
 <?php
-
+/**
+ * Modelo de acceso a datos de notificaciones.
+ * Las notificaciones se purgan automaticamente tras 90 dias.
+ */
 require_once __DIR__ . '/../config/Database.php';
 
 class Notification {
+    /** Dias que se conservan las notificaciones antes de purgarse. */
     private const RETENTION_DAYS = 90;
 
+    /**
+     * Crea una notificacion. Tipos validos: follow, like, comment, reply.
+     * No crea notificacion si el usuario es el mismo que el actor.
+     */
     public static function create($userId, $type, $fromUserId, $postId = null) {
         if (!$userId || !$fromUserId || (int) $userId === (int) $fromUserId) {
             return false;
@@ -29,6 +37,7 @@ class Notification {
         ]);
     }
 
+    /** Elimina una notificacion de like especifica (al quitar un like). */
     public static function deleteLike($userId, $fromUserId, $postId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
@@ -42,6 +51,7 @@ class Notification {
         return $stmt->execute([$userId, $fromUserId, $postId]);
     }
 
+    /** Elimina todas las notificaciones relacionadas a un post (al borrarlo). */
     public static function deletePostActivity($postId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
@@ -53,6 +63,7 @@ class Notification {
         return $stmt->execute([$postId]);
     }
 
+    /** Elimina notificaciones con mas de RETENTION_DAYS dias de antiguedad. */
     public static function purgeOld() {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("

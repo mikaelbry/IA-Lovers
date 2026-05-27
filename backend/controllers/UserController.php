@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Controlador de usuarios.
+ * Gestiona perfiles, configuracion, avatar, cambio de email y eliminacion
+ * de cuenta.
+ */
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/PendingEmailChange.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -16,6 +20,7 @@ class UserController {
     private const MAX_AVATAR_MB = 4;
     private const MAX_AVATAR_BYTES = self::MAX_AVATAR_MB * 1024 * 1024;
 
+    /** Agrega la URL publica del avatar al array del usuario. */
     private static function withAvatarUrl(array $user) {
         $user['avatar_url'] = !empty($user['avatar_path'])
             ? Storage::publicUrl($user['id'], $user['avatar_path'])
@@ -24,6 +29,7 @@ class UserController {
         return $user;
     }
 
+    /** Extrae solo los campos seguros del usuario para exponer en la API. */
     private static function privateUserPayload(array $user) {
         return [
             'id' => $user['id'],
@@ -35,6 +41,7 @@ class UserController {
         ];
     }
 
+    /** Devuelve la extension de archivo segun el MIME type del avatar. */
     private static function avatarExtension($mime) {
         return match ($mime) {
             'image/jpeg' => '.jpg',
@@ -44,6 +51,7 @@ class UserController {
         };
     }
 
+    /** Traduce codigos de error de subida de avatar a mensajes. */
     private static function avatarUploadErrorMessage($errorCode) {
         return match ($errorCode) {
             UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'El avatar no puede superar los ' . self::MAX_AVATAR_MB . ' MB',
@@ -53,6 +61,7 @@ class UserController {
         };
     }
 
+    /** Lee y parsea el body JSON de la peticion. Responde 400 si es invalido. */
     private static function jsonBody() {
         $data = json_decode(file_get_contents("php://input"), true);
 
@@ -63,14 +72,17 @@ class UserController {
         return $data;
     }
 
+    /** Genera un codigo de verificacion de 6 digitos. */
     private static function generateVerificationCode() {
         return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 
+    /** Calcula la fecha de expiracion del codigo de cambio de email (+10 min). */
     private static function emailChangeExpiresAt() {
         return date('Y-m-d H:i:s', time() + self::EMAIL_CHANGE_CODE_TTL);
     }
 
+    /** Ofusca parcialmente un email para mostrarlo en la interfaz (ej: ju****@d.com). */
     private static function maskedEmail($email) {
         [$localPart, $domain] = array_pad(explode('@', $email, 2), 2, '');
 
@@ -82,6 +94,7 @@ class UserController {
         return $visible . str_repeat('*', max(2, strlen($localPart) - strlen($visible))) . '@' . $domain;
     }
 
+    /** Devuelve el perfil completo del usuario autenticado con sus posts y seguidores. */
     public static function profile() {
 
         $user = self::privateUserPayload(self::withAvatarUrl(Middleware::auth()));
@@ -133,6 +146,7 @@ class UserController {
         ]);
     }
 
+    /** Resumen para la pantalla de configuracion: datos del usuario, seguidores y conteo de posts. */
     public static function settingsSummary() {
 
         $user = self::privateUserPayload(self::withAvatarUrl(Middleware::auth()));
@@ -153,6 +167,7 @@ class UserController {
         ]);
     }
 
+    /** Perfil publico de un usuario buscado por nombre de usuario. Incluye follow status del visitante. */
     public static function profileByUsername() {
 
         $username = $_GET['username'] ?? null;
@@ -244,6 +259,7 @@ class UserController {
         ]);
     }
 
+    /** Verifica si un nombre de usuario esta disponible para el usuario actual. */
     public static function checkUsername() {
 
         $user = Middleware::auth();
@@ -261,6 +277,7 @@ class UserController {
         ]);
     }
 
+    /** Perfil publico de un usuario por ID. Incluye seguidores, follow status y posts. */
     public static function publicProfile() {
 
         $user_id = $_GET['id'] ?? null;
@@ -357,6 +374,11 @@ class UserController {
         ]);
     }
 
+    /**
+     * Actualiza perfil del usuario (username, email, password).
+     * Requiere contrasena actual para cambios sensibles.
+     * Si cambia la contrasena, revoca otras sesiones.
+     */
     public static function update() {
 
         $user = Middleware::auth();
@@ -412,6 +434,11 @@ class UserController {
         Response::json(['message' => 'Perfil actualizado']);
     }
 
+    /**
+     * Actualiza el avatar del usuario.
+     * Valida archivo (max 4MB, JPEG/PNG/WEBP), lo sube a Storage,
+     * actualiza la BD y elimina el avatar anterior si existe.
+     */
     public static function updateAvatar() {
 
         $user = Middleware::auth();
@@ -462,6 +489,11 @@ class UserController {
         ]);
     }
 
+    /**
+     * Inicia el proceso de cambio de email.
+     * Valida contrasena actual, genera codigo de 6 digitos, lo envia al nuevo
+     * email y guarda la solicitud pendiente. Rate-limited.
+     */
     public static function startEmailChange() {
 
         RateLimiter::check('email_change_start_attempts', 5, 300);
@@ -543,6 +575,7 @@ class UserController {
         ]);
     }
 
+    /** Reenvia el codigo de verificacion de cambio de email con cooldown de 30s. */
     public static function resendEmailChange() {
 
         RateLimiter::check('email_change_resend_attempts', 5, 300);
@@ -590,6 +623,11 @@ class UserController {
         ]);
     }
 
+    /**
+     * Verifica el codigo de cambio de email.
+     * Maximo 5 intentos. Si es correcto, actualiza el email en la BD
+     * y elimina la solicitud pendiente.
+     */
     public static function verifyEmailChange() {
 
         RateLimiter::check('email_change_verify_attempts', 10, 300);
@@ -645,6 +683,7 @@ class UserController {
         ]);
     }
 
+    /** Cancela una solicitud de cambio de email pendiente. */
     public static function cancelEmailChange() {
 
         $user = Middleware::auth();
@@ -654,6 +693,13 @@ class UserController {
         Response::json(['success' => true]);
     }
 
+    /**
+     * Elimina la cuenta del usuario con todos sus datos.
+     * Requiere contrasena actual y confirmacion textual.
+     * Borra en cascada: comentarios (CTE recursivo), likes, notificaciones,
+     * follows, post_tags, posts, archivos de storage, tokens, solicitudes
+     * pendientes, tags huerfanos y finalmente el usuario.
+     */
     public static function delete() {
 
         $user = Middleware::auth();

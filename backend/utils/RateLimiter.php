@@ -1,9 +1,18 @@
 <?php
-
+/**
+ * Limitador de tasa por IP usando archivo JSON con bloqueos exclusivos.
+ * Previene abuso en endpoints de autenticacion y registro.
+ */
 require_once __DIR__ . '/../core/Response.php';
 
 class RateLimiter {
 
+    /**
+     * Verifica el limite de tasa para una accion y cliente.
+     * Identifica al cliente por IP (soporta X-Forwarded-For), mantiene
+     * un registro en archivo JSON con lock exclusivo. Si supera el limite,
+     * responde 429 (Too Many Requests).
+     */
     public static function check($key, $limit = 10, $seconds = 60) {
         $bucketKey = $key . '|' . self::clientIdentifier();
         $path = self::registryPath();
@@ -58,6 +67,7 @@ class RateLimiter {
         }
     }
 
+    /** Obtiene IP del cliente: prioriza X-Forwarded-For, luego REMOTE_ADDR. */
     private static function clientIdentifier() {
         $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
         if ($forwarded !== '') {
@@ -68,6 +78,7 @@ class RateLimiter {
         return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     }
 
+    /** Ruta al archivo JSON de registro de intentos en temp dir. */
     private static function registryPath() {
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'ia_lovers_rate_limit.json';
     }

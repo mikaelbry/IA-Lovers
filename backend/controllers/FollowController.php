@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * Controlador de seguimiento entre usuarios.
+ * Permite seguir/dejar de seguir y consultar listas de seguidores/seguidos.
+ */
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../config/Database.php';
@@ -9,6 +12,7 @@ require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/Notification.php';
 
 class FollowController {
+    /** Prepara datos de un usuario para lista de seguidores/seguidos. */
     private static function mapFollowUser(array $user) {
         return [
             'username' => $user['username'],
@@ -18,6 +22,11 @@ class FollowController {
         ];
     }
 
+    /**
+     * Sigue o deja de seguir a un usuario por nombre de usuario.
+     * No permite seguirse a si mismo. Si ya lo sigue, lo deja de seguir;
+     * si no, crea el follow y genera notificacion.
+     */
     public static function follow() {
 
         $user = Middleware::auth();
@@ -63,6 +72,7 @@ class FollowController {
         Response::json(['following'=>true]);
     }
 
+    /** Lista de seguidores de un usuario (por ID o del autenticado). */
     public static function followers() {
 
         $user_id = $_GET['user_id'] ?? null;
@@ -87,6 +97,7 @@ class FollowController {
         Response::json(array_map([self::class, 'mapFollowUser'], $stmt->fetchAll(PDO::FETCH_ASSOC)));
     }
 
+    /** Lista de usuarios que sigue un usuario (por ID o del autenticado). */
     public static function following() {
 
         $user_id = $_GET['user_id'] ?? null;

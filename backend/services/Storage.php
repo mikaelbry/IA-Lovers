@@ -1,7 +1,14 @@
 <?php
-
+/**
+ * Integracion con Supabase Storage para subir, eliminar y generar
+ * URLs publicas de archivos (imagenes de posts y avatares).
+ */
 class Storage {
 
+    /**
+     * Devuelve la URL publica de un archivo en Supabase Storage.
+     * Si storedPath ya es URL completa, la devuelve tal cual.
+     */
     public static function publicUrl($userId, $storedPath) {
         if (!$storedPath) {
             return null;
@@ -19,6 +26,7 @@ class Storage {
         return $baseUrl . '/' . self::objectPath($userId, $storedPath);
     }
 
+    /** Transforma un post de BD a formato API: URLs, decodifica HTML y castea tipos. */
     public static function mapPost(array $post) {
         if (isset($post['user_id'], $post['file_path'])) {
             $post['file_path'] = self::publicUrl($post['user_id'], $post['file_path']);
@@ -43,10 +51,16 @@ class Storage {
         return $post;
     }
 
+    /** Aplica mapPost() a un array de posts. */
     public static function mapPosts(array $posts) {
         return array_map(fn($post) => self::mapPost($post), $posts);
     }
 
+    /**
+     * Sube un archivo a Supabase Storage.
+     * Construye la ruta uploads/{userId}/{filename} y envia peticion POST
+     * con cURL usando la service role key.
+     */
     public static function uploadUserFile($userId, $tmpFile, $filename, $mimeType) {
         $objectPath = self::userObjectPath($userId, $filename);
         $endpoint = rtrim(self::env('SUPABASE_URL'), '/') . '/storage/v1/object/' . self::bucket() . '/' . $objectPath;
@@ -66,6 +80,7 @@ class Storage {
         }
     }
 
+    /** Elimina un archivo de Supabase Storage via peticion DELETE con cURL. */
     public static function deleteFile($userId, $storedPath) {
         if (!$storedPath) {
             return;
@@ -85,6 +100,7 @@ class Storage {
         }
     }
 
+    /** Determina la ruta del objeto en Storage. Si tiene subdirectorio, extrae solo el nombre base. */
     private static function objectPath($userId, $storedPath) {
         $filename = basename($storedPath);
 
@@ -95,14 +111,17 @@ class Storage {
         return self::userObjectPath($userId, $filename);
     }
 
+    /** Construye la ruta uploads/{userId}/{filename}. */
     private static function userObjectPath($userId, $filename) {
         return 'uploads/' . $userId . '/' . $filename;
     }
 
+    /** Devuelve el nombre del bucket desde .env (default: storage). */
     private static function bucket() {
         return self::env('SUPABASE_STORAGE_BUCKET', 'storage');
     }
 
+    /** Ejecuta peticion HTTP a Supabase Storage con cURL usando service role key. */
     private static function request($method, $url, array $headers, $body = null) {
         $serviceKey = self::env('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -140,6 +159,7 @@ class Storage {
         ];
     }
 
+    /** Obtiene variable de entorno de Storage. */
     private static function env($key, $default = null) {
         static $loaded = false;
 
@@ -157,6 +177,7 @@ class Storage {
         return $value;
     }
 
+    /** Carga el archivo .env. */
     private static function loadEnv() {
         $envPath = dirname(__DIR__, 2) . '/.env';
 

@@ -1,17 +1,27 @@
 <?php
-
+/**
+ * Enrutador HTTP casero para la API.
+ * Soporta GET y POST, normalizacion de URI y dispatch.
+ */
 class Router {
 
+    /** Almacen de rutas registradas: [METHOD => [uri => callable]]. */
     private $routes = [];
 
+    /** Registra una ruta GET. */
     public function get($uri, $action) {
         $this->routes['GET'][$this->normalizeUri($uri)] = $action;
     }
 
+    /** Registra una ruta POST. */
     public function post($uri, $action) {
         $this->routes['POST'][$this->normalizeUri($uri)] = $action;
     }
 
+    /**
+     * Ejecuta la accion asociada a la ruta solicitada.
+     * Si no encuentra la ruta responde 404.
+     */
     public function dispatch($method, $uri) {
 
         $uri = $this->normalizeUri($uri);
@@ -29,6 +39,10 @@ class Router {
         exit;
     }
 
+    /**
+     * Normaliza la URI: extrae la parte tras /backend/, elimina /index.php,
+     * garantiza slash inicial y elimina trailing slash.
+     */
     private function normalizeUri($uri) {
         $uri = parse_url($uri, PHP_URL_PATH) ?? '/';
 

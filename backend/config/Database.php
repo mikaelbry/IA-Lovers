@@ -1,9 +1,14 @@
 <?php
-
+/**
+ * Conexion singleton a PostgreSQL via PDO.
+ * Soporta DATABASE_URL o variables individuales DB_HOST, DB_PORT, etc.
+ * Carga automaticamente el archivo .env de la raiz del proyecto.
+ */
 class Database {
     private static $instance = null;
     private $pdo;
 
+    /** Constructor privado: carga .env, parsea configuracion e inicializa PDO. */
     private function __construct() {
         self::loadEnv();
 
@@ -66,6 +71,7 @@ class Database {
         }
     }
 
+    /** Devuelve la unica instancia PDO (Singleton). */
     public static function getConnection() {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -74,6 +80,7 @@ class Database {
         return self::$instance->pdo;
     }
 
+    /** Obtiene variable de entorno desde $_ENV, $_SERVER o getenv(). */
     private static function env($key, $default = null) {
         $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
 
@@ -84,6 +91,7 @@ class Database {
         return $value;
     }
 
+    /** Interpreta un valor booleano desde variable de entorno (true: 1/true/yes/on). */
     private static function envBool($key, $default = null) {
         $value = self::env($key);
 
@@ -104,6 +112,7 @@ class Database {
         return $default;
     }
 
+    /** Carga el archivo .env de la raiz del proyecto una sola vez. */
     private static function loadEnv() {
         static $loaded = false;
 

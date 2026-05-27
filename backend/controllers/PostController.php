@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Controlador de publicaciones.
+ * Gestiona creacion, eliminacion, feed con paginacion por cursor,
+ * likes y detalle de publicacion individual.
+ */
 require_once __DIR__ . '/../models/Comment.php';
 require_once __DIR__ . '/CommentController.php';
 require_once __DIR__ . '/../config/Database.php';
@@ -13,6 +17,7 @@ class PostController {
     private const MAX_IMAGE_MB = 4;
     private const MAX_IMAGE_BYTES = self::MAX_IMAGE_MB * 1024 * 1024;
 
+    /** Agrega la URL publica del avatar del autor a un registro de post. */
     private static function mapAuthorAvatar(array $record, $avatarPathKey = 'avatar_path', $avatarUrlKey = 'avatar_url') {
         $record[$avatarUrlKey] = !empty($record[$avatarPathKey]) && !empty($record['user_id'])
             ? Storage::publicUrl($record['user_id'], $record[$avatarPathKey])
@@ -21,6 +26,7 @@ class PostController {
         return $record;
     }
 
+    /** Traduce codigos de error de subida de PHP a mensajes en espanol. */
     private static function imageUploadErrorMessage($errorCode) {
         return match ($errorCode) {
             UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Archivo demasiado grande (máx. ' . self::MAX_IMAGE_MB . ' MB)',
@@ -30,6 +36,11 @@ class PostController {
         };
     }
 
+    /**
+     * Crea una publicacion con imagen.
+     * Valida archivo (max 4MB, JPEG/PNG/WEBP), lo sube a Supabase Storage,
+     * inserta el post en BD y asocia etiquetas en una transaccion.
+     */
     public static function create() {
 
         $user = Middleware::auth();
@@ -144,6 +155,10 @@ class PostController {
         Response::json(['message' => 'Publicación creada', 'id' => $postId]);
     }
 
+    /**
+     * Elimina una publicacion (solo el autor).
+     * Borra en cascada: notificaciones, likes, comentarios, tags y archivo.
+     */
     public static function delete() {
 
         $user = Middleware::auth();
@@ -153,6 +168,20 @@ class PostController {
 
         if (!$post_id) {
             Response::json(['error' => 'ID requerido'], 400);
+        }
+
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ?");
+        $stmt->execute([$post_id]);
+        $post = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$post) {
+            Response::json(['error' => 'Publicacion no encontrada'], 404);
+        }
+
+        if ($post['user_id'] != $user['id']) {
+            Response::json(['error' => 'No autorizado'], 403);
         }
 
         $pdo = Database::getConnection();
@@ -188,6 +217,12 @@ class PostController {
         }
     }
 
+    /**
+     * Feed de publicaciones con paginacion por cursor.
+     * Tipos: explore (todas), following (solo seguidos), user (por ID), me (propias).
+     * Orden: recent (defecto), oldest, likes.
+     * Soporta busqueda por titulo/tag (ILIKE) y autenticacion opcional.
+     */
     public static function feed() {
 
         $pdo = Database::getConnection();
@@ -337,6 +372,11 @@ class PostController {
         ]);
     }
 
+    /**
+     * Alterna el like de una publicacion.
+     * Si ya existe el like, lo elimina y borra la notificacion asociada.
+     * Si no existe, lo crea y genera notificacion al dueno del post.
+     */
     public static function toggleLike() {
 
         $user = Middleware::auth();
@@ -347,6 +387,39 @@ class PostController {
         if (!$post_id) {
             Response::json(['error' => 'ID requerido'], 400);
         }
+
+        $pdo = Database::getConnection();
+
+        $postOwnerStmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
+        $postOwnerStmt->execute([$post_id]);
+        $postOwnerId = $postOwnerStmt->fetchColumn();
+
+        if (!$postOwnerId) {
+            Response::json(['error' => 'Publicacion no encontrada'], 404);
+        }
+
+        $check = $pdo->prepare("
+            SELECT id FROM likes WHERE user_id = ? AND post_id = ?
+        ");
+        $check->execute([$user['id'], $post_id]);
+
+        if ($check->fetch()) {
+            $pdo->prepare("
+                DELETE FROM likes WHERE user_id = ? AND post_id = ?
+            ")->execute([$user['id'], $post_id]);
+            Notification::deleteLike($postOwnerId, $user['id'], $post_id);
+
+            Response::json(['liked' => false]);
+        }
+
+        $pdo->prepare("
+            INSERT INTO likes (user_id, post_id)
+            VALUES (?, ?)
+        ")->execute([$user['id'], $post_id]);
+        Notification::create($postOwnerId, 'like', $user['id'], $post_id);
+
+        Response::json(['liked' => true]);
+    }
 
         $pdo = Database::getConnection();
 
@@ -381,6 +454,11 @@ class PostController {
         Response::json(['liked' => true]);
     }
 
+    /**
+     * Muestra una publicacion individual con sus comentarios.
+     * Incluye datos del autor, conteo de likes/comentarios, si al usuario
+     * actual le gusta y las etiquetas.
+     */
     public static function show() {
 
         $pdo = Database::getConnection();

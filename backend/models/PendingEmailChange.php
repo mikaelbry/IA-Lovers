@@ -1,9 +1,12 @@
 <?php
-
+/**
+ * Modelo de acceso a datos de solicitudes de cambio de email pendientes.
+ */
 require_once __DIR__ . '/../config/Database.php';
 
 class PendingEmailChange {
 
+    /** Elimina solicitudes de cambio de email vencidas. */
     public static function purgeExpired() {
         $pdo = Database::getConnection();
         $pdo->prepare('
@@ -12,6 +15,7 @@ class PendingEmailChange {
         ')->execute();
     }
 
+    /** Busca solicitud por ID de usuario. */
     public static function findByUserId($userId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -23,6 +27,7 @@ class PendingEmailChange {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Busca solicitud por el nuevo email solicitado. */
     public static function findByNewEmail($email) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -34,6 +39,7 @@ class PendingEmailChange {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Crea una nueva solicitud de cambio de email con intentos en 0. */
     public static function create($userId, $newEmail, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -57,6 +63,7 @@ class PendingEmailChange {
         ]);
     }
 
+    /** Actualiza solicitud existente con nuevo codigo, resetea intentos y actualiza last_sent_at. */
     public static function updateRequest($id, $newEmail, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -78,6 +85,7 @@ class PendingEmailChange {
         ]);
     }
 
+    /** Incrementa el contador de intentos de verificacion. */
     public static function incrementAttempts($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -90,6 +98,7 @@ class PendingEmailChange {
         return $stmt->execute([$id]);
     }
 
+    /** Elimina solicitudes de cambio de email de un usuario. */
     public static function deleteByUserId($userId) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -100,6 +109,7 @@ class PendingEmailChange {
         return $stmt->execute([$userId]);
     }
 
+    /** Elimina una solicitud por su ID. */
     public static function deleteById($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('

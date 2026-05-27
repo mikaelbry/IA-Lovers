@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Envio de correos electronicos via SMTP (Gmail) con PHPMailer.
+ * Envia codigos de verificacion para registro, cambio de email
+ * y restablecimiento de contrasena.
+ */
 require_once __DIR__ . '/../vendor/Psr/Log/LoggerInterface.php';
 require_once __DIR__ . '/../vendor/PHPMailer/PHPMailer/src/Exception.php';
 require_once __DIR__ . '/../vendor/PHPMailer/PHPMailer/src/OAuthTokenProvider.php';
@@ -11,6 +15,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 class GmailMailer {
 
+    /** Envia correo con codigo de verificacion para registro. */
     public static function sendRegistrationCode($toEmail, $username, $code) {
         $appName = self::env('APP_NAME', 'IA-Lovers');
         $subject = 'Tu código de verificación de ' . $appName;
@@ -34,6 +39,7 @@ class GmailMailer {
         self::send($toEmail, $subject, $html);
     }
 
+    /** Envia correo con codigo para confirmar cambio de email. */
     public static function sendEmailChangeCode($toEmail, $username, $code) {
         $appName = self::env('APP_NAME', 'IA-Lovers');
         $subject = 'Confirma tu nuevo correo en ' . $appName;
@@ -57,6 +63,7 @@ class GmailMailer {
         self::send($toEmail, $subject, $html);
     }
 
+    /** Envia correo con codigo para restablecer contrasena. */
     public static function sendPasswordResetCode($toEmail, $username, $code) {
         $appName = self::env('APP_NAME', 'IA-Lovers');
         $subject = 'Restaura tu contraseña en ' . $appName;
@@ -80,6 +87,7 @@ class GmailMailer {
         self::send($toEmail, $subject, $html);
     }
 
+    /** Configura PHPMailer con SMTP y envia el correo. */
     private static function send($toEmail, $subject, $html) {
         $host = self::env('SMTP_HOST', 'smtp.gmail.com');
         $port = (int) self::env('SMTP_PORT', '587');
@@ -128,11 +136,13 @@ class GmailMailer {
         }
     }
 
+    /** Extrae texto plano del HTML para clientes que no soporten HTML. */
     private static function plainTextBody($subject, $html) {
         $body = trim(preg_replace('/\s+/', ' ', strip_tags($html)));
         return $subject . "\n\n" . $body;
     }
 
+    /** Obtiene variable de entorno SMTP. */
     private static function env($key, $default = null) {
         static $loaded = false;
 
@@ -150,6 +160,7 @@ class GmailMailer {
         return $value;
     }
 
+    /** Carga el archivo .env. */
     private static function loadEnv() {
         $envPath = dirname(__DIR__, 2) . '/.env';
 

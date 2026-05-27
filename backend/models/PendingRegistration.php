@@ -1,9 +1,12 @@
 <?php
-
+/**
+ * Modelo de acceso a datos de registros pendientes de verificacion por email.
+ */
 require_once __DIR__ . '/../config/Database.php';
 
 class PendingRegistration {
 
+    /** Elimina registros pendientes vencidos. */
     public static function purgeExpired() {
         $pdo = Database::getConnection();
         $pdo->prepare('
@@ -12,6 +15,7 @@ class PendingRegistration {
         ')->execute();
     }
 
+    /** Busca registro pendiente por token de flujo. */
     public static function findByFlowToken($flowToken) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -23,6 +27,7 @@ class PendingRegistration {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Busca registro pendiente por email. */
     public static function findByEmail($email) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -34,6 +39,7 @@ class PendingRegistration {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Busca registro pendiente por nombre de usuario. */
     public static function findByUsername($username) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -45,6 +51,7 @@ class PendingRegistration {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /** Crea un nuevo registro pendiente con datos del usuario, flow_token y codigo de verificacion. */
     public static function create($username, $email, $passwordHash, $flowToken, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -72,6 +79,7 @@ class PendingRegistration {
         ]);
     }
 
+    /** Actualiza todos los datos del flujo de registro (username, password, flow_token, codigo). */
     public static function updateFlow($id, $username, $passwordHash, $flowToken, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -97,6 +105,7 @@ class PendingRegistration {
         ]);
     }
 
+    /** Actualiza solo el codigo de verificacion (para reenvio). */
     public static function updateCode($id, $flowToken, $codeHash, $expiresAt) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -118,6 +127,7 @@ class PendingRegistration {
         ]);
     }
 
+    /** Incrementa el contador de intentos de verificacion. */
     public static function incrementAttempts($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -130,6 +140,7 @@ class PendingRegistration {
         return $stmt->execute([$id]);
     }
 
+    /** Elimina registro pendiente por token de flujo. */
     public static function deleteByFlowToken($flowToken) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('
@@ -140,6 +151,7 @@ class PendingRegistration {
         return $stmt->execute([$flowToken]);
     }
 
+    /** Elimina registro pendiente por ID. */
     public static function deleteById($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('

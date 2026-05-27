@@ -1,3 +1,5 @@
+# Redirige todo el trafico a index.php (front controller) y expone el header
+# Authorization para que PHP pueda leer tokens Bearer en entornos CGI/Apache.
 RewriteEngine On
 
 RewriteCond %{HTTP:Authorization} .

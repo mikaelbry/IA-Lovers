@@ -1,10 +1,18 @@
 <?php
-
+/**
+ * Controlador de autenticacion.
+ * Capa fina que delega toda la logica a los servicios AuthService,
+ * RegistrationService y PasswordResetService.
+ */
 require_once __DIR__ . '/../services/AuthService.php';
 require_once __DIR__ . '/../services/PasswordResetService.php';
 require_once __DIR__ . '/../services/RegistrationService.php';
 
 class AuthController {
+
+    // ----------------------------------------------------------------
+    // Registro
+    // ----------------------------------------------------------------
 
     public static function register() {
         RegistrationService::register();
@@ -42,6 +50,10 @@ class AuthController {
         RegistrationService::mobileCancelPendingRegistration();
     }
 
+    // ----------------------------------------------------------------
+    // Sesion, login y logout
+    // ----------------------------------------------------------------
+
     public static function session() {
         AuthService::session();
     }
@@ -57,6 +69,10 @@ class AuthController {
     public static function mobileLogin() {
         AuthService::mobileLogin();
     }
+
+    // ----------------------------------------------------------------
+    // Restablecimiento de contrasena
+    // ----------------------------------------------------------------
 
     public static function startPasswordReset() {
         PasswordResetService::startPasswordReset();

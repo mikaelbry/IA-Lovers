@@ -1,11 +1,15 @@
 <?php
-
+/**
+ * Controlador de etiquetas para publicaciones.
+ * Permite buscar y crear etiquetas.
+ */
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
 
 class TagController {
 
+    /** Busca etiquetas por nombre (ILIKE), limite 10 resultados. */
     public static function search() {
 
         $q = trim($_GET['q'] ?? '');
@@ -25,6 +29,10 @@ class TagController {
         Response::json($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
+    /**
+     * Crea una etiqueta. Requiere autenticacion.
+     * Normaliza el nombre (ucfirst, lowercase). Si ya existe, la devuelve sin duplicar.
+     */
     public static function create() {
 
         Middleware::auth();

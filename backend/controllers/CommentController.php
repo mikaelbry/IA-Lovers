@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Controlador de comentarios en publicaciones.
+ * Soporta creacion de comentarios y respuestas anidadas, y eliminacion
+ * con soft-delete si tiene hijos.
+ */
 require_once __DIR__ . '/../models/Comment.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
@@ -8,6 +12,7 @@ require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/Notification.php';
 
 class CommentController {
+    /** Normaliza un comentario para respuesta JSON: convierte tipos, decodifica HTML y anonimiza si esta borrado. */
     public static function mapCommentResponse(array $comment) {
         $isDeleted = !empty($comment['deleted_at']);
 
@@ -39,6 +44,12 @@ class CommentController {
         return $comment;
     }
 
+    /**
+     * Crea un comentario o respuesta en una publicacion.
+     * Valida que el post exista, que el comentario padre pertenezca al mismo
+     * post y no este borrado. Genera notificaciones al dueno del post (comment)
+     * y al dueno del comentario padre si es distinto (reply).
+     */
     public static function create() {
 
         $user = Middleware::auth();
@@ -115,6 +126,10 @@ class CommentController {
         ]);
     }
 
+    /**
+     * Elimina un comentario (solo el autor).
+     * Soft-delete si tiene respuestas hijas, hard-delete si no.
+     */
     public static function delete() {
 
         $user = Middleware::auth();

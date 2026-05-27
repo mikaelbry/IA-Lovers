@@ -12,13 +12,13 @@ class IaLoversApplication : Application(), ImageLoaderFactory {
             .crossfade(false)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.12)
+                    .maxSizePercent(0.25)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.02)
+                    .maxSizePercent(0.05)
                     .build()
             }
             .build()

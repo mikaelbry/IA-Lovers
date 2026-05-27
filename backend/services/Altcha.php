@@ -1,12 +1,17 @@
 <?php
-
+/**
+ * Implementacion del CAPTCHA Altcha (proof-of-work).
+ * Genera challenges criptograficos y verifica respuestas del cliente
+ * con proteccion contra replay attacks.
+ */
 require_once __DIR__ . '/../core/Response.php';
 
 class Altcha {
-    private const DEFAULT_ALGORITHM = 'SHA-256';
-    private const DEFAULT_EXPIRE_SECONDS = 1200;
-    private const DEFAULT_MAX_NUMBER = 75000;
+    const DEFAULT_ALGORITHM = 'SHA-256';
+    const DEFAULT_EXPIRE_SECONDS = 1200;
+    const DEFAULT_MAX_NUMBER = 75000;
 
+    /** Genera un challenge criptografico con salt, nonce, numero aleatorio, hash y firma HMAC. */
     public static function challenge() {
         $hmacKey = self::hmacKey();
         $expireSeconds = max(60, (int) self::env('ALTCHA_EXPIRE_SECONDS', self::DEFAULT_EXPIRE_SECONDS));
@@ -27,12 +32,17 @@ class Altcha {
         ];
     }
 
+    /** Verifica el payload base64 del cliente. Responde 400 si es invalido. */
     public static function verifyOrFail($payload) {
         if (!self::verify($payload)) {
             Response::json(['error' => 'Verificación CAPTCHA inválida o caducada'], 400);
         }
     }
 
+    /**
+     * Verifica el challenge: decodifica base64, valida algoritmo, challenge,
+     * salt, signature, number, expiracion y protege contra replay attacks.
+     */
     public static function verify($payload) {
         if (!is_string($payload) || trim($payload) === '') {
             return false;
@@ -84,6 +94,7 @@ class Altcha {
         return true;
     }
 
+    /** Traduce nombre de algoritmo (SHA-1/256/512) al nombre interno de PHP. */
     private static function hashAlgorithm($algorithm) {
         return match ($algorithm) {
             'SHA-1' => 'sha1',
@@ -93,6 +104,7 @@ class Altcha {
         };
     }
 
+    /** Extrae parametros (expires, nonce) del salt. */
     private static function extractParams($salt) {
         $parts = explode('?', $salt, 2);
         if (count($parts) < 2) {
@@ -104,6 +116,7 @@ class Altcha {
         return is_array($params) ? $params : [];
     }
 
+    /** Controla que un challenge no se reutilice usando un archivo JSON con lock exclusivo. */
     private static function isReplay($key, $expires) {
         $path = self::registryPath('ia_lovers_altcha_replays.json');
         $handle = fopen($path, 'c+');
@@ -144,6 +157,7 @@ class Altcha {
         }
     }
 
+    /** Obtiene la clave HMAC del .env (minimo 24 caracteres). */
     private static function hmacKey() {
         $key = (string) self::env('ALTCHA_HMAC_KEY', '');
 
@@ -154,10 +168,12 @@ class Altcha {
         return $key;
     }
 
+    /** Ruta en temp dir para el archivo de registro de replays. */
     private static function registryPath($filename) {
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
     }
 
+    /** Obtiene variable de entorno. */
     private static function env($key, $default = null) {
         static $loaded = false;
 
@@ -175,6 +191,7 @@ class Altcha {
         return $value;
     }
 
+    /** Carga el archivo .env. */
     private static function loadEnv() {
         $envPath = dirname(__DIR__, 2) . '/.env';
 

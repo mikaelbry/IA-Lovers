@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.compose.ui.res.painterResource
 import com.ialovers.mobile.BuildConfig
 import com.ialovers.mobile.data.PostItem
 import kotlinx.coroutines.delay
@@ -101,17 +102,20 @@ fun PostCard(
 
         if (!post.filePath.isNullOrBlank()) {
             val context = LocalContext.current
+            val screenWidth = context.resources.displayMetrics.widthPixels
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(post.filePath)
-                    .crossfade(false)
-                    .size(FEED_IMAGE_SIZE_PX)
+                    .crossfade(true)
+                    .size(screenWidth)
                     .build(),
                 contentDescription = post.title ?: post.description ?: "Publicacion",
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f),
                 contentScale = ContentScale.Crop,
+                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                error = painterResource(android.R.drawable.ic_menu_gallery),
             )
         }
 
@@ -347,5 +351,4 @@ private fun PostItem.shareUrl(): String {
     return "$appBase/web/post.html?id=$id"
 }
 
-private const val FEED_IMAGE_SIZE_PX = 1080
 private const val AVATAR_IMAGE_SIZE_PX = 128

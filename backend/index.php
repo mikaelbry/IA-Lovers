@@ -1,4 +1,9 @@
 <?php
+/**
+ * Punto de entrada unico (front controller) de la API.
+ * Configura cabeceras de seguridad, CORS, incluye todas las clases,
+ * registra las rutas y despacha la peticion entrante.
+ */
 
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
@@ -35,9 +40,9 @@ require_once __DIR__ . '/controllers/TagController.php';
 
 $router = new Router();
 
-/* =======================
-   USER
-======================= */
+# ------------------------------------------------------------------
+# Rutas de usuario (perfil, configuracion, avatar, cambio de email)
+# ------------------------------------------------------------------
 
 $router->get('/users/profile', fn() => UserController::profile());
 $router->get('/users/settings-summary', fn() => UserController::settingsSummary());
@@ -54,9 +59,9 @@ $router->post('/user/email-change/verify', fn() => UserController::verifyEmailCh
 $router->post('/user/email-change/cancel', fn() => UserController::cancelEmailChange());
 $router->post('/user/delete', fn() => UserController::delete());
 
-/* =======================
-   POSTS
-======================= */
+# ----------------------------------------------------------------
+# Rutas de publicaciones (crear, eliminar, feed, detalle, likes)
+# ----------------------------------------------------------------
 
 $router->post('/posts/create', fn() => PostController::create());
 $router->post('/posts/delete', fn() => PostController::delete());
@@ -65,9 +70,10 @@ $router->get('/posts', fn() => PostController::feed());
 $router->get('/posts/show', fn() => PostController::show());
 $router->post('/posts/toggle-like', fn() => PostController::toggleLike());
 
-/* =======================
-   AUTH
-======================= */
+# ------------------------------------------------------------------
+# Rutas de autenticacion (registro, login, sesion, logout, 
+# restablecimiento de contrasena, endpoints para cliente mobile)
+# ------------------------------------------------------------------
 
 $router->post('/register', fn() => AuthController::register());
 $router->post('/register/start', fn() => AuthController::startRegistration());
@@ -92,37 +98,37 @@ $router->post('/mobile/password-reset/complete', fn() => AuthController::mobileC
 $router->post('/mobile/password-reset/cancel', fn() => AuthController::mobileCancelPasswordReset());
 $router->get('/altcha/challenge', fn() => Response::json(Altcha::challenge()));
 
-/* =======================
-   FOLLOW
-======================= */
+# ----------------------------------------------------------------
+# Rutas de seguimiento entre usuarios
+# ----------------------------------------------------------------
 
 $router->post('/follow', fn() => FollowController::follow());
 
-/* =======================
-   NOTIFICATIONS
-======================= */
+# ----------------------------------------------------------------
+# Rutas de notificaciones
+# ----------------------------------------------------------------
 
 $router->get('/notifications', fn() => NotificationController::get());
 $router->get('/notifications/unread-count', fn() => NotificationController::unreadCount());
 $router->post('/notifications/read', fn() => NotificationController::markRead());
 
-/* =======================
-   COMMENTS
-======================= */
+# ----------------------------------------------------------------
+# Rutas de comentarios
+# ----------------------------------------------------------------
 
 $router->post('/comments/create', fn() => CommentController::create());
 $router->post('/comments/delete', fn() => CommentController::delete());
 
-/* =======================
-   TAGS
-======================= */
+# ----------------------------------------------------------------
+# Rutas de etiquetas
+# ----------------------------------------------------------------
 
 $router->get('/tags/search', fn() => TagController::search());
 $router->post('/tags/create', fn() => TagController::create());
 
-/* =======================
-   DISPATCH
-======================= */
+# ----------------------------------------------------------------
+# Despacha la ruta y captura errores no controlados
+# ----------------------------------------------------------------
 
 try {
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);

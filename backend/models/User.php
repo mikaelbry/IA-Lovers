@@ -1,9 +1,13 @@
 <?php
-
+/**
+ * Modelo de acceso a datos de usuarios.
+ * CRUD basico contra la tabla users.
+ */
 require_once __DIR__ . '/../config/Database.php';
 
 class User {
 
+    /** Crea un usuario con password hasheado (bcrypt, cost 12). */
     public static function create($username, $email, $password) {
 
         $pdo = Database::getConnection();
@@ -12,6 +16,7 @@ class User {
         return self::createWithPasswordHash($username, $email, $hash);
     }
 
+    /** Crea un usuario con un hash de password ya precomputado (para registros verificados). */
     public static function createWithPasswordHash($username, $email, $passwordHash) {
         $pdo = Database::getConnection();
 
@@ -23,6 +28,7 @@ class User {
         return $stmt->execute([$username, $email, $passwordHash]);
     }
 
+    /** Busca usuario por email (incluye password_hash para login). */
     public static function findByEmail($email) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
@@ -30,6 +36,7 @@ class User {
         return $stmt->fetch();
     }
 
+    /** Busca usuario por ID (sin password_hash). */
     public static function findById($id) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
@@ -41,6 +48,7 @@ class User {
         return $stmt->fetch();
     }
 
+    /** Busca usuario por nombre de usuario (sin password_hash). */
     public static function findByUsername($username) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
@@ -52,6 +60,7 @@ class User {
         return $stmt->fetch();
     }
 
+    /** Actualiza datos del usuario. Si se provee password, lo hashea. */
     public static function update($id, $username, $email, $password = null) {
 
         $pdo = Database::getConnection();
@@ -75,6 +84,7 @@ class User {
         return $stmt->execute([$username, $email, $id]);
     }
 
+    /** Actualiza solo la contrasena del usuario. */
     public static function updatePassword($id, $password) {
         $pdo = Database::getConnection();
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
@@ -87,6 +97,7 @@ class User {
         return $stmt->execute([$hash, $id]);
     }
 
+    /** Actualiza la ruta del avatar del usuario. */
     public static function updateAvatar($id, $avatarPath) {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("

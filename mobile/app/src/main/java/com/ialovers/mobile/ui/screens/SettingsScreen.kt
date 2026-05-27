@@ -1,5 +1,9 @@
 package com.ialovers.mobile.ui.screens
-
+/**
+ * Pantalla de ajustes con secciones seleccionables: avatar, nombre de
+ * usuario, correo (con verificacion por codigo), contrasena, borrado de
+ * cuenta y cierre de sesion. Incluye resumen del perfil en la cabecera.
+ */
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,7 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -43,6 +47,10 @@ import com.ialovers.mobile.SettingsSection
 import com.ialovers.mobile.SettingsUiState
 import com.ialovers.mobile.ui.components.Avatar
 import com.ialovers.mobile.ui.components.MessageBlock
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(
@@ -208,7 +216,7 @@ private fun AccountSettings(state: SettingsUiState) {
         InfoRow("Correo", summary.user.email.orEmpty())
         InfoRow("Seguidores", summary.followers.toString())
         InfoRow("Posts", summary.postsCount.toString())
-        InfoRow("Cuenta creada", summary.user.createdAt ?: "Fecha no disponible")
+        InfoRow("Cuenta creada", formatCreatedAt(summary.user.createdAt))
     }
 }
 
@@ -478,7 +486,7 @@ private fun SettingsCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
-            Divider()
+            HorizontalDivider()
             content()
         }
     }
@@ -497,6 +505,25 @@ private fun InfoRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+private fun formatCreatedAt(createdAt: String?): String {
+    if (createdAt.isNullOrBlank()) return "Fecha no disponible"
+    val formatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "ES"))
+    val zone = ZoneId.systemDefault()
+    return try {
+        Instant.parse(createdAt).atZone(zone).format(formatter)
+    } catch (_: Exception) {
+        try {
+            val local = java.time.LocalDateTime.parse(
+                createdAt,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            )
+            local.atZone(zone).format(formatter)
+        } catch (_: Exception) {
+            createdAt
+        }
     }
 }
 
