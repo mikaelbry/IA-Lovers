@@ -5,9 +5,9 @@ require_once __DIR__ . '/../models/PendingEmailChange.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Response.php';
 require_once __DIR__ . '/../core/Middleware.php';
-require_once __DIR__ . '/../core/RateLimiter.php';
-require_once __DIR__ . '/../core/Storage.php';
-require_once __DIR__ . '/../core/GmailMailer.php';
+require_once __DIR__ . '/../utils/RateLimiter.php';
+require_once __DIR__ . '/../services/Storage.php';
+require_once __DIR__ . '/../services/GmailMailer.php';
 
 class UserController {
     private const EMAIL_CHANGE_CODE_TTL = 600;
@@ -395,7 +395,7 @@ class UserController {
 
         if ($requiresCurrentPassword) {
             if ($currentPassword === '') {
-                Response::json(['error' => 'Debes confirmar tu contrasena actual para cambiar estos datos'], 400);
+                Response::json(['error' => 'Debes confirmar tu contraseña actual para cambiar estos datos'], 400);
             }
 
             if (!password_verify($currentPassword, $user['password_hash'])) {
@@ -552,7 +552,7 @@ class UserController {
         $pending = PendingEmailChange::findByUserId($user['id']);
 
         if (!$pending) {
-            Response::json(['error' => 'No hay una verificacion de correo pendiente'], 404);
+            Response::json(['error' => 'No hay una verificación de correo pendiente'], 404);
         }
 
         $lastSent = strtotime($pending['last_sent_at']);

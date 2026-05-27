@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/Response.php';
+require_once __DIR__ . '/../core/Response.php';
 
 class Altcha {
     private const DEFAULT_ALGORITHM = 'SHA-256';

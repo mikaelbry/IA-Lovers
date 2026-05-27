@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/core/Router.php';
 require_once __DIR__ . '/core/Response.php';
-require_once __DIR__ . '/core/RateLimiter.php';
-require_once __DIR__ . '/core/Altcha.php';
+require_once __DIR__ . '/utils/RateLimiter.php';
+require_once __DIR__ . '/services/Altcha.php';
 
 /* CONTROLLERS */
 require_once __DIR__ . '/controllers/AuthController.php';
