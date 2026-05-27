@@ -421,39 +421,6 @@ class PostController {
         Response::json(['liked' => true]);
     }
 
-        $pdo = Database::getConnection();
-
-        $postOwnerStmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
-        $postOwnerStmt->execute([$post_id]);
-        $postOwnerId = $postOwnerStmt->fetchColumn();
-
-        if (!$postOwnerId) {
-            Response::json(['error' => 'Publicación no encontrada'], 404);
-        }
-
-        $check = $pdo->prepare("
-            SELECT id FROM likes WHERE user_id = ? AND post_id = ?
-        ");
-        $check->execute([$user['id'], $post_id]);
-
-        if ($check->fetch()) {
-            $pdo->prepare("
-                DELETE FROM likes WHERE user_id = ? AND post_id = ?
-            ")->execute([$user['id'], $post_id]);
-            Notification::deleteLike($postOwnerId, $user['id'], $post_id);
-
-            Response::json(['liked' => false]);
-        }
-
-        $pdo->prepare("
-            INSERT INTO likes (user_id, post_id)
-            VALUES (?, ?)
-        ")->execute([$user['id'], $post_id]);
-        Notification::create($postOwnerId, 'like', $user['id'], $post_id);
-
-        Response::json(['liked' => true]);
-    }
-
     /**
      * Muestra una publicacion individual con sus comentarios.
      * Incluye datos del autor, conteo de likes/comentarios, si al usuario
