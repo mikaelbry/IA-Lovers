@@ -10,14 +10,14 @@ class RateLimiter {
         $handle = fopen($path, 'c+');
 
         if (!$handle) {
-            Response::json(['error' => 'No se pudo aplicar el limite de solicitudes'], 500);
+            Response::json(['error' => 'No se pudo aplicar el límite de solicitudes'], 500);
         }
 
         $now = time();
 
         try {
             if (!flock($handle, LOCK_EX)) {
-                Response::json(['error' => 'No se pudo aplicar el limite de solicitudes'], 500);
+                Response::json(['error' => 'No se pudo aplicar el límite de solicitudes'], 500);
             }
 
             $contents = stream_get_contents($handle);

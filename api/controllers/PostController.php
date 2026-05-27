@@ -23,10 +23,10 @@ class PostController {
 
     private static function imageUploadErrorMessage($errorCode) {
         return match ($errorCode) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Archivo demasiado grande (max ' . self::MAX_IMAGE_MB . ' MB)',
-            UPLOAD_ERR_PARTIAL => 'La subida del archivo no se completo',
-            UPLOAD_ERR_NO_FILE => 'Imagen requerida',
-            default => 'Error al subir archivo'
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Archivo demasiado grande (máx. ' . self::MAX_IMAGE_MB . ' MB)',
+            UPLOAD_ERR_PARTIAL => 'La subida del archivo no se completó',
+            UPLOAD_ERR_NO_FILE => 'La imagen es obligatoria',
+            default => 'Error al subir el archivo'
         };
     }
 
@@ -35,7 +35,7 @@ class PostController {
         $user = Middleware::auth();
 
         if (!isset($_FILES['image'])) {
-            Response::json(['error' => 'Imagen requerida'], 400);
+            Response::json(['error' => 'La imagen es obligatoria'], 400);
         }
 
         $file = $_FILES['image'];
@@ -45,7 +45,7 @@ class PostController {
         }
 
         if ($file['size'] > self::MAX_IMAGE_BYTES) {
-            Response::json(['error' => 'Archivo demasiado grande (max ' . self::MAX_IMAGE_MB . ' MB)'], 400);
+            Response::json(['error' => 'Archivo demasiado grande (máx. ' . self::MAX_IMAGE_MB . ' MB)'], 400);
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -70,11 +70,11 @@ class PostController {
         $description = trim($_POST['description'] ?? '');
 
         if (strlen($title) > 80) {
-            Response::json(['error' => 'Titulo demasiado largo'], 400);
+            Response::json(['error' => 'Título demasiado largo'], 400);
         }
 
         if (strlen($description) > 500) {
-            Response::json(['error' => 'Descripcion demasiado larga'], 400);
+            Response::json(['error' => 'Descripción demasiado larga'], 400);
         }
 
         $pdo = Database::getConnection();
@@ -141,7 +141,7 @@ class PostController {
             throw $e;
         }
 
-        Response::json(['message' => 'Post creado', 'id' => $postId]);
+        Response::json(['message' => 'Publicación creada', 'id' => $postId]);
     }
 
     public static function delete() {
@@ -162,7 +162,7 @@ class PostController {
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            Response::json(['error' => 'Post no encontrado'], 404);
+            Response::json(['error' => 'Publicación no encontrada'], 404);
         }
 
         if ($post['user_id'] != $user['id']) {
@@ -216,7 +216,7 @@ class PostController {
 
         if ($type === 'following') {
             if (!$user_id) {
-                Response::json(['error' => 'Login requerido'], 401);
+                Response::json(['error' => 'Inicio de sesión requerido'], 401);
             }
 
             $where[] = "posts.user_id IN (
@@ -239,7 +239,7 @@ class PostController {
 
         if ($type === 'me') {
             if (!$user_id) {
-                Response::json(['error' => 'Login requerido'], 401);
+                Response::json(['error' => 'Inicio de sesión requerido'], 401);
             }
 
             $where[] = "posts.user_id = ?";
@@ -355,7 +355,7 @@ class PostController {
         $postOwnerId = $postOwnerStmt->fetchColumn();
 
         if (!$postOwnerId) {
-            Response::json(['error' => 'Post no encontrado'], 404);
+            Response::json(['error' => 'Publicación no encontrada'], 404);
         }
 
         $check = $pdo->prepare("
@@ -434,7 +434,7 @@ class PostController {
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            Response::json(['error' => 'Post no encontrado'], 404);
+            Response::json(['error' => 'Publicación no encontrada'], 404);
         }
 
         $post = Storage::mapPost($post);

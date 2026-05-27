@@ -13,7 +13,7 @@ class Database {
             $parts = parse_url($databaseUrl);
 
             if ($parts === false) {
-                exit('DATABASE_URL no es valida');
+                exit('DATABASE_URL no es válida');
             }
 
             $host = $parts['host'] ?? '127.0.0.1';
@@ -59,7 +59,7 @@ class Database {
             $message = $e->getMessage();
 
             if (stripos($message, 'could not translate host name') !== false) {
-                $message .= ' | Error de conexion con la base de datos.';
+                $message .= ' | Error de conexión con la base de datos.';
             }
 
             throw new RuntimeException($message, 0, $e);

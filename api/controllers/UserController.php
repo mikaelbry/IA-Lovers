@@ -48,7 +48,7 @@ class UserController {
         return match ($errorCode) {
             UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'El avatar no puede superar los ' . self::MAX_AVATAR_MB . ' MB',
             UPLOAD_ERR_PARTIAL => 'La subida del avatar no se completo',
-            UPLOAD_ERR_NO_FILE => 'Avatar requerido',
+            UPLOAD_ERR_NO_FILE => 'El avatar es obligatorio',
             default => 'Error al subir el avatar'
         };
     }
@@ -57,7 +57,7 @@ class UserController {
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (!is_array($data)) {
-            Response::json(['error' => 'JSON invalido'], 400);
+            Response::json(['error' => 'JSON inválido'], 400);
         }
 
         return $data;
@@ -368,16 +368,16 @@ class UserController {
         $currentPassword = trim($data['current_password'] ?? '');
 
         if ($username === '' || $email === '') {
-            Response::json(['error' => 'Nombre de usuario y correo son obligatorios'], 400);
+            Response::json(['error' => 'Nombre de usuario y correo electrónico son obligatorios'], 400);
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            Response::json(['error' => 'Email invalido'], 400);
+            Response::json(['error' => 'Correo electrónico inválido'], 400);
         }
 
         $existingEmail = User::findByEmail($email);
         if ($existingEmail && (int) $existingEmail['id'] !== (int) $user['id']) {
-            Response::json(['error' => 'Email ya registrado'], 400);
+            Response::json(['error' => 'Correo electrónico ya registrado'], 400);
         }
 
         $existingUsername = User::findByUsername($username);
@@ -390,7 +390,7 @@ class UserController {
             || $password !== '';
 
         if ($password !== '' && (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password))) {
-            Response::json(['error' => 'La contraseña debe tener al menos 8 caracteres e incluir letras y numeros'], 400);
+            Response::json(['error' => 'La contraseña debe tener al menos 8 caracteres e incluir letras y números'], 400);
         }
 
         if ($requiresCurrentPassword) {
@@ -417,7 +417,7 @@ class UserController {
         $user = Middleware::auth();
 
         if (!isset($_FILES['avatar'])) {
-            Response::json(['error' => 'Avatar requerido'], 400);
+            Response::json(['error' => 'El avatar es obligatorio'], 400);
         }
 
         $file = $_FILES['avatar'];
@@ -473,15 +473,15 @@ class UserController {
         $currentPassword = trim((string) ($data['current_password'] ?? ''));
 
         if ($newEmail === '') {
-            Response::json(['error' => 'Debes introducir un nuevo correo'], 400);
+            Response::json(['error' => 'Debes introducir un nuevo correo electrónico'], 400);
         }
 
         if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
-            Response::json(['error' => 'Email invalido'], 400);
+            Response::json(['error' => 'Correo electrónico inválido'], 400);
         }
 
         if ($newEmail === $user['email']) {
-            Response::json(['error' => 'Introduce un correo distinto al actual'], 400);
+            Response::json(['error' => 'Introduce un correo electrónico distinto al actual'], 400);
         }
 
         if ($currentPassword === '') {
@@ -494,12 +494,12 @@ class UserController {
 
         $existingUser = User::findByEmail($newEmail);
         if ($existingUser && (int) $existingUser['id'] !== (int) $user['id']) {
-            Response::json(['error' => 'Ese correo ya esta en uso'], 409);
+            Response::json(['error' => 'Ese correo electrónico ya está en uso'], 409);
         }
 
         $existingPendingForEmail = PendingEmailChange::findByNewEmail($newEmail);
         if ($existingPendingForEmail && (int) $existingPendingForEmail['user_id'] !== (int) $user['id']) {
-            Response::json(['error' => 'Ya hay una verificacion pendiente para ese correo'], 409);
+            Response::json(['error' => 'Ya hay una verificación pendiente para ese correo electrónico'], 409);
         }
 
         $pending = PendingEmailChange::findByUserId($user['id']);
@@ -536,7 +536,7 @@ class UserController {
         }
 
         Response::json([
-            'message' => 'Codigo enviado al nuevo correo',
+            'message' => 'Código enviado al nuevo correo electrónico',
             'new_email' => $newEmail,
             'masked_email' => self::maskedEmail($newEmail),
             'resend_cooldown' => self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS,
@@ -552,14 +552,14 @@ class UserController {
         $pending = PendingEmailChange::findByUserId($user['id']);
 
         if (!$pending) {
-            Response::json(['error' => 'No hay una verificación de correo pendiente'], 404);
+            Response::json(['error' => 'No hay una verificación de correo electrónico pendiente'], 404);
         }
 
         $lastSent = strtotime($pending['last_sent_at']);
         if ($lastSent && (time() - $lastSent) < self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS) {
             $remaining = self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS - (time() - $lastSent);
             Response::json([
-                'error' => 'Espera ' . $remaining . ' segundos antes de pedir otro codigo',
+                'error' => 'Espera ' . $remaining . ' segundos antes de pedir otro código',
                 'retry_after' => $remaining,
             ], 429);
         }
@@ -567,7 +567,7 @@ class UserController {
         $existingUser = User::findByEmail($pending['new_email']);
         if ($existingUser && (int) $existingUser['id'] !== (int) $user['id']) {
             PendingEmailChange::deleteById($pending['id']);
-            Response::json(['error' => 'Ese correo ya ha pasado a estar en uso'], 409);
+            Response::json(['error' => 'Ese correo electrónico ya está en uso'], 409);
         }
 
         $verificationCode = self::generateVerificationCode();
@@ -584,7 +584,7 @@ class UserController {
         GmailMailer::sendEmailChangeCode($pending['new_email'], $user['username'], $verificationCode);
 
         Response::json([
-            'message' => 'Hemos reenviado un nuevo codigo',
+            'message' => 'Hemos reenviado un nuevo código',
             'masked_email' => self::maskedEmail($pending['new_email']),
             'resend_cooldown' => self::EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS,
         ]);
@@ -600,23 +600,23 @@ class UserController {
         $code = trim((string) ($data['code'] ?? ''));
 
         if (!preg_match('/^\d{6}$/', $code)) {
-            Response::json(['error' => 'El codigo debe tener 6 digitos'], 400);
+            Response::json(['error' => 'El código debe tener 6 dígitos'], 400);
         }
 
         $pending = PendingEmailChange::findByUserId($user['id']);
 
         if (!$pending) {
-            Response::json(['error' => 'La verificacion pendiente no existe o ya ha caducado'], 404);
+            Response::json(['error' => 'La verificación pendiente no existe o ya ha caducado'], 404);
         }
 
         if (strtotime($pending['verification_expires_at']) < time()) {
             PendingEmailChange::deleteById($pending['id']);
-            Response::json(['error' => 'El codigo ha caducado. Solicita uno nuevo'], 410);
+            Response::json(['error' => 'El código ha caducado. Solicita uno nuevo'], 410);
         }
 
         if ((int) $pending['verification_attempts'] >= self::EMAIL_CHANGE_MAX_ATTEMPTS) {
             PendingEmailChange::deleteById($pending['id']);
-            Response::json(['error' => 'Se ha superado el número maximo de intentos. Solicita un nuevo codigo'], 429);
+            Response::json(['error' => 'Se ha superado el número máximo de intentos. Solicita un nuevo código'], 429);
         }
 
         if (!password_verify($code, $pending['verification_code_hash'])) {
@@ -624,23 +624,23 @@ class UserController {
 
             if (((int) $pending['verification_attempts']) + 1 >= self::EMAIL_CHANGE_MAX_ATTEMPTS) {
                 PendingEmailChange::deleteById($pending['id']);
-                Response::json(['error' => 'Codigo incorrecto demasiadas veces. Vuelve a solicitar el cambio de correo'], 429);
+                Response::json(['error' => 'Código incorrecto demasiadas veces. Vuelve a solicitar el cambio de correo electrónico'], 429);
             }
 
-            Response::json(['error' => 'Codigo incorrecto'], 400);
+            Response::json(['error' => 'Código incorrecto'], 400);
         }
 
         $existingUser = User::findByEmail($pending['new_email']);
         if ($existingUser && (int) $existingUser['id'] !== (int) $user['id']) {
             PendingEmailChange::deleteById($pending['id']);
-            Response::json(['error' => 'Ese correo ya ha pasado a estar en uso'], 409);
+            Response::json(['error' => 'Ese correo electrónico ya está en uso'], 409);
         }
 
         User::update($user['id'], $user['username'], $pending['new_email']);
         PendingEmailChange::deleteById($pending['id']);
 
         Response::json([
-            'message' => 'Correo actualizado correctamente',
+            'message' => 'Correo electrónico actualizado correctamente',
             'email' => $pending['new_email'],
         ]);
     }

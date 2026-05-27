@@ -10,7 +10,7 @@ class Auth {
         $authHeader = self::authorizationHeader();
 
         if (!$authHeader) {
-            Response::json(['error' => 'Login requerido'], 401);
+            Response::json(['error' => 'Inicio de sesión requerido'], 401);
         }
 
         if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {

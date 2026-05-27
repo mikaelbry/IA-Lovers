@@ -62,7 +62,7 @@ class Storage {
         ], $body);
 
         if ($response['status'] < 200 || $response['status'] >= 300) {
-            throw new RuntimeException('Error subiendo imagen: ' . $response['body']);
+            throw new RuntimeException('Error al subir la imagen: ' . $response['body']);
         }
     }
 
@@ -81,7 +81,7 @@ class Storage {
         ], $payload);
 
         if ($response['status'] < 200 || $response['status'] >= 300) {
-            throw new RuntimeException('Error eliminando imagen: ' . $response['body']);
+            throw new RuntimeException('Error al eliminar la imagen: ' . $response['body']);
         }
     }
 

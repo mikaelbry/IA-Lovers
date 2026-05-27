@@ -1,43 +1,45 @@
 <?php
 
 require_once __DIR__ . '/../services/AuthService.php';
+require_once __DIR__ . '/../services/PasswordResetService.php';
+require_once __DIR__ . '/../services/RegistrationService.php';
 
 class AuthController {
 
     public static function register() {
-        AuthService::register();
+        RegistrationService::register();
     }
 
     public static function startRegistration() {
-        AuthService::startRegistration();
+        RegistrationService::startRegistration();
     }
 
     public static function mobileStartRegistration() {
-        AuthService::mobileStartRegistration();
+        RegistrationService::mobileStartRegistration();
     }
 
     public static function verifyRegistration() {
-        AuthService::verifyRegistration();
+        RegistrationService::verifyRegistration();
     }
 
     public static function mobileVerifyRegistration() {
-        AuthService::mobileVerifyRegistration();
+        RegistrationService::mobileVerifyRegistration();
     }
 
     public static function resendRegistrationCode() {
-        AuthService::resendRegistrationCode();
+        RegistrationService::resendRegistrationCode();
     }
 
     public static function mobileResendRegistrationCode() {
-        AuthService::mobileResendRegistrationCode();
+        RegistrationService::mobileResendRegistrationCode();
     }
 
     public static function cancelPendingRegistration() {
-        AuthService::cancelPendingRegistration();
+        RegistrationService::cancelPendingRegistration();
     }
 
     public static function mobileCancelPendingRegistration() {
-        AuthService::mobileCancelPendingRegistration();
+        RegistrationService::mobileCancelPendingRegistration();
     }
 
     public static function session() {
@@ -57,34 +59,34 @@ class AuthController {
     }
 
     public static function startPasswordReset() {
-        AuthService::startPasswordReset();
+        PasswordResetService::startPasswordReset();
     }
 
     public static function mobileStartPasswordReset() {
-        AuthService::mobileStartPasswordReset();
+        PasswordResetService::mobileStartPasswordReset();
     }
 
     public static function resendPasswordResetCode() {
-        AuthService::resendPasswordResetCode();
+        PasswordResetService::resendPasswordResetCode();
     }
 
     public static function mobileResendPasswordResetCode() {
-        AuthService::mobileResendPasswordResetCode();
+        PasswordResetService::mobileResendPasswordResetCode();
     }
 
     public static function completePasswordReset() {
-        AuthService::completePasswordReset();
+        PasswordResetService::completePasswordReset();
     }
 
     public static function mobileCompletePasswordReset() {
-        AuthService::mobileCompletePasswordReset();
+        PasswordResetService::mobileCompletePasswordReset();
     }
 
     public static function cancelPasswordReset() {
-        AuthService::cancelPasswordReset();
+        PasswordResetService::cancelPasswordReset();
     }
 
     public static function mobileCancelPasswordReset() {
-        AuthService::mobileCancelPasswordReset();
+        PasswordResetService::mobileCancelPasswordReset();
     }
 }

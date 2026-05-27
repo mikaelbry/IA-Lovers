@@ -13,7 +13,7 @@ class GmailMailer {
 
     public static function sendRegistrationCode($toEmail, $username, $code) {
         $appName = self::env('APP_NAME', 'IA-Lovers');
-        $subject = 'Tu codigo de verificacion de ' . $appName;
+        $subject = 'Tu código de verificación de ' . $appName;
         $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
         $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
         $safeAppName = htmlspecialchars($appName, ENT_QUOTES, 'UTF-8');
@@ -22,12 +22,12 @@ class GmailMailer {
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#13283d;line-height:1.6;">
                 <h1 style="font-size:24px;margin:0 0 16px;">Verifica tu correo</h1>
                 <p style="margin:0 0 12px;">Hola ' . $safeUsername . ',</p>
-                <p style="margin:0 0 12px;">Usa este codigo para terminar tu registro en ' . $safeAppName . ':</p>
+                <p style="margin:0 0 12px;">Usa este código para completar tu registro en ' . $safeAppName . ':</p>
                 <div style="margin:20px 0;padding:18px 20px;border-radius:16px;background:#eef6fd;border:1px solid #cfe2f3;text-align:center;">
                     <span style="font-size:34px;font-weight:700;letter-spacing:0.3em;color:#0e5f9d;">' . $safeCode . '</span>
                 </div>
-                <p style="margin:0 0 12px;">El codigo caduca en 10 minutos.</p>
-                <p style="margin:0;color:#6a7f90;font-size:13px;">Si tu no intentaste crear esta cuenta, puedes ignorar este correo.</p>
+                <p style="margin:0 0 12px;">El código caduca en 10 minutos.</p>
+                <p style="margin:0;color:#6a7f90;font-size:13px;">Si tú no intentaste crear esta cuenta, puedes ignorar este correo.</p>
             </div>
         ';
 
@@ -45,11 +45,11 @@ class GmailMailer {
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#13283d;line-height:1.6;">
                 <h1 style="font-size:24px;margin:0 0 16px;">Verifica tu nuevo correo</h1>
                 <p style="margin:0 0 12px;">Hola ' . $safeUsername . ',</p>
-                <p style="margin:0 0 12px;">Usa este codigo para confirmar el cambio de correo en ' . $safeAppName . ':</p>
+                <p style="margin:0 0 12px;">Usa este código para confirmar el cambio de correo electrónico en ' . $safeAppName . ':</p>
                 <div style="margin:20px 0;padding:18px 20px;border-radius:16px;background:#eef6fd;border:1px solid #cfe2f3;text-align:center;">
                     <span style="font-size:34px;font-weight:700;letter-spacing:0.3em;color:#0e5f9d;">' . $safeCode . '</span>
                 </div>
-                <p style="margin:0 0 12px;">El codigo caduca en 10 minutos.</p>
+                <p style="margin:0 0 12px;">El código caduca en 10 minutos.</p>
                 <p style="margin:0;color:#6a7f90;font-size:13px;">Si no has pedido este cambio, ignora este correo.</p>
             </div>
         ';
@@ -68,11 +68,11 @@ class GmailMailer {
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#13283d;line-height:1.6;">
                 <h1 style="font-size:24px;margin:0 0 16px;">Restaura tu contraseña</h1>
                 <p style="margin:0 0 12px;">Hola ' . $safeUsername . ',</p>
-                <p style="margin:0 0 12px;">Usa este codigo para crear una nueva contraseña en ' . $safeAppName . ':</p>
+                <p style="margin:0 0 12px;">Usa este código para crear una contraseña nueva en ' . $safeAppName . ':</p>
                 <div style="margin:20px 0;padding:18px 20px;border-radius:16px;background:#eef6fd;border:1px solid #cfe2f3;text-align:center;">
                     <span style="font-size:34px;font-weight:700;letter-spacing:0.3em;color:#0e5f9d;">' . $safeCode . '</span>
                 </div>
-                <p style="margin:0 0 12px;">El codigo caduca en 10 minutos.</p>
+                <p style="margin:0 0 12px;">El código caduca en 10 minutos.</p>
                 <p style="margin:0;color:#6a7f90;font-size:13px;">Si no has pedido restaurar tu contraseña, ignora este correo.</p>
             </div>
         ';
@@ -124,7 +124,7 @@ class GmailMailer {
 
             $mail->send();
         } catch (Exception $e) {
-            throw new RuntimeException('No se pudo enviar el correo de verificacion: ' . $mail->ErrorInfo);
+            throw new RuntimeException('No se pudo enviar el correo de verificación: ' . $mail->ErrorInfo);
         }
     }
 

@@ -49,7 +49,7 @@ class CommentController {
         $parent_id = $data['parent_id'] ?? null;
 
         if (!$post_id || !$content) {
-            Response::json(['error' => 'Datos invalidos'], 400);
+            Response::json(['error' => 'Datos inválidos'], 400);
         }
 
         $pdo = Database::getConnection();
@@ -59,7 +59,7 @@ class CommentController {
         $postOwnerId = $postOwnerStmt->fetchColumn();
 
         if (!$postOwnerId) {
-            Response::json(['error' => 'Post no encontrado'], 404);
+            Response::json(['error' => 'Publicación no encontrada'], 404);
         }
 
         $parentOwnerId = null;
