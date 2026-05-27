@@ -1,3 +1,8 @@
+/*
+ * Componentes compartidos para representar publicaciones y usuarios.
+ * Agrupa la tarjeta de post, acciones de me gusta/comentario, texto del
+ * post, avatar y utilidades de enlace.
+ */
 package com.ialovers.mobile.ui.components
 
 import androidx.compose.foundation.clickable
@@ -50,6 +55,7 @@ import com.ialovers.mobile.BuildConfig
 import com.ialovers.mobile.data.PostItem
 import kotlinx.coroutines.delay
 
+/** Muestra una publicación completa con autor, imagen, acciones y texto. */
 @Composable
 fun PostCard(
     post: PostItem,
@@ -143,6 +149,7 @@ fun PostCard(
     }
 }
 
+/** Muestra el menú contextual de una publicación para compartirla o eliminarla. */
 @Composable
 private fun PostOptionsMenu(
     post: PostItem,
@@ -227,6 +234,7 @@ private fun PostOptionsMenu(
     }
 }
 
+/** Botón de me gusta con contador, adaptado al ancho de la fila de acciones. */
 @Composable
 private fun RowScope.LikeButton(
     liked: Boolean,
@@ -252,6 +260,7 @@ private fun RowScope.LikeButton(
     )
 }
 
+/** Botón de comentarios con contador, adaptado al ancho de la fila de acciones. */
 @Composable
 private fun RowScope.CommentButton(
     count: Int,
@@ -273,6 +282,7 @@ private fun RowScope.CommentButton(
     )
 }
 
+/** Dibuja el título, descripción y etiquetas de una publicación. */
 @Composable
 fun PostText(
     post: PostItem,
@@ -307,6 +317,7 @@ fun PostText(
     }
 }
 
+/** Muestra el avatar remoto de un usuario o una inicial si no hay imagen. */
 @Composable
 fun Avatar(
     url: String?,
@@ -345,6 +356,7 @@ fun Avatar(
     )
 }
 
+/** Construye la URL web pública para compartir una publicación. */
 private fun PostItem.shareUrl(): String {
     val apiBase = BuildConfig.API_BASE_URL.trimEnd('/')
     val appBase = apiBase.removeSuffix("/backend")

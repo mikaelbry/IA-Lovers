@@ -1,3 +1,8 @@
+/*
+ * Define la identidad visual de IA Lovers en Compose.
+ * Agrupa los colores claros y oscuros y expone el tema que envuelve
+ * todas las pantallas de la aplicación móvil.
+ */
 package com.ialovers.mobile.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -61,6 +66,7 @@ private val DarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFE8EC),
 )
 
+/** Aplica la paleta clara u oscura de IA Lovers al contenido recibido. */
 @Composable
 fun IaLoversTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

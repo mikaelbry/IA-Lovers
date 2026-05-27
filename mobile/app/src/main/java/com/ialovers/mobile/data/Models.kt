@@ -1,13 +1,20 @@
+/*
+ * Contiene los modelos serializables que la app intercambia con la API.
+ * Estas clases describen cuerpos de petición, respuestas del backend y
+ * estructuras de estado que llegan ya preparadas para la interfaz móvil.
+ */
 package com.ialovers.mobile.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Error estándar devuelto por la API cuando una petición falla. */
 @Serializable
 data class ApiErrorResponse(
     val error: String? = null,
 )
 
+/** Usuario mínimo incluido en respuestas de autenticación y sesión. */
 @Serializable
 data class MobileUser(
     val id: Int,
@@ -16,6 +23,7 @@ data class MobileUser(
     val avatarUrl: String? = null,
 )
 
+/** Datos principales de un usuario dentro de perfiles y ajustes. */
 @Serializable
 data class ProfileUser(
     val id: Int,
@@ -27,6 +35,7 @@ data class ProfileUser(
     val avatarUrl: String? = null,
 )
 
+/** Respuesta de inicio de sesión con token y usuario autenticado. */
 @Serializable
 data class AuthResponse(
     val token: String,
@@ -37,6 +46,7 @@ data class AuthResponse(
     val user: MobileUser,
 )
 
+/** Respuesta de comprobación de sesión activa. */
 @Serializable
 data class SessionResponse(
     val authenticated: Boolean,
@@ -45,6 +55,7 @@ data class SessionResponse(
     val user: MobileUser,
 )
 
+/** Perfil completo de un usuario junto a sus publicaciones y contadores. */
 @Serializable
 data class ProfileResponse(
     val user: ProfileUser,
@@ -54,6 +65,7 @@ data class ProfileResponse(
     val posts: List<PostItem> = emptyList(),
 )
 
+/** Usuario resumido mostrado en listas de seguidores y seguidos. */
 @Serializable
 data class FollowUser(
     val username: String,
@@ -61,6 +73,7 @@ data class FollowUser(
     val avatarUrl: String? = null,
 )
 
+/** Resumen de cuenta usado por la pantalla de ajustes. */
 @Serializable
 data class SettingsSummaryResponse(
     val user: ProfileUser,
@@ -69,6 +82,7 @@ data class SettingsSummaryResponse(
     val postsCount: Int = 0,
 )
 
+/** Página de publicaciones con cursores para cargar más contenido. */
 @Serializable
 data class FeedResponse(
     val posts: List<PostItem> = emptyList(),
@@ -78,12 +92,14 @@ data class FeedResponse(
     val nextCursorLikes: Int? = null,
 )
 
+/** Detalle de una publicación con su árbol plano de comentarios. */
 @Serializable
 data class PostDetailResponse(
     val post: PostItem,
     val comments: List<CommentItem> = emptyList(),
 )
 
+/** Publicación mostrada en feeds, perfiles y detalles. */
 @Serializable
 data class PostItem(
     val id: Int,
@@ -107,6 +123,7 @@ data class PostItem(
     val tags: String? = null,
 )
 
+/** Comentario o respuesta asociada a una publicación. */
 @Serializable
 data class CommentItem(
     val id: Int,
@@ -126,12 +143,14 @@ data class CommentItem(
     val isDeleted: Boolean = false,
 )
 
+/** Credenciales enviadas para iniciar sesión. */
 @Serializable
 data class LoginRequest(
     val email: String,
     val password: String,
 )
 
+/** Datos iniciales para crear una cuenta pendiente de verificación. */
 @Serializable
 data class RegisterStartRequest(
     val username: String,
@@ -141,6 +160,7 @@ data class RegisterStartRequest(
     val passwordConfirmation: String,
 )
 
+/** Respuesta al iniciar el registro con el flujo de verificación. */
 @Serializable
 data class RegisterStartResponse(
     val message: String? = null,
@@ -153,6 +173,7 @@ data class RegisterStartResponse(
     val resendCooldown: Int? = null,
 )
 
+/** Código y token de flujo usados para confirmar un registro. */
 @Serializable
 data class RegisterVerifyRequest(
     @SerialName("flow_token")
@@ -160,18 +181,21 @@ data class RegisterVerifyRequest(
     val code: String,
 )
 
+/** Petición genérica para operaciones que solo necesitan un token de flujo. */
 @Serializable
 data class FlowTokenRequest(
     @SerialName("flow_token")
     val flowToken: String,
 )
 
+/** Mensaje simple devuelto por acciones de registro o recuperación. */
 @Serializable
 data class RegisterMessageResponse(
     val message: String? = null,
     val email: String? = null,
 )
 
+/** Respuesta al reenviar el código de registro. */
 @Serializable
 data class RegisterResendResponse(
     val message: String? = null,
@@ -183,24 +207,69 @@ data class RegisterResendResponse(
     val resendCooldown: Int? = null,
 )
 
+/** Correo enviado para iniciar una recuperación de contraseña. */
+@Serializable
+data class PasswordResetStartRequest(
+    val email: String,
+)
+
+/** Respuesta con token de flujo para continuar la recuperación de contraseña. */
+@Serializable
+data class PasswordResetStartResponse(
+    val message: String? = null,
+    @SerialName("flow_token")
+    val flowToken: String,
+    @SerialName("masked_email")
+    val maskedEmail: String? = null,
+    @SerialName("resend_cooldown")
+    val resendCooldown: Int? = null,
+)
+
+/** Datos necesarios para completar el cambio de contraseña olvidada. */
+@Serializable
+data class PasswordResetCompleteRequest(
+    @SerialName("flow_token")
+    val flowToken: String,
+    val code: String,
+    val password: String,
+    @SerialName("password_confirmation")
+    val passwordConfirmation: String,
+)
+
+/** Respuesta al reenviar el código de recuperación de contraseña. */
+@Serializable
+data class PasswordResetResendResponse(
+    val message: String? = null,
+    @SerialName("flow_token")
+    val flowToken: String,
+    @SerialName("masked_email")
+    val maskedEmail: String? = null,
+    @SerialName("resend_cooldown")
+    val resendCooldown: Int? = null,
+)
+
+/** Identificador de publicación usado para alternar un me gusta. */
 @Serializable
 data class ToggleLikeRequest(
     @SerialName("post_id")
     val postId: Int,
 )
 
+/** Identificador de publicación usado para borrarla. */
 @Serializable
 data class DeletePostRequest(
     @SerialName("post_id")
     val postId: Int,
 )
 
+/** Identificador de comentario usado para borrarlo. */
 @Serializable
 data class DeleteCommentRequest(
     @SerialName("comment_id")
     val commentId: Int,
 )
 
+/** Resultado de borrar un comentario y nuevo contador asociado. */
 @Serializable
 data class DeleteCommentResponse(
     val deleted: Boolean = false,
@@ -209,11 +278,13 @@ data class DeleteCommentResponse(
     val commentsCount: Int = 0,
 )
 
+/** Resultado de alternar un me gusta. */
 @Serializable
 data class ToggleLikeResponse(
     val liked: Boolean,
 )
 
+/** Datos para crear un comentario o una respuesta. */
 @Serializable
 data class CreateCommentRequest(
     @SerialName("post_id")
@@ -223,6 +294,7 @@ data class CreateCommentRequest(
     val parentId: Int? = null,
 )
 
+/** Comentario creado y contador actualizado de la publicación. */
 @Serializable
 data class CreateCommentResponse(
     val comment: CommentItem,
@@ -230,12 +302,14 @@ data class CreateCommentResponse(
     val commentsCount: Int,
 )
 
+/** Respuesta al publicar una nueva imagen. */
 @Serializable
 data class CreatePostResponse(
     val message: String? = null,
     val id: Int,
 )
 
+/** Datos enviados para actualizar información del perfil. */
 @Serializable
 data class UpdateProfileRequest(
     val username: String,
@@ -245,16 +319,19 @@ data class UpdateProfileRequest(
     val currentPassword: String,
 )
 
+/** Mensaje devuelto tras actualizar el perfil. */
 @Serializable
 data class UpdateProfileResponse(
     val message: String? = null,
 )
 
+/** Resultado de comprobar disponibilidad de un nombre de usuario. */
 @Serializable
 data class CheckUsernameResponse(
     val available: Boolean,
 )
 
+/** Respuesta al subir o cambiar el avatar. */
 @Serializable
 data class AvatarResponse(
     val message: String? = null,
@@ -264,6 +341,7 @@ data class AvatarResponse(
     val avatarUrl: String? = null,
 )
 
+/** Datos para iniciar un cambio de correo. */
 @Serializable
 data class StartEmailChangeRequest(
     @SerialName("new_email")
@@ -272,6 +350,7 @@ data class StartEmailChangeRequest(
     val currentPassword: String,
 )
 
+/** Respuesta al iniciar el cambio de correo con verificación. */
 @Serializable
 data class StartEmailChangeResponse(
     val message: String? = null,
@@ -283,17 +362,20 @@ data class StartEmailChangeResponse(
     val resendCooldown: Int = 30,
 )
 
+/** Código usado para confirmar el cambio de correo. */
 @Serializable
 data class VerifyEmailChangeRequest(
     val code: String,
 )
 
+/** Respuesta final al verificar y aplicar el nuevo correo. */
 @Serializable
 data class VerifyEmailChangeResponse(
     val message: String? = null,
     val email: String,
 )
 
+/** Respuesta al reenviar el código de cambio de correo. */
 @Serializable
 data class ResendEmailChangeResponse(
     val message: String? = null,
@@ -303,6 +385,7 @@ data class ResendEmailChangeResponse(
     val resendCooldown: Int = 30,
 )
 
+/** Confirmación necesaria para borrar definitivamente la cuenta. */
 @Serializable
 data class DeleteAccountRequest(
     @SerialName("current_password")
@@ -311,22 +394,26 @@ data class DeleteAccountRequest(
     val confirmText: String,
 )
 
+/** Respuesta booleana común para acciones simples. */
 @Serializable
 data class SuccessResponse(
     val success: Boolean = true,
 )
 
+/** Nombre de usuario objetivo para seguir o dejar de seguir. */
 @Serializable
 data class ToggleFollowRequest(
     @SerialName("username")
     val username: String,
 )
 
+/** Resultado de seguir o dejar de seguir a un usuario. */
 @Serializable
 data class ToggleFollowResponse(
     val following: Boolean,
 )
 
+/** Notificación individual mostrada en la pestaña de notificaciones. */
 @Serializable
 data class NotificationItem(
     val id: Int,
@@ -349,6 +436,7 @@ data class NotificationItem(
     val createdAt: String? = null,
 )
 
+/** Lista de notificaciones y contador de no leídas. */
 @Serializable
 data class NotificationsResponse(
     val notifications: List<NotificationItem> = emptyList(),
@@ -356,12 +444,14 @@ data class NotificationsResponse(
     val unreadCount: Int = 0,
 )
 
+/** Contador de notificaciones pendientes de lectura. */
 @Serializable
 data class UnreadCountResponse(
     @SerialName("unread_count")
     val unreadCount: Int = 0,
 )
 
+/** Petición para marcar una notificación concreta o todas como leídas. */
 @Serializable
 data class NotificationsReadRequest(
     val id: Int? = null,

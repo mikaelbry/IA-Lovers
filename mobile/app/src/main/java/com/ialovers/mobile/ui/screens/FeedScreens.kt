@@ -1,3 +1,8 @@
+/*
+ * Pantalla reutilizable para mostrar feeds de publicaciones.
+ * Gestiona estados de carga, error, vacío, listado paginado y acciones
+ * comunes sobre cada publicación.
+ */
 package com.ialovers.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +26,7 @@ import com.ialovers.mobile.FeedUiState
 import com.ialovers.mobile.data.PostItem
 import com.ialovers.mobile.ui.components.PostCard
 
+/** Dibuja un feed de publicaciones con soporte para recargar y cargar más elementos. */
 @Composable
 fun FeedScreen(
     state: FeedUiState,

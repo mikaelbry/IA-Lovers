@@ -1,3 +1,8 @@
+/*
+ * Pantalla principal de la aplicación autenticada.
+ * Coordina las pestañas inferiores, la cabecera, búsqueda, navegación a
+ * detalles, perfiles, ajustes, creación de posts y notificaciones.
+ */
 package com.ialovers.mobile.ui.screens
 
 import android.net.Uri
@@ -58,6 +63,7 @@ import com.ialovers.mobile.SettingsUiState
 import com.ialovers.mobile.data.CommentItem
 import com.ialovers.mobile.data.PostItem
 
+/** Selecciona y muestra la vista principal según pestaña, detalle, perfil o ajustes activos. */
 @Composable
 fun MainScreen(
     selectedTab: MainTab,
@@ -267,6 +273,7 @@ fun MainScreen(
     }
 }
 
+/** Cabecera superior con título y buscador opcional. */
 @Composable
 private fun AppHeader(
     title: String,
@@ -298,6 +305,7 @@ private fun AppHeader(
     }
 }
 
+/** Campo de búsqueda compacto usado en la pestaña Explorar. */
 @Composable
 private fun SearchField(
     query: String,
@@ -368,8 +376,9 @@ private fun SearchField(
     )
 }
 
-@Composable
+/** Barra de navegación inferior con acceso a pestañas y menú contextual de perfil. */
 @OptIn(ExperimentalFoundationApi::class)
+@Composable
 private fun BottomNavigation(
     selectedTab: MainTab,
     onSelectTab: (MainTab) -> Unit,
@@ -455,6 +464,7 @@ private fun BottomNavigation(
     }
 }
 
+/** Icono asociado a cada pestaña principal. */
 private val MainTab.icon: androidx.compose.ui.graphics.vector.ImageVector
     get() = when (this) {
         MainTab.Explore -> Icons.Outlined.Search

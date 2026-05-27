@@ -1,3 +1,8 @@
+/*
+ * Pantalla de perfil de usuario.
+ * Presenta datos de la cuenta, seguidores, seguidos, publicaciones y
+ * acciones de ajustes o seguimiento según el perfil mostrado.
+ */
 package com.ialovers.mobile.ui.screens
 
 import androidx.compose.foundation.clickable
@@ -41,6 +46,7 @@ import com.ialovers.mobile.data.PostItem
 import com.ialovers.mobile.ui.components.Avatar
 import com.ialovers.mobile.ui.components.PostCard
 
+/** Dibuja el perfil propio o ajeno con publicaciones y acciones disponibles. */
 @Composable
 fun ProfileScreen(
     state: ProfileUiState,
@@ -209,6 +215,7 @@ fun ProfileScreen(
     }
 }
 
+/** Muestra una estadística del perfil y la hace pulsable cuando tiene acción. */
 @Composable
 private fun ProfileStat(
     label: String,
@@ -235,6 +242,7 @@ private fun ProfileStat(
     }
 }
 
+/** Diálogo que lista seguidores o seguidos y permite abrir sus perfiles. */
 @Composable
 private fun FollowListDialog(
     title: String,
@@ -277,6 +285,7 @@ private fun FollowListDialog(
     )
 }
 
+/** Fila individual de usuario dentro del diálogo de seguidores o seguidos. */
 @Composable
 private fun FollowUserRow(
     user: FollowUser,

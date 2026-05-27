@@ -1,3 +1,8 @@
+/*
+ * Pantalla para crear una nueva publicación.
+ * Permite seleccionar una imagen, escribir título y descripción, añadir
+ * etiquetas y enviar el contenido al backend.
+ */
 package com.ialovers.mobile.ui.screens
 
 import android.net.Uri
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +47,7 @@ import coil.request.ImageRequest
 import com.ialovers.mobile.CreatePostUiState
 import com.ialovers.mobile.ui.components.MessageBlock
 
+/** Dibuja el flujo de creación de publicación desde la selección de imagen hasta el envío. */
 @Composable
 fun CreatePostScreen(
     state: CreatePostUiState,
@@ -64,6 +71,7 @@ fun CreatePostScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),

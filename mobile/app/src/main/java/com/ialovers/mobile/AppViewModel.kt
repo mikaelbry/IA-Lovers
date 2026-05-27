@@ -1,3 +1,9 @@
+/*
+ * ViewModel principal de la aplicación móvil.
+ * Mantiene el estado de navegación, autenticación, feeds, perfiles,
+ * publicaciones, comentarios, notificaciones y ajustes, y coordina todas
+ * las llamadas a la API desde la interfaz Compose.
+ */
 package com.ialovers.mobile
 
 import android.content.Context
@@ -20,6 +26,8 @@ import com.ialovers.mobile.data.DeletePostRequest
 import com.ialovers.mobile.data.FlowTokenRequest
 import com.ialovers.mobile.data.FollowUser
 import com.ialovers.mobile.data.LoginRequest
+import com.ialovers.mobile.data.PasswordResetCompleteRequest
+import com.ialovers.mobile.data.PasswordResetStartRequest
 import com.ialovers.mobile.data.PostItem
 import com.ialovers.mobile.data.ProfileResponse
 import com.ialovers.mobile.data.RegisterStartRequest
@@ -49,6 +57,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
+/** Estado y lógica de negocio compartidos por todas las pantallas móviles. */
 class AppViewModel(
     context: Context,
 ) : ViewModel() {
@@ -82,6 +91,9 @@ class AppViewModel(
         private set
 
     var pendingRegistration by mutableStateOf<PendingRegistrationUi?>(null)
+        private set
+
+    var pendingPasswordReset by mutableStateOf<PendingPasswordResetUi?>(null)
         private set
 
     var exploreState by mutableStateOf(FeedUiState())
@@ -123,24 +135,35 @@ class AppViewModel(
         bootstrap()
     }
 
+    /** Navega a la pantalla inicial de elección de autenticación. */
     fun goToAuthChoice() {
         authError = null
         authMessage = null
         rootDestination = RootDestination.AuthChoice
     }
 
+    /** Navega al formulario de inicio de sesión. */
     fun goToLogin() {
         authError = null
         authMessage = null
         rootDestination = RootDestination.Login
     }
 
+    /** Navega al flujo de creación de cuenta. */
     fun goToRegister() {
         authError = null
         authMessage = null
         rootDestination = RootDestination.Register
     }
 
+    /** Navega al flujo de recuperación de contraseña. */
+    fun goToPasswordReset() {
+        authError = null
+        authMessage = null
+        rootDestination = RootDestination.PasswordReset
+    }
+
+    /** Cambia la pestaña principal y carga datos iniciales si hacen falta. */
     fun selectTab(tab: MainTab) {
         activePostId = null
         activeUserProfileUsername = null
@@ -156,17 +179,20 @@ class AppViewModel(
         }
     }
 
+    /** Abre el detalle de una publicación concreta. */
     fun openPost(postId: Int) {
         isSettingsOpen = false
         activePostId = postId
         loadPostDetail(postId)
     }
 
+    /** Cierra el detalle de publicación y limpia su estado local. */
     fun closePost() {
         activePostId = null
         postDetailState = PostDetailUiState()
     }
 
+    /** Abre un perfil público o redirige al perfil propio si coincide con el usuario actual. */
     fun openUserProfile(username: String) {
         val cleanUsername = username.trim()
         if (cleanUsername.isBlank()) return
@@ -187,11 +213,13 @@ class AppViewModel(
         loadViewedProfile(cleanUsername)
     }
 
+    /** Cierra el perfil público que se estaba consultando. */
     fun closeUserProfile() {
         activeUserProfileUsername = null
         viewedProfileState = ProfileUiState()
     }
 
+    /** Abre ajustes en la sección indicada y solicita su resumen actualizado. */
     fun openSettings(section: SettingsSection = SettingsSection.Account) {
         activePostId = null
         selectedTab = MainTab.Profile
@@ -200,12 +228,14 @@ class AppViewModel(
         loadSettings()
     }
 
+    /** Cierra ajustes, limpia mensajes temporales y refresca el perfil propio. */
     fun closeSettings() {
         isSettingsOpen = false
         settingsState = settingsState.copy(statusMessage = null, error = null)
         refreshProfile()
     }
 
+    /** Cambia la sección activa de ajustes y reinicia estados que no corresponden. */
     fun selectSettingsSection(section: SettingsSection) {
         settingsState = settingsState.copy(
             activeSection = section,
@@ -216,6 +246,7 @@ class AppViewModel(
         )
     }
 
+    /** Valida credenciales, inicia sesión en la API y guarda el token recibido. */
     fun login(email: String, password: String) {
         val trimmedEmail = email.trim()
         val rawPassword = password
@@ -240,6 +271,7 @@ class AppViewModel(
                 sessionStorage.saveSession(response)
                 authMessage = null
                 pendingRegistration = null
+                pendingPasswordReset = null
                 enterMain()
             } catch (error: Throwable) {
                 authError = errorMessage(error)
@@ -249,6 +281,7 @@ class AppViewModel(
         }
     }
 
+    /** Inicia el registro móvil y guarda el flujo pendiente de verificación. */
     fun startRegistration(
         username: String,
         email: String,
@@ -297,6 +330,7 @@ class AppViewModel(
         }
     }
 
+    /** Confirma el código de registro y envía al usuario a iniciar sesión. */
     fun verifyRegistration(code: String) {
         val pending = pendingRegistration
 
@@ -305,7 +339,7 @@ class AppViewModel(
             return
         }
 
-        if (code.trim().length != 6) {
+        if (!Regex("^\\d{6}$").matches(code.trim())) {
             authError = "El codigo debe tener 6 digitos."
             return
         }
@@ -333,6 +367,7 @@ class AppViewModel(
         }
     }
 
+    /** Solicita un nuevo código para el registro pendiente. */
     fun resendRegistrationCode() {
         val pending = pendingRegistration ?: run {
             authError = "No hay un registro pendiente."
@@ -364,6 +399,7 @@ class AppViewModel(
         }
     }
 
+    /** Cancela en backend y en estado local el registro pendiente. */
     fun cancelPendingRegistration() {
         val pending = pendingRegistration ?: run {
             rootDestination = RootDestination.Register
@@ -389,6 +425,155 @@ class AppViewModel(
         }
     }
 
+    /** Inicia la recuperación de contraseña y guarda el flujo pendiente. */
+    fun startPasswordReset(email: String) {
+        val trimmedEmail = email.trim()
+
+        if (trimmedEmail.isBlank()) {
+            authError = "Introduce el correo de tu cuenta."
+            return
+        }
+
+        viewModelScope.launch {
+            isBusy = true
+            authError = null
+
+            try {
+                val response = api.mobilePasswordResetStart(
+                    PasswordResetStartRequest(email = trimmedEmail)
+                )
+
+                pendingPasswordReset = PendingPasswordResetUi(
+                    flowToken = response.flowToken,
+                    email = trimmedEmail,
+                    maskedEmail = response.maskedEmail ?: trimmedEmail,
+                    resendCooldown = response.resendCooldown ?: 30,
+                )
+                authMessage = response.message ?: "Si existe una cuenta con ese correo, recibiras un codigo."
+            } catch (error: Throwable) {
+                authError = errorMessage(error)
+            } finally {
+                isBusy = false
+            }
+        }
+    }
+
+    /** Verifica el código de recuperación y actualiza la contraseña. */
+    fun completePasswordReset(
+        code: String,
+        password: String,
+        passwordConfirmation: String,
+    ) {
+        val pending = pendingPasswordReset
+
+        if (pending == null) {
+            authError = "No hay una recuperacion pendiente."
+            return
+        }
+
+        val cleanCode = code.trim()
+
+        if (!Regex("^\\d{6}$").matches(cleanCode)) {
+            authError = "El codigo debe tener 6 digitos."
+            return
+        }
+
+        if (password.isBlank() || passwordConfirmation.isBlank()) {
+            authError = "Introduce y confirma la nueva contrasena."
+            return
+        }
+
+        if (password != passwordConfirmation) {
+            authError = "Las contrasenas no coinciden."
+            return
+        }
+
+        if (password.length < 8 || !password.any { it.isLetter() } || !password.any { it.isDigit() }) {
+            authError = "La contrasena debe tener al menos 8 caracteres e incluir letras y numeros."
+            return
+        }
+
+        viewModelScope.launch {
+            isBusy = true
+            authError = null
+
+            try {
+                val response = api.mobilePasswordResetComplete(
+                    PasswordResetCompleteRequest(
+                        flowToken = pending.flowToken,
+                        code = cleanCode,
+                        password = password,
+                        passwordConfirmation = passwordConfirmation,
+                    )
+                )
+
+                sessionStorage.clearSession()
+                pendingPasswordReset = null
+                authMessage = response.message ?: "Contrasena actualizada correctamente. Ya puedes iniciar sesion."
+                rootDestination = RootDestination.Login
+            } catch (error: Throwable) {
+                authError = errorMessage(error)
+            } finally {
+                isBusy = false
+            }
+        }
+    }
+
+    /** Reenvía el código de recuperación de contraseña. */
+    fun resendPasswordResetCode() {
+        val pending = pendingPasswordReset ?: run {
+            authError = "No hay una recuperacion pendiente."
+            return
+        }
+
+        viewModelScope.launch {
+            isBusy = true
+            authError = null
+
+            try {
+                val response = api.mobilePasswordResetResend(
+                    FlowTokenRequest(flowToken = pending.flowToken)
+                )
+
+                pendingPasswordReset = pending.copy(
+                    flowToken = response.flowToken,
+                    maskedEmail = response.maskedEmail ?: pending.maskedEmail,
+                    resendCooldown = response.resendCooldown ?: pending.resendCooldown,
+                )
+                authMessage = response.message ?: "Hemos reenviado un nuevo codigo."
+            } catch (error: Throwable) {
+                authError = errorMessage(error)
+            } finally {
+                isBusy = false
+            }
+        }
+    }
+
+    /** Cancela la recuperación de contraseña pendiente. */
+    fun cancelPendingPasswordReset() {
+        val pending = pendingPasswordReset ?: run {
+            rootDestination = RootDestination.PasswordReset
+            return
+        }
+
+        viewModelScope.launch {
+            isBusy = true
+
+            try {
+                api.mobilePasswordResetCancel(
+                    FlowTokenRequest(flowToken = pending.flowToken)
+                )
+            } catch (_: Throwable) {
+            } finally {
+                pendingPasswordReset = null
+                authError = null
+                authMessage = null
+                isBusy = false
+            }
+        }
+    }
+
+    /** Recarga desde cero el feed asociado a una pestaña. */
     fun refreshFeed(tab: MainTab) {
         if (tab == MainTab.Profile) {
             refreshProfile()
@@ -429,6 +614,7 @@ class AppViewModel(
         }
     }
 
+    /** Carga la siguiente página del feed cuando existe cursor disponible. */
     fun loadMoreFeed(tab: MainTab) {
         if (tab == MainTab.Profile || tab == MainTab.Notifications) return
 
@@ -469,6 +655,7 @@ class AppViewModel(
         }
     }
 
+    /** Actualiza la búsqueda de Explorar y lanza una recarga con retardo. */
     fun updateExploreSearchQuery(query: String) {
         exploreSearchQuery = query
         if (selectedTab != MainTab.Explore || activePostId != null || activeUserProfileUsername != null || isSettingsOpen) {
@@ -482,12 +669,14 @@ class AppViewModel(
         }
     }
 
+    /** Refresca el perfil propio desde la API. */
     fun refreshProfile() {
         viewModelScope.launch {
             loadProfileInternal()
         }
     }
 
+    /** Aplica un me gusta optimista y lo sincroniza con el backend. */
     fun toggleLike(post: PostItem) {
         applyPostLike(post.id, !post.likedByUser)
 
@@ -502,6 +691,7 @@ class AppViewModel(
         }
     }
 
+    /** Borra una publicación propia y la retira de todos los estados visibles. */
     fun deletePost(post: PostItem) {
         viewModelScope.launch {
             try {
@@ -522,6 +712,7 @@ class AppViewModel(
         }
     }
 
+    /** Crea un comentario o respuesta en la publicación abierta. */
     fun createComment(content: String) {
         val postId = activePostId ?: return
         val trimmed = content.trim()
@@ -561,6 +752,7 @@ class AppViewModel(
         }
     }
 
+    /** Elimina un comentario y refresca el detalle de la publicación. */
     fun deleteComment(comment: CommentItem) {
         val postId = activePostId ?: return
 
@@ -591,23 +783,27 @@ class AppViewModel(
         }
     }
 
+    /** Entra en un hilo de respuestas de un comentario. */
     fun enterCommentThread(commentId: Int) {
         postDetailState = postDetailState.copy(
             commentThread = postDetailState.commentThread + commentId,
         )
     }
 
+    /** Vuelve al nivel anterior dentro del hilo de comentarios. */
     fun leaveCommentThread() {
         postDetailState = postDetailState.copy(
             commentThread = postDetailState.commentThread.dropLast(1),
         )
     }
 
+    /** Cierra la sesión localmente, limpia estados y avisa al backend. */
     fun logout() {
         val authorization = sessionStorage.authToken?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
 
         sessionStorage.clearSession()
         pendingRegistration = null
+        pendingPasswordReset = null
         authMessage = null
         authError = null
         exploreState = FeedUiState()
@@ -633,10 +829,12 @@ class AppViewModel(
         }
     }
 
+    /** Guarda la imagen seleccionada para crear una publicación. */
     fun setCreatePostImage(uri: Uri?) {
         createPostState = CreatePostUiState(imageUri = uri)
     }
 
+    /** Valida, empaqueta y publica una nueva imagen con sus metadatos. */
     fun publishPost(
         title: String,
         description: String,
@@ -696,6 +894,7 @@ class AppViewModel(
         }
     }
 
+    /** Carga las notificaciones y las marca como leídas si procede. */
     fun loadNotifications() {
         viewModelScope.launch {
             notificationsState = notificationsState.copy(isLoading = true, error = null)
@@ -719,6 +918,7 @@ class AppViewModel(
         }
     }
 
+    /** Consulta el número de notificaciones sin leer. */
     fun loadUnreadCount() {
         viewModelScope.launch {
             try {
@@ -729,6 +929,7 @@ class AppViewModel(
         }
     }
 
+    /** Marca todas las notificaciones como leídas y actualiza el estado local. */
     private fun markNotificationsRead() {
         if (notificationsUnreadCount <= 0) return
         viewModelScope.launch {
@@ -743,6 +944,7 @@ class AppViewModel(
         }
     }
 
+    /** Decide la pantalla inicial según exista o no un token guardado. */
     private fun bootstrap() {
         viewModelScope.launch {
             val token = sessionStorage.authToken
@@ -757,6 +959,7 @@ class AppViewModel(
         }
     }
 
+    /** Entra en la zona autenticada y lanza las cargas iniciales. */
     private fun enterMain() {
         rootDestination = RootDestination.Main
         selectedTab = MainTab.Explore
@@ -768,6 +971,7 @@ class AppViewModel(
         loadUnreadCount()
     }
 
+    /** Cambia el nombre de usuario tras comprobar disponibilidad y contraseña. */
     fun updateUsername(newUsername: String, currentPassword: String) {
         val summary = settingsState.summary ?: return
         val username = newUsername.trim()
@@ -805,6 +1009,7 @@ class AppViewModel(
         }
     }
 
+    /** Actualiza la contraseña desde ajustes validando la confirmación. */
     fun updatePassword(currentPassword: String, password: String, confirmation: String) {
         val summary = settingsState.summary ?: return
 
@@ -849,6 +1054,7 @@ class AppViewModel(
         }
     }
 
+    /** Sube un avatar nuevo y refresca perfil y ajustes. */
     fun updateAvatar(uri: Uri) {
         viewModelScope.launch {
             settingsState = settingsState.copy(isSaving = true, error = null)
@@ -866,6 +1072,7 @@ class AppViewModel(
         }
     }
 
+    /** Inicia el cambio de correo y guarda el estado de verificación pendiente. */
     fun startEmailChange(newEmail: String, currentPassword: String) {
         if (newEmail.isBlank() || currentPassword.isBlank()) {
             settingsState = settingsState.copy(error = "Introduce el nuevo correo y tu contrasena actual.")
@@ -902,6 +1109,7 @@ class AppViewModel(
         }
     }
 
+    /** Verifica el código recibido para aplicar el nuevo correo. */
     fun verifyEmailChange(code: String) {
         if (!Regex("^\\d{6}$").matches(code.trim())) {
             settingsState = settingsState.copy(error = "El codigo debe tener 6 digitos.")
@@ -924,6 +1132,7 @@ class AppViewModel(
         }
     }
 
+    /** Reenvía el código de confirmación para el cambio de correo. */
     fun resendEmailChange() {
         viewModelScope.launch {
             settingsState = settingsState.copy(isSaving = true, error = null)
@@ -946,6 +1155,7 @@ class AppViewModel(
         }
     }
 
+    /** Cancela el cambio de correo pendiente y limpia su estado. */
     fun cancelEmailChange() {
         viewModelScope.launch {
             runCatching { api.cancelEmailChange() }
@@ -957,6 +1167,7 @@ class AppViewModel(
         }
     }
 
+    /** Solicita la segunda confirmación antes de borrar la cuenta. */
     fun requestDeleteConfirmation(currentPassword: String) {
         if (currentPassword.isBlank()) {
             settingsState = settingsState.copy(error = "Introduce tu contrasena para continuar.")
@@ -970,6 +1181,7 @@ class AppViewModel(
         )
     }
 
+    /** Borra definitivamente la cuenta cuando el texto de confirmación coincide. */
     fun deleteAccount(confirmText: String) {
         if (confirmText.trim() != "ELIMINAR MI CUENTA") {
             settingsState = settingsState.copy(error = "La confirmacion final no coincide.")
@@ -995,12 +1207,14 @@ class AppViewModel(
         }
     }
 
+    /** Lanza la carga asíncrona del resumen de ajustes. */
     private fun loadSettings() {
         viewModelScope.launch {
             loadSettingsInternal()
         }
     }
 
+    /** Obtiene el resumen de ajustes y conserva un mensaje de éxito opcional. */
     private suspend fun loadSettingsInternal(statusMessage: String? = null) {
         settingsState = settingsState.copy(isLoading = true, error = null)
 
@@ -1024,6 +1238,7 @@ class AppViewModel(
         }
     }
 
+    /** Lee una imagen del dispositivo, valida tamaño y tipo, y la convierte en parte multipart. */
     private suspend fun imagePart(uri: Uri, formName: String): MultipartBody.Part = withContext(Dispatchers.IO) {
         val resolver = appContext.contentResolver
         val mimeType = resolver.getType(uri) ?: "application/octet-stream"
@@ -1053,6 +1268,7 @@ class AppViewModel(
         MultipartBody.Part.createFormData(formName, fileName, body)
     }
 
+    /** Consulta el tamaño declarado por el proveedor de contenido de Android. */
     private fun queryFileSize(uri: Uri): Long? {
         return appContext.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(OpenableColumns.SIZE)
@@ -1063,6 +1279,7 @@ class AppViewModel(
         }
     }
 
+    /** Obtiene el nombre visible del archivo seleccionado por el usuario. */
     private fun queryDisplayName(uri: Uri): String? {
         return appContext.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -1070,6 +1287,7 @@ class AppViewModel(
         }
     }
 
+    /** Carga perfil propio, seguidores y seguidos en paralelo. */
     private suspend fun loadProfileInternal() {
         profileState = profileState.copy(isLoading = true, error = null)
 
@@ -1104,6 +1322,7 @@ class AppViewModel(
         }
     }
 
+    /** Carga un perfil público junto a sus listas de seguidores y seguidos. */
     private fun loadViewedProfile(username: String) {
         viewModelScope.launch {
             viewedProfileState = ProfileUiState(isLoading = true)
@@ -1147,6 +1366,7 @@ class AppViewModel(
         }
     }
 
+    /** Sigue o deja de seguir a un usuario y refleja el cambio en ambos perfiles. */
     fun toggleFollow(username: String) {
         val currentState = viewedProfileState
         val currentIsFollowing = currentState.isFollowing ?: return
@@ -1196,6 +1416,7 @@ class AppViewModel(
         }
     }
 
+    /** Carga una publicación concreta con sus comentarios. */
     private fun loadPostDetail(postId: Int) {
         viewModelScope.launch {
             postDetailState = PostDetailUiState(isLoading = true)
@@ -1219,6 +1440,7 @@ class AppViewModel(
         }
     }
 
+    /** Actualiza localmente el estado de me gusta y su contador. */
     private fun applyPostLike(postId: Int, liked: Boolean) {
         updatePostEverywhere(postId) { post ->
             val delta = when {
@@ -1234,6 +1456,7 @@ class AppViewModel(
         }
     }
 
+    /** Aplica una transformación a una publicación en todos los lugares donde aparece. */
     private fun updatePostEverywhere(postId: Int, update: (PostItem) -> PostItem) {
         exploreState = exploreState.copy(posts = exploreState.posts.map { if (it.id == postId) update(it) else it })
         followingState = followingState.copy(posts = followingState.posts.map { if (it.id == postId) update(it) else it })
@@ -1248,6 +1471,7 @@ class AppViewModel(
         }
     }
 
+    /** Retira una publicación de feeds, perfiles y detalle activo. */
     private fun removePostEverywhere(postId: Int) {
         exploreState = exploreState.copy(posts = exploreState.posts.filterNot { it.id == postId })
         followingState = followingState.copy(posts = followingState.posts.filterNot { it.id == postId })
@@ -1268,6 +1492,7 @@ class AppViewModel(
         }
     }
 
+    /** Devuelve el estado de feed correspondiente a una pestaña. */
     private fun feedState(tab: MainTab): FeedUiState {
         return when (tab) {
             MainTab.Explore -> exploreState
@@ -1278,6 +1503,7 @@ class AppViewModel(
         }
     }
 
+    /** Sustituye el estado de feed correspondiente a una pestaña. */
     private fun setFeedState(tab: MainTab, state: FeedUiState) {
         when (tab) {
             MainTab.Explore -> exploreState = state
@@ -1288,10 +1514,12 @@ class AppViewModel(
         }
     }
 
+    /** Normaliza una búsqueda y devuelve null si está vacía. */
     private fun String.cleanSearchQuery(): String? {
         return trim().takeIf { it.isNotBlank() }
     }
 
+    /** Gestiona errores autenticados y fuerza salida si el token ha caducado. */
     private fun handleAuthenticatedError(error: Throwable, fallback: () -> Unit = {}) {
         if (error is HttpException && error.code() == 401) {
             sessionStorage.clearSession()
@@ -1305,6 +1533,7 @@ class AppViewModel(
             notificationsState = NotificationsUiState()
             notificationsUnreadCount = 0
             pendingRegistration = null
+            pendingPasswordReset = null
             activePostId = null
             activeUserProfileUsername = null
             isSettingsOpen = false
@@ -1317,6 +1546,7 @@ class AppViewModel(
         fallback()
     }
 
+    /** Convierte excepciones de red o API en mensajes legibles para la interfaz. */
     private fun errorMessage(error: Throwable): String {
         return when (error) {
             is HttpException -> {
@@ -1336,8 +1566,10 @@ class AppViewModel(
     }
 
     companion object {
+        /** Crea el ViewModel con un contexto de aplicación seguro para usar en Android. */
         fun factory(context: Context): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
+                /** Construye la instancia concreta solicitada por el sistema de ViewModel. */
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     return AppViewModel(context.applicationContext) as T
@@ -1347,6 +1579,7 @@ class AppViewModel(
     }
 }
 
+/** Estado de interfaz para un registro pendiente de verificación. */
 data class PendingRegistrationUi(
     val flowToken: String,
     val email: String,
@@ -1354,6 +1587,15 @@ data class PendingRegistrationUi(
     val resendCooldown: Int,
 )
 
+/** Estado de interfaz para una recuperación de contraseña pendiente. */
+data class PendingPasswordResetUi(
+    val flowToken: String,
+    val email: String,
+    val maskedEmail: String,
+    val resendCooldown: Int,
+)
+
+/** Estado de carga, paginación y datos de un feed de publicaciones. */
 data class FeedUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
@@ -1363,6 +1605,7 @@ data class FeedUiState(
     val error: String? = null,
 )
 
+/** Estado de un perfil, sus relaciones y acciones de seguimiento. */
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val profile: ProfileResponse? = null,
@@ -1373,12 +1616,14 @@ data class ProfileUiState(
     val error: String? = null,
 )
 
+/** Resultado agrupado de cargar perfil, seguidores y seguidos. */
 private data class ProfileData(
     val profile: ProfileResponse,
     val followers: List<FollowUser>,
     val following: List<FollowUser>,
 )
 
+/** Estado del detalle de una publicación y su hilo de comentarios. */
 data class PostDetailUiState(
     val isLoading: Boolean = false,
     val post: PostItem? = null,
@@ -1388,6 +1633,7 @@ data class PostDetailUiState(
     val isCommentSending: Boolean = false,
 )
 
+/** Estado completo de la pantalla de ajustes. */
 data class SettingsUiState(
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
@@ -1400,6 +1646,7 @@ data class SettingsUiState(
     val error: String? = null,
 )
 
+/** Estado temporal del formulario de creación de publicación. */
 data class CreatePostUiState(
     val imageUri: Uri? = null,
     val isPublishing: Boolean = false,
@@ -1407,12 +1654,14 @@ data class CreatePostUiState(
     val error: String? = null,
 )
 
+/** Estado de la pestaña de notificaciones. */
 data class NotificationsUiState(
     val isLoading: Boolean = false,
     val notifications: List<NotificationItem> = emptyList(),
     val error: String? = null,
 )
 
+/** Estado de un cambio de correo pendiente de verificación. */
 data class EmailChangeUiState(
     val pending: Boolean = false,
     val newEmail: String = "",
@@ -1420,14 +1669,17 @@ data class EmailChangeUiState(
     val resendCooldown: Int = 30,
 )
 
+/** Pantallas raíz posibles antes o después de autenticarse. */
 enum class RootDestination {
     Splash,
     AuthChoice,
     Login,
     Register,
+    PasswordReset,
     Main,
 }
 
+/** Pestañas principales de la zona autenticada. */
 enum class MainTab(
     val label: String,
     val feedType: String,
@@ -1439,6 +1691,7 @@ enum class MainTab(
     Profile("Mi perfil", "me"),
 }
 
+/** Secciones disponibles dentro de ajustes. */
 enum class SettingsSection(
     val label: String,
 ) {

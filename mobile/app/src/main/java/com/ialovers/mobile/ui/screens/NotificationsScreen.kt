@@ -1,3 +1,8 @@
+/*
+ * Pantalla de notificaciones de la aplicación móvil.
+ * Muestra actividad relevante para el usuario, permite abrir perfiles o
+ * publicaciones relacionadas y presenta fechas en formato relativo.
+ */
 package com.ialovers.mobile.ui.screens
 
 import androidx.compose.foundation.background
@@ -41,6 +46,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+/** Dibuja la lista de notificaciones y sus estados de carga, error o vacío. */
 @Composable
 fun NotificationsScreen(
     state: NotificationsUiState,
@@ -111,6 +117,7 @@ fun NotificationsScreen(
     }
 }
 
+/** Representa una notificación individual con avatar, texto, fecha y miniatura opcional. */
 @Composable
 private fun NotificationItemView(
     notification: NotificationItem,
@@ -174,6 +181,7 @@ private fun NotificationItemView(
     }
 }
 
+/** Muestra el avatar del usuario que generó la notificación o su inicial. */
 @Composable
 private fun NotificationAvatar(
     avatarUrl: String?,
@@ -213,6 +221,7 @@ private fun NotificationAvatar(
     }
 }
 
+/** Dibuja la miniatura clicable de la publicación relacionada con la notificación. */
 @Composable
 private fun PostThumbnail(
     imageUrl: String,
@@ -241,6 +250,7 @@ private fun PostThumbnail(
     }
 }
 
+/** Convierte el tipo técnico de notificación en un texto legible para el usuario. */
 private fun notificationText(item: NotificationItem): String {
     val username = item.fromUsername ?: "Alguien"
     return when (item.type) {
@@ -252,6 +262,7 @@ private fun notificationText(item: NotificationItem): String {
     }
 }
 
+/** Calcula una fecha relativa corta a partir de la fecha recibida del backend. */
 private fun relativeTime(createdAt: String?): String {
     if (createdAt.isNullOrBlank()) return ""
     return try {

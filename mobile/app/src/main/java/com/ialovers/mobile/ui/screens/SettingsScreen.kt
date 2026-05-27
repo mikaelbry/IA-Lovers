@@ -1,9 +1,9 @@
-package com.ialovers.mobile.ui.screens
 /**
  * Pantalla de ajustes con secciones seleccionables: avatar, nombre de
- * usuario, correo (con verificacion por codigo), contrasena, borrado de
- * cuenta y cierre de sesion. Incluye resumen del perfil en la cabecera.
+ * usuario, correo con verificación por código, contraseña, borrado de
+ * cuenta y cierre de sesión. Incluye resumen del perfil en la cabecera.
  */
+package com.ialovers.mobile.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -52,6 +53,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/** Dibuja la pantalla de ajustes y delega el contenido en la sección activa. */
 @Composable
 fun SettingsScreen(
     state: SettingsUiState,
@@ -71,7 +73,7 @@ fun SettingsScreen(
 ) {
     val summary = state.summary
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize().imePadding()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -115,6 +117,7 @@ fun SettingsScreen(
 
             else -> {
                 LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -187,6 +190,7 @@ fun SettingsScreen(
     }
 }
 
+/** Muestra los botones para cambiar entre secciones de ajustes. */
 @Composable
 private fun SettingsSectionSelector(
     active: SettingsSection,
@@ -207,6 +211,7 @@ private fun SettingsSectionSelector(
     }
 }
 
+/** Presenta información de solo lectura sobre la cuenta actual. */
 @Composable
 private fun AccountSettings(state: SettingsUiState) {
     val summary = state.summary ?: return
@@ -220,6 +225,7 @@ private fun AccountSettings(state: SettingsUiState) {
     }
 }
 
+/** Permite seleccionar y subir un nuevo avatar. */
 @Composable
 private fun AvatarSettings(
     isSaving: Boolean,
@@ -243,6 +249,7 @@ private fun AvatarSettings(
     }
 }
 
+/** Formulario para cambiar el nombre de usuario confirmando la contraseña. */
 @Composable
 private fun UsernameSettings(
     isSaving: Boolean,
@@ -291,6 +298,7 @@ private fun UsernameSettings(
     }
 }
 
+/** Flujo de cambio de correo con contraseña actual y código de verificación. */
 @Composable
 private fun EmailSettings(
     state: SettingsUiState,
@@ -381,6 +389,7 @@ private fun EmailSettings(
     }
 }
 
+/** Formulario para actualizar la contraseña desde ajustes. */
 @Composable
 private fun PasswordSettings(
     isSaving: Boolean,
@@ -414,6 +423,7 @@ private fun PasswordSettings(
     }
 }
 
+/** Flujo de borrado de cuenta con doble confirmación. */
 @Composable
 private fun DeleteSettings(
     state: SettingsUiState,
@@ -458,6 +468,7 @@ private fun DeleteSettings(
     }
 }
 
+/** Sección simple para cerrar sesión desde ajustes. */
 @Composable
 private fun LogoutSettings(onLogout: () -> Unit) {
     SettingsCard(title = "Cerrar sesion") {
@@ -471,6 +482,7 @@ private fun LogoutSettings(onLogout: () -> Unit) {
     }
 }
 
+/** Tarjeta común que envuelve cada sección de ajustes con título y divisor. */
 @Composable
 private fun SettingsCard(
     title: String,
@@ -492,6 +504,7 @@ private fun SettingsCard(
     }
 }
 
+/** Muestra una pareja de etiqueta y valor dentro de la información de cuenta. */
 @Composable
 private fun InfoRow(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -508,6 +521,7 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
+/** Convierte la fecha de creación recibida del backend a un formato legible. */
 private fun formatCreatedAt(createdAt: String?): String {
     if (createdAt.isNullOrBlank()) return "Fecha no disponible"
     val formatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "ES"))
@@ -527,6 +541,7 @@ private fun formatCreatedAt(createdAt: String?): String {
     }
 }
 
+/** Campo de contraseña reutilizable para las secciones sensibles de ajustes. */
 @Composable
 private fun PasswordField(
     value: String,

@@ -1,3 +1,8 @@
+/*
+ * Pantalla de detalle de una publicación.
+ * Muestra el post seleccionado, sus comentarios, respuestas anidadas y
+ * el formulario para comentar sin que el teclado tape el campo.
+ */
 package com.ialovers.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +42,7 @@ import com.ialovers.mobile.ui.components.Avatar
 import com.ialovers.mobile.ui.components.MessageBlock
 import com.ialovers.mobile.ui.components.PostCard
 
+/** Dibuja el detalle del post, la lista de comentarios y el formulario de respuesta. */
 @Composable
 fun PostDetailScreen(
     state: PostDetailUiState,
@@ -214,6 +220,7 @@ fun PostDetailScreen(
     }
 }
 
+/** Representa un comentario dentro del hilo, con acciones de responder y eliminar. */
 @Composable
 private fun CommentRow(
     comment: CommentItem,
@@ -289,12 +296,15 @@ private fun CommentRow(
     }
 }
 
+/** Nodo interno usado para convertir comentarios planos en una estructura de hilo. */
 private data class CommentNode(
     val comment: CommentItem,
     val children: List<CommentNode>,
 )
 
+/** Agrupa una lista plana de comentarios en un árbol por identificador de padre. */
 private fun List<CommentItem>.toCommentTree(): List<CommentNode> {
+    /** Construye recursivamente los hijos de un comentario concreto. */
     fun build(parentId: Int?): List<CommentNode> {
         return filter { it.parentId == parentId }
             .map { comment ->
@@ -308,9 +318,11 @@ private fun List<CommentItem>.toCommentTree(): List<CommentNode> {
     return build(null)
 }
 
+/** Crea un índice rápido de nodos por identificador de comentario. */
 private fun List<CommentNode>.flattenById(): Map<Int, CommentNode> {
     val result = mutableMapOf<Int, CommentNode>()
 
+    /** Recorre un nodo y sus descendientes para añadirlos al índice. */
     fun visit(node: CommentNode) {
         result[node.comment.id] = node
         node.children.forEach(::visit)
@@ -320,6 +332,7 @@ private fun List<CommentNode>.flattenById(): Map<Int, CommentNode> {
     return result
 }
 
+/** Cuenta todas las respuestas directas e indirectas de un comentario. */
 private fun CommentNode.descendantCount(): Int {
     return children.size + children.sumOf { it.descendantCount() }
 }

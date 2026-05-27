@@ -1,3 +1,8 @@
+/*
+ * Componente visual compartido para mensajes de estado.
+ * Se usa para mostrar avisos informativos o errores dentro de formularios
+ * y pantallas sin duplicar estilos.
+ */
 package com.ialovers.mobile.ui.components
 
 import androidx.compose.foundation.background
@@ -12,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
+/** Muestra un bloque de mensaje si existe texto, usando color de error o información. */
 @Composable
 fun MessageBlock(
     message: String?,

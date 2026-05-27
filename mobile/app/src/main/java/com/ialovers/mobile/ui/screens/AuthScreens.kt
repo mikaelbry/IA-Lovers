@@ -1,3 +1,8 @@
+/*
+ * Pantallas de autenticación de la aplicación móvil.
+ * Incluye carga inicial, elección de acceso, inicio de sesión, registro
+ * con verificación de correo y recuperación de contraseña.
+ */
 package com.ialovers.mobile.ui.screens
 
 import androidx.compose.foundation.background
@@ -7,9 +12,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,8 +39,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ialovers.mobile.PendingRegistrationUi
+import com.ialovers.mobile.PendingPasswordResetUi
 import com.ialovers.mobile.ui.components.MessageBlock
 
+/** Pantalla temporal que se muestra mientras se comprueba la sesión guardada. */
 @Composable
 fun SplashScreen() {
     Box(
@@ -49,6 +59,7 @@ fun SplashScreen() {
     }
 }
 
+/** Pantalla inicial para elegir entre iniciar sesión o crear una cuenta. */
 @Composable
 fun AuthChoiceScreen(
     authMessage: String?,
@@ -88,6 +99,7 @@ fun AuthChoiceScreen(
     }
 }
 
+/** Formulario de inicio de sesión con acceso al registro y recuperación de contraseña. */
 @Composable
 fun LoginScreen(
     isBusy: Boolean,
@@ -96,6 +108,7 @@ fun LoginScreen(
     onBack: () -> Unit,
     onLogin: (String, String) -> Unit,
     onGoRegister: () -> Unit,
+    onForgotPassword: () -> Unit,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -145,6 +158,14 @@ fun LoginScreen(
             }
 
             TextButton(
+                onClick = onForgotPassword,
+                enabled = !isBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("He olvidado mi contrasena")
+            }
+
+            TextButton(
                 onClick = onGoRegister,
                 enabled = !isBusy,
                 modifier = Modifier.fillMaxWidth(),
@@ -155,6 +176,133 @@ fun LoginScreen(
     }
 }
 
+/** Flujo de recuperación de contraseña mediante código recibido por correo. */
+@Composable
+fun PasswordResetScreen(
+    isBusy: Boolean,
+    message: String?,
+    error: String?,
+    pendingPasswordReset: PendingPasswordResetUi?,
+    onBack: () -> Unit,
+    onStartPasswordReset: (String) -> Unit,
+    onCompletePasswordReset: (String, String, String) -> Unit,
+    onResendCode: () -> Unit,
+    onCancelPending: () -> Unit,
+    onGoLogin: () -> Unit,
+) {
+    var email by rememberSaveable { mutableStateOf("") }
+    var code by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordConfirmation by rememberSaveable { mutableStateOf("") }
+
+    AuthLayout {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            TextButton(onClick = onBack) {
+                Text("Volver")
+            }
+
+            Text(
+                text = if (pendingPasswordReset == null) "Recuperar contrasena" else "Nuevo acceso",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+
+            MessageBlock(message = message, isError = false)
+            MessageBlock(message = error, isError = true)
+
+            if (pendingPasswordReset == null) {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Button(
+                    onClick = { onStartPasswordReset(email) },
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (isBusy) "Enviando codigo..." else "Enviar codigo")
+                }
+            } else {
+                Text(
+                    text = "Introduce el codigo enviado a ${pendingPasswordReset.maskedEmail} y crea una nueva contrasena.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it.take(6) },
+                    label = { Text("Codigo de 6 digitos") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Nueva contrasena") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                OutlinedTextField(
+                    value = passwordConfirmation,
+                    onValueChange = { passwordConfirmation = it },
+                    label = { Text("Confirmar contrasena") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Button(
+                    onClick = { onCompletePasswordReset(code, password, passwordConfirmation) },
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (isBusy) "Comprobando..." else "Cambiar contrasena")
+                }
+
+                TextButton(
+                    onClick = onResendCode,
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Reenviar codigo")
+                }
+
+                TextButton(
+                    onClick = onCancelPending,
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Cancelar recuperacion")
+                }
+            }
+
+            Divider(modifier = Modifier.padding(top = 8.dp))
+
+            TextButton(
+                onClick = onGoLogin,
+                enabled = !isBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Volver a iniciar sesion")
+            }
+        }
+    }
+}
+
+/** Flujo de registro móvil con envío y verificación de código por correo. */
 @Composable
 fun RegisterScreen(
     isBusy: Boolean,
@@ -296,6 +444,7 @@ fun RegisterScreen(
     }
 }
 
+/** Contenedor común con tarjeta centrada, scroll y ajuste al teclado. */
 @Composable
 private fun AuthLayout(
     content: @Composable ColumnScope.() -> Unit,
@@ -303,23 +452,31 @@ private fun AuthLayout(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center,
     ) {
-        Card(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                .padding(20.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                content = content,
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    content = content,
+                )
+            }
         }
     }
 }

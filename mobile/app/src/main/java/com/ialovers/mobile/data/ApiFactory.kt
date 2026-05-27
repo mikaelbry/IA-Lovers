@@ -1,3 +1,8 @@
+/*
+ * Construye la infraestructura HTTP de la aplicación móvil.
+ * Configura Retrofit, OkHttp, serialización JSON, tiempos de espera,
+ * logs de depuración y el envío automático del token de sesión.
+ */
 package com.ialovers.mobile.data
 
 import android.content.Context
@@ -11,9 +16,11 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 
+/** Interceptor que añade la cabecera Authorization cuando existe un token guardado. */
 private class AuthInterceptor(
     private val sessionStorage: SessionStorage,
 ) : Interceptor {
+    /** Inserta el token Bearer en cada petición antes de enviarla al backend. */
     override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
         val builder = chain.request().newBuilder()
         val token = sessionStorage.authToken
@@ -26,12 +33,14 @@ private class AuthInterceptor(
     }
 }
 
+/** Fábrica responsable de crear el servicio Retrofit y el almacén de sesión. */
 object ApiFactory {
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
     }
 
+    /** Crea una instancia lista para usar de ApiService junto a su SessionStorage. */
     fun create(context: Context): Pair<ApiService, SessionStorage> {
         val sessionStorage = SessionStorage(context.applicationContext)
 

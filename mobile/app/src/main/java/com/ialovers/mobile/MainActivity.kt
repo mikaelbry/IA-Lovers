@@ -1,3 +1,8 @@
+/*
+ * Punto de entrada de la interfaz Android.
+ * Crea el ViewModel principal, aplica el tema visual y decide qué pantalla
+ * raíz se muestra según el estado de autenticación y navegación.
+ */
 package com.ialovers.mobile
 
 import android.os.Bundle
@@ -12,15 +17,18 @@ import androidx.compose.ui.Modifier
 import com.ialovers.mobile.ui.screens.AuthChoiceScreen
 import com.ialovers.mobile.ui.screens.LoginScreen
 import com.ialovers.mobile.ui.screens.MainScreen
+import com.ialovers.mobile.ui.screens.PasswordResetScreen
 import com.ialovers.mobile.ui.screens.RegisterScreen
 import com.ialovers.mobile.ui.screens.SplashScreen
 import com.ialovers.mobile.ui.theme.IaLoversTheme
 
+/** Actividad principal que hospeda toda la aplicación Compose. */
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<AppViewModel> {
         AppViewModel.factory(applicationContext)
     }
 
+    /** Inicializa la actividad, activa el modo edge-to-edge y monta el árbol Compose. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -35,6 +43,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Selecciona la pantalla raíz que corresponde al estado actual del ViewModel. */
 @Composable
 private fun MobileApp(viewModel: AppViewModel) {
     when (viewModel.rootDestination) {
@@ -51,6 +60,7 @@ private fun MobileApp(viewModel: AppViewModel) {
             onBack = viewModel::goToAuthChoice,
             onLogin = viewModel::login,
             onGoRegister = viewModel::goToRegister,
+            onForgotPassword = viewModel::goToPasswordReset,
         )
         RootDestination.Register -> RegisterScreen(
             isBusy = viewModel.isBusy,
@@ -68,6 +78,24 @@ private fun MobileApp(viewModel: AppViewModel) {
             onVerifyCode = viewModel::verifyRegistration,
             onResendCode = viewModel::resendRegistrationCode,
             onCancelPending = viewModel::cancelPendingRegistration,
+            onGoLogin = viewModel::goToLogin,
+        )
+        RootDestination.PasswordReset -> PasswordResetScreen(
+            isBusy = viewModel.isBusy,
+            message = viewModel.authMessage,
+            error = viewModel.authError,
+            pendingPasswordReset = viewModel.pendingPasswordReset,
+            onBack = {
+                if (viewModel.pendingPasswordReset != null) {
+                    viewModel.cancelPendingPasswordReset()
+                } else {
+                    viewModel.goToLogin()
+                }
+            },
+            onStartPasswordReset = viewModel::startPasswordReset,
+            onCompletePasswordReset = viewModel::completePasswordReset,
+            onResendCode = viewModel::resendPasswordResetCode,
+            onCancelPending = viewModel::cancelPendingPasswordReset,
             onGoLogin = viewModel::goToLogin,
         )
         RootDestination.Main -> MainScreen(
