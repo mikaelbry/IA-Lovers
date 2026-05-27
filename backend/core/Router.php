@@ -32,10 +32,10 @@ class Router {
     private function normalizeUri($uri) {
         $uri = parse_url($uri, PHP_URL_PATH) ?? '/';
 
-        $apiPos = strpos($uri, '/api/');
+        $apiPos = strpos($uri, '/backend/');
         if ($apiPos !== false) {
-            $uri = substr($uri, $apiPos + 4);
-        } elseif (substr($uri, -4) === '/api') {
+            $uri = substr($uri, $apiPos + 8);
+        } elseif (substr($uri, -8) === '/backend') {
             $uri = '/';
         }
 

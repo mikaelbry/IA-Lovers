@@ -1,7 +1,7 @@
 const postsPathname = window.location.pathname;
 const postsWebIndex = postsPathname.indexOf("/web/");
 const postsPublicIndex = postsPathname.indexOf("/public/");
-const postsApiIndex = postsPathname.indexOf("/api/");
+const postsApiIndex = postsPathname.indexOf("/backend/");
 
 window.APP_BASE ??= (() => {
     const path = window.location.pathname;
@@ -20,7 +20,7 @@ window.APP_BASE ??= (() => {
 
     return "";
 })();
-window.API ??= `${window.APP_BASE}/api`;
+window.API ??= `${window.APP_BASE}/backend`;
 window.WEB_BASE ??= (postsWebIndex >= 0 || postsPublicIndex >= 0) ? `${window.APP_BASE}/web` : window.APP_BASE;
 window.apiUrl ??= (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;
 window.webUrl ??= (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path : `/${path}`}`;
@@ -415,5 +415,5 @@ function goToPost(id) {
 
 function goToTag(tag, event) {
     event.stopPropagation();
-    window.location.href = `${window.publicUrl("explorar.html")}?q=${tag}`;
+    window.location.href = `${window.publicUrl("explore.html")}?q=${tag}`;
 }

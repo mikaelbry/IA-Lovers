@@ -1,7 +1,7 @@
 const headerPathname = window.location.pathname;
 const headerWebIndex = headerPathname.indexOf("/web/");
 const headerPublicIndex = headerPathname.indexOf("/public/");
-const headerApiIndex = headerPathname.indexOf("/api/");
+const headerApiIndex = headerPathname.indexOf("/backend/");
 const AUTH_FLASH_KEY = "auth-flash";
 
 window.APP_BASE = (() => {
@@ -21,7 +21,7 @@ window.APP_BASE = (() => {
 
     return "";
 })();
-window.API = `${window.APP_BASE}/api`;
+window.API = `${window.APP_BASE}/backend`;
 window.WEB_BASE = headerWebIndex >= 0 || headerPublicIndex >= 0 ? `${window.APP_BASE}/web` : window.APP_BASE;
 window.apiUrl = (path = "") => `${window.API}${path.startsWith("/") ? path : `/${path}`}`;
 window.webUrl = (path = "") => `${window.WEB_BASE}${path.startsWith("/") ? path : `/${path}`}`;
@@ -470,7 +470,7 @@ function renderNavbar() {
 
     let centerHTML = `
         <a href="${webUrl("index.html")}" data-page="index">Inicio</a>
-        <a href="${webUrl("explorar.html")}" data-page="explorar">Explorar</a>
+        <a href="${webUrl("explore.html")}" data-page="explore">Explorar</a>
     `;
 
     if (user) {
@@ -532,7 +532,7 @@ function renderNavbar() {
 
     const map = {
         "index.html": "index",
-        "explorar.html": "explorar",
+        "explore.html": "explore",
         "following.html": "following",
         "create.html": "create",
         "profile.html": "profile",

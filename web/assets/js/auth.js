@@ -68,7 +68,7 @@ function getRedirectUrl() {
 }
 
 function getApiUrl(path) {
-    const base = window.API || `${window.location.origin}/api`;
+    const base = window.API || `${window.location.origin}/backend`;
     return `${base}${path}`;
 }
 

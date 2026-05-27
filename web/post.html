@@ -574,7 +574,7 @@ function goBack() {
 
 function goToTag(tag, event) {
     event.stopPropagation();
-    window.location.href = `${publicUrl('explorar.html')}?q=${tag}`;
+    window.location.href = `${publicUrl('explore.html')}?q=${tag}`;
 }
 
 loadPost().catch(error => {
