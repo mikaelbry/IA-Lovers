@@ -343,7 +343,7 @@ fun Avatar(
 
 private fun PostItem.shareUrl(): String {
     val apiBase = BuildConfig.API_BASE_URL.trimEnd('/')
-    val appBase = apiBase.removeSuffix("/api")
+    val appBase = apiBase.removeSuffix("/backend")
     return "$appBase/web/post.html?id=$id"
 }
 

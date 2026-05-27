@@ -1,19 +1,19 @@
-# Copy this file to local.properties on each machine and adjust the values.
-# local.properties is intentionally ignored by Git.
+#local.properties se usa para configurar la app para pruebas de entorno 
+#Copia este archivo como local.properties en cada ordenador y ajusta los valores según el entorno.
+# El archivo local.properties está ignorado por Git de forma intencionada,
+# ya que contiene configuraciones locales de cada desarrollador.
 
-# Android SDK path for your computer. Android Studio usually writes this automatically.
-# Windows example:
-# sdk.dir=C\:\\Users\\YOUR_USER\\AppData\\Local\\Android\\Sdk
+# URL base de la API utilizada por la aplicación Android.
+# Configuración actualmente usada en producción:
+iaLoversApiBaseUrl=https://ia-lovers.vercel.app/backend/
 
-# API base URL used by the Android app.
-# Production API:
-iaLoversApiBaseUrl=https://ia-lovers.vercel.app/api/
+# Para usar el emulador de Android conectado a XAMPP en el mismo PC:
+# iaLoversApiBaseUrl=http://10.0.2.2/IA-Lovers/backend/
 
-# Android emulator talking to XAMPP on the same PC:
-# iaLoversApiBaseUrl=http://10.0.2.2/IA-Lovers/api/
+# Para usar un dispositivo Android físico conectado a la misma red Wi-Fi:
+# Sustituir YOUR_PC_LAN_IP por la IP local del ordenador donde se ejecuta XAMPP.
+# Ejemplo:
+# iaLoversApiBaseUrl=http://192.168.1.35/IA-Lovers/backend/
 
-# Physical Android device on the same Wi-Fi:
-# iaLoversApiBaseUrl=http://YOUR_PC_LAN_IP/IA-Lovers/api/
-
-# Other staging API:
-# iaLoversApiBaseUrl=https://your-domain.example/api/
+# Ejemplo para otros entornos de pruebas:
+# iaLoversApiBaseUrl=https://tu-dominio.example/backend/

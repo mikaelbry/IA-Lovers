@@ -114,6 +114,7 @@ fun MainScreen(
         topBar = {
             when {
                 activePostId != null -> {}
+                isSettingsOpen -> {}
                 activeUserProfileUsername != null -> {
                     Row(
                         modifier = Modifier
@@ -393,28 +394,52 @@ private fun BottomNavigation(
                     Modifier
                 },
                 icon = {
-                    if (tab == MainTab.Notifications) {
-                        BadgedBox(
-                            badge = {
-                                if (unreadCount > 0) {
-                                    Badge {
-                                        Text(
-                                            text = if (unreadCount > 9) "9+" else unreadCount.toString(),
-                                        )
+                    Box {
+                        if (tab == MainTab.Notifications) {
+                            BadgedBox(
+                                badge = {
+                                    if (unreadCount > 0) {
+                                        Badge {
+                                            Text(
+                                                text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                        ) {
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.label,
+                                )
+                            }
+                        } else {
                             Icon(
                                 imageVector = tab.icon,
                                 contentDescription = tab.label,
                             )
                         }
-                    } else {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = tab.label,
-                        )
+
+                        if (isProfile) {
+                            DropdownMenu(
+                                expanded = showProfileMenu,
+                                onDismissRequest = { showProfileMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Ajustes") },
+                                    onClick = {
+                                        showProfileMenu = false
+                                        onOpenSettings(SettingsSection.Account)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Cerrar sesion") },
+                                    onClick = {
+                                        showProfileMenu = false
+                                        onLogout()
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
                 label = {
@@ -426,28 +451,6 @@ private fun BottomNavigation(
                     )
                 },
             )
-
-            if (isProfile) {
-                DropdownMenu(
-                    expanded = showProfileMenu,
-                    onDismissRequest = { showProfileMenu = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Ajustes") },
-                        onClick = {
-                            showProfileMenu = false
-                            onOpenSettings(SettingsSection.Account)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Cerrar sesion") },
-                        onClick = {
-                            showProfileMenu = false
-                            onLogout()
-                        },
-                    )
-                }
-            }
         }
     }
 }

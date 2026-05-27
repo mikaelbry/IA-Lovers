@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -68,14 +70,15 @@ fun SettingsScreen(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onBack) {
-                Text("Volver")
-            }
             Text(
                 text = "Ajustes",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
+            Spacer(modifier = Modifier.weight(1f))
+            TextButton(onClick = onBack) {
+                Text("Volver")
+            }
         }
 
         when {
@@ -240,6 +243,15 @@ private fun UsernameSettings(
 ) {
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var wasSaving by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isSaving) {
+        if (wasSaving && !isSaving) {
+            username = ""
+            password = ""
+        }
+        wasSaving = isSaving
+    }
 
     SettingsCard(title = "Cambiar nombre de usuario") {
         OutlinedTextField(
@@ -283,11 +295,17 @@ private fun EmailSettings(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
+    var wasPending by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.emailChange.pending) {
-        if (!state.emailChange.pending) {
+        if (wasPending && !state.emailChange.pending) {
             code = ""
         }
+        if (!wasPending && state.emailChange.pending) {
+            email = ""
+            password = ""
+        }
+        wasPending = state.emailChange.pending
     }
 
     SettingsCard(title = "Cambiar correo") {
@@ -363,6 +381,16 @@ private fun PasswordSettings(
     var current by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirm by rememberSaveable { mutableStateOf("") }
+    var wasSaving by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isSaving) {
+        if (wasSaving && !isSaving) {
+            current = ""
+            password = ""
+            confirm = ""
+        }
+        wasSaving = isSaving
+    }
 
     SettingsCard(title = "Cambiar contrasena") {
         PasswordField(current, { current = it }, "Contrasena actual")

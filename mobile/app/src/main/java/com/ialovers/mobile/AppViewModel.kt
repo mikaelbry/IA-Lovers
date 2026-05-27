@@ -1033,10 +1033,16 @@ class AppViewModel(
             throw IllegalArgumentException("La $target debe ser JPG, PNG o WEBP.")
         }
 
+        val maxBytes = 4 * 1024 * 1024
+        val fileSize = queryFileSize(uri)
+        if (fileSize != null && fileSize > maxBytes) {
+            val target = if (formName == "avatar") "avatar" else "imagen"
+            throw IllegalArgumentException("La $target no puede superar los 4 MB.")
+        }
+
         val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
             ?: throw IOException("No se pudo leer la imagen seleccionada.")
 
-        val maxBytes = 4 * 1024 * 1024
         if (bytes.size > maxBytes) {
             val target = if (formName == "avatar") "avatar" else "imagen"
             throw IllegalArgumentException("La $target no puede superar los 4 MB.")
@@ -1045,6 +1051,16 @@ class AppViewModel(
         val fileName = queryDisplayName(uri) ?: formName
         val body = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
         MultipartBody.Part.createFormData(formName, fileName, body)
+    }
+
+    private fun queryFileSize(uri: Uri): Long? {
+        return appContext.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+            if (index >= 0 && cursor.moveToFirst()) {
+                val size = cursor.getLong(index)
+                if (size >= 0) size else null
+            } else null
+        }
     }
 
     private fun queryDisplayName(uri: Uri): String? {
@@ -1282,7 +1298,17 @@ class AppViewModel(
             exploreState = FeedUiState()
             followingState = FeedUiState()
             profileState = ProfileUiState(isLoading = false)
+            viewedProfileState = ProfileUiState()
+            postDetailState = PostDetailUiState()
+            settingsState = SettingsUiState(isLoading = false)
+            createPostState = CreatePostUiState()
+            notificationsState = NotificationsUiState()
+            notificationsUnreadCount = 0
+            pendingRegistration = null
             activePostId = null
+            activeUserProfileUsername = null
+            isSettingsOpen = false
+            authError = null
             rootDestination = RootDestination.AuthChoice
             authMessage = "La sesion habia caducado. Inicia sesion de nuevo."
             return
@@ -1304,7 +1330,7 @@ class AppViewModel(
                 parsed ?: "La API devolvio un error (${error.code()})."
             }
 
-            is IOException -> "No se pudo conectar con la API. Revisa la URL base y que el servidor este levantado."
+            is IOException -> "No se pudo conectar con la API."
             else -> error.message ?: "Ha ocurrido un error inesperado."
         }
     }

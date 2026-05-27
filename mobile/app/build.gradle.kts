@@ -18,7 +18,7 @@ val localProperties = Properties().apply {
 val configuredApiBaseUrl = providers
     .gradleProperty("iaLoversApiBaseUrl")
     .orElse(providers.provider { localProperties.getProperty("iaLoversApiBaseUrl") })
-    .orElse("http://10.0.2.2/IA-Lovers/api/")
+    .orElse("http://10.0.2.2/IA-Lovers/backend/")
     .map { if (it.endsWith("/")) it else "$it/" }
 
 extensions.configure<ApplicationExtension> {
