@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Exploración pública: buscador, categorías destacadas y feed paginado. -->
 <html>
     <head>
         <meta charset="UTF-8">
@@ -234,6 +235,10 @@
         <script src="assets/js/header.js?v=20260326-2"></script>
         <script src="assets/js/posts.js?v=20260326-2"></script>
         <script>
+            /**
+             * Controlador de la página Explorar.
+             * Conecta filtros visuales, búsqueda, etiquetas rápidas y feed paginado.
+             */
             function toggleFilters(){
                 const toggle = document.querySelector('.filter-toggle');
                 const content = document.querySelector('.filter-content');

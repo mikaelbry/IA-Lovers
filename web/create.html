@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Creación de publicación: valida imagen, texto y etiquetas antes de enviar a la API. -->
 <html>
 <head>
 <meta charset="UTF-8">
@@ -290,6 +291,11 @@ Máximo 24 caracteres por tag
 <script src="assets/js/header.js?v=20260326-2"></script>
 
 <script>
+/**
+ * Controlador de creación de publicaciones.
+ * Valida archivo, límites de texto y etiquetas antes de enviar el multipart
+ * al backend autenticado.
+ */
 const token = localStorage.getItem("token");
 const selected = [];
 
@@ -309,6 +315,7 @@ if (!token) {
     window.location.href = "login.html";
 }
 
+/** Resalta temporalmente un aviso de validación. */
 function flashWarning(el) {
     el.classList.add("visible", "flash");
     setTimeout(() => el.classList.remove("flash"), 300);
@@ -376,6 +383,7 @@ function setSubmittingState(submitting) {
     submitBtn.textContent = submitting ? "Publicando..." : "Publicar";
 }
 
+/** Renderiza las etiquetas sugeridas que todavía no han sido seleccionadas. */
 function renderQuickTags() {
     const container = document.getElementById("quickTags");
     container.innerHTML = "";
@@ -417,6 +425,7 @@ function removeTag(index) {
     renderSelected();
 }
 
+/** Normaliza, valida y añade una etiqueta respetando límites de cantidad y longitud. */
 function addTag(tag) {
     if (selected.length >= MAX_TAGS) {
         showMaxWarningFlash();

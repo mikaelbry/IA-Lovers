@@ -1,3 +1,12 @@
+/**
+ * Cabecera global de la web.
+ *
+ * Responsabilidades:
+ * - Resolver rutas base para API y páginas públicas.
+ * - Mantener sincronizada la sesión guardada en localStorage.
+ * - Renderizar la navegación según haya usuario autenticado o no.
+ * - Gestionar logout, redirecciones seguras y notificaciones del usuario.
+ */
 const headerPathname = window.location.pathname;
 const headerWebIndex = headerPathname.indexOf("/web/");
 const headerPublicIndex = headerPathname.indexOf("/public/");
@@ -58,14 +67,17 @@ function sanitizeAuthRedirect(target) {
     }
 }
 
+/** Devuelve el nombre del documento HTML actual para marcar navegación y construir redirects. */
 function currentPageName() {
     return window.location.pathname.split("/").pop() || authRedirectFallback;
 }
 
+/** Construye un destino de retorno seguro hacia la página actual. */
 function currentRedirectTarget() {
     return sanitizeAuthRedirect(`${currentPageName()}${window.location.search}${window.location.hash}`);
 }
 
+/** Guarda un mensaje temporal para mostrarlo tras redirigir al login. */
 function storeAuthFlash(message, type = "info") {
     if (!message) {
         sessionStorage.removeItem(AUTH_FLASH_KEY);
@@ -91,6 +103,7 @@ window.consumeAuthFlash = () => {
     }
 };
 
+/** Limpia sesión local, opcionalmente avisa al backend y redirige al login. */
 window.clearAuthSession = async ({
     redirectToLogin = false,
     flashMessage = "",
@@ -130,6 +143,7 @@ window.clearAuthSession = async ({
     window.location.href = `${webUrl("login.html")}?redirect=${encodeURIComponent(redirect)}`;
 };
 
+/** Cierra la sesión desde la interfaz y devuelve al inicio público. */
 window.performLogout = async () => {
     await window.clearAuthSession({
         redirectToLogin: false,
@@ -140,6 +154,7 @@ window.performLogout = async () => {
     window.location.href = webUrl("index.html");
 };
 
+/** Ejecuta una petición JSON y centraliza errores de sesión caducada. */
 window.requestApiJson = async (url, options = {}) => {
     options.headers = options.headers || {};
 
@@ -174,6 +189,7 @@ window.requestApiJson = async (url, options = {}) => {
     return data;
 };
 
+/** Escapa contenido dinámico antes de inyectarlo en HTML. */
 function escapeHeaderHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
@@ -184,6 +200,7 @@ function escapeHeaderHtml(value) {
     }[char]));
 }
 
+/** Convierte fechas de notificación en una etiqueta relativa breve. */
 function relativeNotificationTime(dateString) {
     const date = new Date(dateString);
     const timestamp = date.getTime();
@@ -219,6 +236,7 @@ function relativeNotificationTime(dateString) {
     });
 }
 
+/** Genera el texto visible de una notificación según su tipo. */
 function notificationText(notification) {
     const username = notification.from_username || "Alguien";
 
@@ -232,6 +250,7 @@ function notificationText(notification) {
     return messages[notification.type] || `${username} tiene una novedad para ti.`;
 }
 
+/** Devuelve el enlace al post asociado a una notificación, si existe. */
 function notificationPostHref(notification) {
     if (notification.post_id) {
         return webUrl(`post.html?id=${encodeURIComponent(notification.post_id)}`);
@@ -240,6 +259,7 @@ function notificationPostHref(notification) {
     return null;
 }
 
+/** Devuelve el enlace al perfil del usuario que originó la notificación. */
 function notificationUserHref(notification) {
     if (notification.from_username) {
         return webUrl(`user.html?username=${encodeURIComponent(notification.from_username)}`);
@@ -248,6 +268,7 @@ function notificationUserHref(notification) {
     return "#";
 }
 
+/** Renderiza avatar o inicial en el panel de notificaciones. */
 function renderNotificationAvatar(notification) {
     const username = notification.from_username || "I";
 
@@ -258,6 +279,7 @@ function renderNotificationAvatar(notification) {
     return `<span class="notification-avatar notification-avatar-initial">${escapeHeaderHtml(username.charAt(0).toUpperCase() || "I")}</span>`;
 }
 
+/** Renderiza la miniatura del post relacionado con la notificación. */
 function renderNotificationPostThumb(notification) {
     const postHref = notificationPostHref(notification);
 
@@ -274,6 +296,7 @@ function renderNotificationPostThumb(notification) {
     `;
 }
 
+/** Actualiza la burbuja con el número de notificaciones sin leer. */
 function setNotificationBadge(count) {
     const badge = document.getElementById("notificationsBadge");
 
@@ -286,6 +309,7 @@ function setNotificationBadge(count) {
     badge.classList.toggle("hidden", unreadCount <= 0);
 }
 
+/** Pinta la lista desplegable de notificaciones. */
 function renderNotificationsList(notifications) {
     const list = document.getElementById("notificationsList");
 
@@ -325,6 +349,7 @@ function renderNotificationsList(notifications) {
     }).join("");
 }
 
+/** Carga notificaciones y, si se solicita, las marca como leídas. */
 async function loadNotifications({ markRead = false } = {}) {
     const panel = document.getElementById("notificationsPanel");
     const list = document.getElementById("notificationsList");
@@ -362,6 +387,7 @@ async function loadNotifications({ markRead = false } = {}) {
     }
 }
 
+/** Consulta el contador de notificaciones no leídas sin abrir el panel. */
 async function loadUnreadNotificationCount() {
     if (!window.token) {
         return;
@@ -379,6 +405,7 @@ async function loadUnreadNotificationCount() {
     }
 }
 
+/** Conecta el botón de notificaciones con su panel desplegable. */
 function bindNotificationsDropdown() {
     const button = document.getElementById("notificationsButton");
     const panel = document.getElementById("notificationsPanel");
@@ -413,6 +440,7 @@ function bindNotificationsDropdown() {
     });
 }
 
+/** Comprueba que el token guardado sigue siendo válido antes de pintar la cabecera. */
 async function validateStoredSession() {
     const storedToken = localStorage.getItem("token");
 
@@ -446,6 +474,7 @@ async function validateStoredSession() {
     }
 }
 
+/** Renderiza enlaces, acciones y menús de la barra superior según la sesión actual. */
 function renderNavbar() {
     const navbar = document.querySelector(".navbar");
 

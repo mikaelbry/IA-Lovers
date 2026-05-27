@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Feed de usuarios seguidos: requiere sesión y reutiliza posts.js para paginación y acciones. -->
 <html>
     <head>
         <meta charset="UTF-8">
@@ -32,6 +33,7 @@
         <script src="assets/js/posts.js?v=20260326-2"></script>
 
         <script>
+            // Protege el feed de seguidos y delega paginación/renderizado en posts.js.
             if(!localStorage.getItem("token")){
                 window.location.href = "login.html";
             } else {

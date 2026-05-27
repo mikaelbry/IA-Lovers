@@ -1,3 +1,9 @@
+/**
+ * Utilidades compartidas para feeds y tarjetas de publicaciones.
+ *
+ * Centraliza paginación, renderizado de posts, acciones de me gusta,
+ * eliminación, enlaces de perfil, navegación a etiquetas y scroll infinito.
+ */
 const postsPathname = window.location.pathname;
 const postsWebIndex = postsPathname.indexOf("/web/");
 const postsPublicIndex = postsPathname.indexOf("/public/");
@@ -32,12 +38,14 @@ async function postsRequestJson(url, options = {}) {
     return await window.requestApiJson(url, options);
 }
 
+// Estado compartido de paginación para la página que usa este módulo.
 let cursor = null;
 let cursorLikes = null;
 let loading = false;
 let finished = false;
 let observer = null;
 
+/** Formatea una fecha de publicación para mostrarla en tarjetas. */
 function formatDate(dateString) {
     if (!dateString) {
         return "";
@@ -54,6 +62,7 @@ function formatDate(dateString) {
     return `${hours}:${minutes} - ${day}/${month}/${year}`;
 }
 
+/** Escapa contenido procedente de la API antes de componer HTML. */
 function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
@@ -64,6 +73,7 @@ function escapeHtml(value) {
     }[char]));
 }
 
+/** Decide si el enlace del autor apunta al perfil propio o a un perfil público. */
 function getPostProfileUrl(post) {
     if (window.user && window.user.username === post.username) {
         return window.publicUrl("profile.html");
@@ -72,10 +82,12 @@ function getPostProfileUrl(post) {
     return `${window.publicUrl("user.html")}?username=${encodeURIComponent(post.username ?? "")}`;
 }
 
+/** Obtiene una inicial segura para avatares sin imagen. */
 function getInitial(value) {
     return escapeHtml(String(value || "I").trim().charAt(0).toUpperCase() || "I");
 }
 
+/** Renderiza avatar remoto o inicial para cabeceras de publicación. */
 function renderUserAvatar(user, className) {
     const username = user?.username ?? "";
 
@@ -86,6 +98,7 @@ function renderUserAvatar(user, className) {
     return `<span class="${className} avatar-initial" aria-label="Avatar de ${escapeHtml(username)}">${getInitial(username)}</span>`;
 }
 
+/** Devuelve el SVG doble usado para estado normal y activo del botón de like. */
 function renderLikeIcon() {
     return `
         <svg class="post-action-icon like-icon-outline" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -97,6 +110,7 @@ function renderLikeIcon() {
     `;
 }
 
+/** Devuelve el SVG del contador de comentarios. */
 function renderCommentIcon() {
     return `
         <svg class="post-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -105,12 +119,14 @@ function renderCommentIcon() {
     `;
 }
 
+/** Reemplaza todo el contenido de un feed por una lista de publicaciones. */
 function renderPosts(posts, containerId = "posts") {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
     appendPosts(posts, containerId);
 }
 
+/** Añade nuevas publicaciones al contenedor respetando el estado de paginación. */
 function appendPosts(posts, containerId = "posts") {
     const container = document.getElementById(containerId);
 
@@ -190,6 +206,7 @@ function appendPosts(posts, containerId = "posts") {
     });
 }
 
+/** Inicializa el sentinel que dispara la carga de más publicaciones. */
 function initInfiniteScroll(fetchUrlBuilder, containerId = "posts") {
     const sentinel = document.createElement("div");
     sentinel.id = "scroll-sentinel";
@@ -209,6 +226,7 @@ function initInfiniteScroll(fetchUrlBuilder, containerId = "posts") {
     loadMore(fetchUrlBuilder, containerId);
 }
 
+/** Solicita la siguiente página del feed y actualiza cursores. */
 async function loadMore(fetchUrlBuilder, containerId) {
     if (loading || finished) {
         return;
@@ -242,6 +260,7 @@ async function loadMore(fetchUrlBuilder, containerId) {
     }
 }
 
+/** Reinicia cursores y vuelve a cargar el feed desde la primera página. */
 function resetAndLoad(fetchUrlBuilder, containerId = "posts") {
     cursor = null;
     cursorLikes = null;
@@ -260,6 +279,7 @@ function resetAndLoad(fetchUrlBuilder, containerId = "posts") {
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+/** Alterna un like de forma optimista y revierte si la API falla. */
 function toggleLike(event, id, btn) {
     event.preventDefault();
     event.stopPropagation();
@@ -307,6 +327,7 @@ function toggleLike(event, id, btn) {
         });
 }
 
+/** Abre o cierra el menú contextual de una publicación. */
 function toggleMenu(event, id) {
     event.preventDefault();
     event.stopPropagation();
@@ -325,6 +346,7 @@ document.addEventListener("click", () => {
         .forEach(menu => menu.classList.remove("active"));
 });
 
+/** Copia el enlace público del post al portapapeles. */
 function copyPostLink(id, event) {
     event.preventDefault();
     event.stopPropagation();
@@ -343,6 +365,7 @@ function copyPostLink(id, event) {
     }, 2000);
 }
 
+/** Muestra el diálogo de confirmación para borrar una publicación propia. */
 function openDeletePostDialog(id, event) {
     event?.preventDefault();
     event?.stopPropagation();
@@ -377,10 +400,12 @@ function openDeletePostDialog(id, event) {
     document.body.appendChild(dialog);
 }
 
+/** Cierra el diálogo de borrado de publicación si está presente. */
 function closeDeletePostDialog() {
     document.getElementById("deletePostDialog")?.remove();
 }
 
+/** Elimina una publicación en backend y la retira del DOM. */
 function deletePost(id) {
     postsRequestJson(apiUrl("/posts/delete"), {
         method: "POST",
@@ -409,10 +434,12 @@ function deletePost(id) {
         });
 }
 
+/** Navega al detalle público de una publicación. */
 function goToPost(id) {
     window.location.href = "post.html?id=" + id;
 }
 
+/** Navega a Explorar filtrando por una etiqueta concreta. */
 function goToTag(tag, event) {
     event.stopPropagation();
     window.location.href = `${window.publicUrl("explore.html")}?q=${tag}`;

@@ -1,5 +1,11 @@
 ﻿/* ===== POST CARD ===== */
 
+/*
+ * Estilos de publicaciones y detalle.
+ * Define tarjetas de post, acciones, menús, diálogos de borrado,
+ * comentarios, respuestas y layout de la página de detalle.
+ */
+
 .post {
     background: #fff;
     border: 1px solid #e6e6e6;

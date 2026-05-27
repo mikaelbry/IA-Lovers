@@ -1,3 +1,10 @@
+/**
+ * Pantalla de ajustes del perfil web.
+ *
+ * Controla las secciones de cuenta, avatar, usuario, correo, contraseña
+ * y borrado de cuenta. Centraliza validaciones de formulario, renderizado
+ * de paneles dinámicos y llamadas protegidas a la API.
+ */
 const token = localStorage.getItem("token");
 const settingsForm = document.getElementById("settingsForm");
 const settingsNav = document.getElementById("settingsNav");
@@ -12,6 +19,7 @@ const summaryAvatarWrap = document.getElementById("summaryAvatarWrap");
 const MAX_AVATAR_FILE_MB = 4;
 const MAX_AVATAR_FILE = MAX_AVATAR_FILE_MB * 1024 * 1024;
 
+/** Alterna visibilidad de campos de contraseña manteniendo el estado visual del wrapper. */
 function togglePassword(inputId, button) {
     const input = document.getElementById(inputId);
     const wrapper = button.closest('.password-wrapper');
@@ -25,6 +33,7 @@ function togglePassword(inputId, button) {
     }
 }
 
+/** Genera un campo de contraseña consistente para las secciones sensibles. */
 function passwordFieldHtml(id, label, autocomplete, required = true, readonly = false, value = '') {
     const requiredAttr = required ? 'required' : '';
     const readonlyAttr = readonly ? 'readonly' : '';
@@ -49,6 +58,7 @@ function passwordFieldHtml(id, label, autocomplete, required = true, readonly = 
     `;
 }
 
+// Estado único de la pantalla para evitar inconsistencias entre paneles.
 const state = {
     user: null,
     postsCount: 0,
@@ -130,6 +140,7 @@ function formatCreatedAt(dateString) {
     });
 }
 
+/** Muestra mensajes de estado de la sección activa. */
 function setStatus(message = "", type = "") {
     statusEl.textContent = message;
     statusEl.className = `settings-status${type ? ` ${type}` : ""}`;
@@ -153,6 +164,7 @@ function setLoading(isLoading) {
     saveButton.textContent = isLoading ? "Procesando..." : getSaveLabel();
 }
 
+/** Actualiza la tarjeta lateral con los datos actuales del usuario. */
 function updateSummary() {
     document.getElementById("profileName").textContent = state.user.username;
     document.getElementById("profileEmail").textContent = state.user.email;
@@ -160,6 +172,7 @@ function updateSummary() {
     summaryAvatarWrap.innerHTML = renderUserAvatar(state.user, "settings-avatar", state.avatarPreview);
 }
 
+/** Sincroniza localStorage y cabecera tras cambios de usuario o avatar. */
 function syncStoredUser() {
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
     storedUser.username = state.user.username;
@@ -172,6 +185,7 @@ function syncStoredUser() {
     }
 }
 
+/** Descarta la previsualización local de avatar y libera su URL temporal. */
 function resetAvatarDraft() {
     if (state.avatarPreview && state.avatarPreview.startsWith("blob:")) {
         URL.revokeObjectURL(state.avatarPreview);
@@ -182,6 +196,7 @@ function resetAvatarDraft() {
     updateSummary();
 }
 
+/** Limpia el flujo pendiente de cambio de correo. */
 function resetEmailChangeState() {
     clearEmailChangeResendTimer();
     state.emailChange.pending = false;
@@ -223,6 +238,7 @@ function updateEmailResendButton() {
     clearEmailChangeResendTimer();
 }
 
+/** Aplica el cooldown visual para reenvío de código de cambio de correo. */
 function startEmailChangeResendCooldown(seconds = state.emailChange.resendCooldownSeconds) {
     state.emailChange.resendCooldownSeconds = seconds;
     state.emailChange.resendAvailableAt = Date.now() + (seconds * 1000);
@@ -231,6 +247,7 @@ function startEmailChangeResendCooldown(seconds = state.emailChange.resendCooldo
     state.emailChange.resendTimer = window.setInterval(updateEmailResendButton, 1000);
 }
 
+/** Define la configuración de renderizado y cancelación de cada sección. */
 function getSections() {
     return {
         account: {
@@ -378,12 +395,14 @@ function getSections() {
     };
 }
 
+/** Vuelve a la sección de información de cuenta con un mensaje opcional. */
 function goToAccountSection(message = "", type = "") {
     state.activeSection = "account";
     renderActiveSection();
     setStatus(message, type);
 }
 
+/** Muestra el resultado de disponibilidad del nombre de usuario. */
 function setUsernameAvailability(message, type = "") {
     state.usernameCheck.message = message;
     state.usernameCheck.type = type;
@@ -395,6 +414,7 @@ function setUsernameAvailability(message, type = "") {
     }
 }
 
+/** Consulta disponibilidad de usuario y descarta respuestas obsoletas. */
 async function checkUsernameAvailability(username) {
     const requestId = ++state.usernameCheck.requestId;
     state.usernameCheck.checking = true;
@@ -430,6 +450,7 @@ async function checkUsernameAvailability(username) {
     updatePrimaryState();
 }
 
+/** Cancela el cambio de correo pendiente, tanto en backend como en estado local. */
 async function cancelEmailChangeFlow({ goToAccount = false, silent = false } = {}) {
     if (state.emailChange.pending) {
         try {
@@ -455,6 +476,7 @@ async function cancelEmailChangeFlow({ goToAccount = false, silent = false } = {
     }
 }
 
+/** Reenvía el código de cambio de correo respetando el cooldown de la API. */
 async function resendEmailChangeCode() {
     if (!state.emailChange.pending) {
         return;
@@ -495,6 +517,7 @@ async function resendEmailChangeCode() {
     }
 }
 
+/** Conecta validaciones y cambios de formulario tras renderizar una sección. */
 function bindSectionEvents() {
     if (state.activeSection === "avatar") {
         const avatarInput = document.getElementById("avatarInput");
@@ -641,6 +664,7 @@ function bindSectionEvents() {
     }
 }
 
+/** Calcula si la acción principal debe estar deshabilitada para la sección activa. */
 function isPrimaryDisabled() {
     if (state.activeSection === "avatar") {
         return !state.avatarFile;
@@ -693,11 +717,13 @@ function isPrimaryDisabled() {
     return false;
 }
 
+/** Actualiza etiqueta y disponibilidad del botón principal. */
 function updatePrimaryState() {
     saveButton.textContent = getSaveLabel();
     saveButton.disabled = isPrimaryDisabled();
 }
 
+/** Renderiza la sección activa y reinicia estados transitorios de validación. */
 function renderActiveSection() {
     const sections = getSections();
     const section = sections[state.activeSection];
@@ -777,6 +803,7 @@ async function deleteAccount(payload) {
     });
 }
 
+/** Ejecuta la acción principal de la sección activa y actualiza la interfaz. */
 async function handleSectionSubmit() {
     if (state.activeSection === "avatar") {
         if (!state.avatarFile) {
@@ -980,6 +1007,7 @@ settingsForm.addEventListener("submit", async (event) => {
     }
 });
 
+/** Carga el resumen de ajustes inicial desde la API. */
 async function loadSettings() {
     const data = await requestJson(apiUrl("/users/settings-summary"), {
         headers: { Authorization: "Bearer " + token }

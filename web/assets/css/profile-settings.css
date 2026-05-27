@@ -1,3 +1,9 @@
+/*
+ * Estilos de ajustes de perfil.
+ * Organiza el panel de secciones, formularios sensibles, avatar,
+ * validaciones, estados de guardado y diseño responsive.
+ */
+
 .settings-shell {
     max-width: 1120px;
     margin: 28px auto 56px;

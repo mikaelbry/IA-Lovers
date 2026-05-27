@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Detalle de publicación: likes, comentarios, respuestas, borrado y navegación por hilos. -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -21,6 +22,11 @@
 
 <script src="assets/js/header.js?v=20260405-3"></script>
 <script>
+/**
+ * Controlador del detalle de publicación.
+ * Carga el post, gestiona acciones del propietario, likes, comentarios,
+ * respuestas anidadas y navegación entre hilos.
+ */
 const params = new URLSearchParams(window.location.search);
 const postId = params.get('id');
 const token = localStorage.getItem('token');
@@ -89,6 +95,7 @@ async function requestJson(url, options = {}) {
     return await window.requestApiJson(url, options);
 }
 
+/** Carga la publicación y prepara comentarios, autor y acciones visibles. */
 async function loadPost() {
     if (!postId) {
         document.getElementById('post').innerHTML = '<p>Post no encontrado.</p>';
@@ -152,6 +159,7 @@ async function loadPost() {
     renderComments(activeThreadId);
 }
 
+/** Alterna el like del post con actualización optimista de la interfaz. */
 async function toggleLike() {
     if (!token) {
         window.location.href = 'login.html';
@@ -293,6 +301,7 @@ async function deletePost(id) {
     }
 }
 
+/** Convierte la lista plana de comentarios en un árbol por parent_id. */
 function buildTree(comments) {
     const map = {};
     const roots = [];
@@ -325,6 +334,7 @@ function countAllDescendants(comment) {
     return count;
 }
 
+/** Renderiza el hilo actual de comentarios y su formulario correspondiente. */
 function renderComments(parentId) {
     const container = document.getElementById('comments');
     const tree = buildTree(allComments);
@@ -525,6 +535,7 @@ function goBackComment() {
     renderComments(commentStack[commentStack.length - 1] || null);
 }
 
+/** Envía un comentario o respuesta y actualiza el hilo en pantalla. */
 async function addComment(parentId = null) {
     if (!token) {
         window.location.href = 'login.html';

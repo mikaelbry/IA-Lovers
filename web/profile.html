@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Perfil privado del usuario autenticado, con resumen social y publicaciones propias. -->
 <html>
     <head>
         <meta charset="UTF-8">
@@ -35,6 +36,11 @@
         <script src="assets/js/header.js?v=20260326-2"></script>
         <script src="assets/js/posts.js?v=20260326-2"></script>
         <script>
+/**
+ * Controlador del perfil propio.
+ * Carga datos privados del usuario autenticado, seguidores, seguidos y posts,
+ * y mantiene sincronizado el estado de seguimiento en el modal.
+ */
 const token = localStorage.getItem("token");
 const profileEl = document.getElementById("profile");
 const modal = document.getElementById("followModal");
@@ -116,6 +122,7 @@ function getCurrentModalUsers() {
     return state.modalType === "followers" ? state.followers : state.following;
 }
 
+/** Renderiza resumen del perfil, métricas sociales y publicaciones propias. */
 function renderProfile() {
     if (!state.user) {
         return;
@@ -161,6 +168,7 @@ function renderProfile() {
         .addEventListener("click", () => showFollowPopup("following"));
 }
 
+/** Pinta el modal de seguidores o seguidos según la pestaña social activa. */
 function renderModal() {
     if (!state.modalType) {
         return;
@@ -205,6 +213,7 @@ function closeModal() {
     document.body.style.overflow = "";
 }
 
+/** Sigue o deja de seguir a un usuario y actualiza las listas locales. */
 async function toggleFollow(username) {
     if (pendingFollows.has(username)) {
         return;
@@ -259,6 +268,7 @@ modal.addEventListener("click", (event) => {
     }
 });
 
+/** Carga perfil, seguidores y seguidos desde la API autenticada. */
 async function loadProfile() {
     const data = await requestJson(apiUrl("/users/profile"), {
         headers: { Authorization: "Bearer " + token }

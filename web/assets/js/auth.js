@@ -1,7 +1,15 @@
+/**
+ * Flujos de autenticación de la web.
+ *
+ * Gestiona login con CAPTCHA, registro con verificación por correo,
+ * recuperación de contraseña, reenvío/cancelación de códigos y restauración
+ * de contexto entre páginas de autenticación.
+ */
 const AUTH_PAGES = new Set(['login.html', 'register.html', 'forgot_password.html']);
 const PENDING_REGISTRATION_KEY = 'pending-registration-flow';
 const PENDING_PASSWORD_RESET_KEY = 'pending-password-reset-flow';
 
+// Estado efímero del registro pendiente en la pestaña actual.
 const registerState = {
     flowToken: null,
     email: null,
@@ -12,6 +20,7 @@ const registerState = {
     resendTimer: null,
 };
 
+// Estado efímero de la recuperación de contraseña pendiente.
 const passwordResetState = {
     flowToken: null,
     maskedEmail: null,
@@ -34,6 +43,7 @@ function togglePassword(inputId, button) {
     }
 }
 
+/** Normaliza redirects para impedir saltos externos o bucles entre páginas de auth. */
 function normalizeRedirect(target) {
     const fallback = 'index.html';
 
@@ -181,6 +191,7 @@ async function waitForAltchaVerification(widget, form) {
     });
 }
 
+/** Garantiza que ALTCHA está cargado y devuelve el payload verificado del formulario. */
 async function ensureAltcha(form) {
     if (!window.isSecureContext) {
         throw new Error('ALTCHA requiere un contexto seguro: abre la web en http://localhost o en HTTPS.');
@@ -263,6 +274,7 @@ function updateRegisterResendButton() {
     clearRegisterResendTimer();
 }
 
+/** Bloquea temporalmente el reenvío de código de registro tras una solicitud. */
 function startRegisterResendCooldown(seconds = registerState.resendCooldownSeconds) {
     registerState.resendCooldownSeconds = seconds;
     registerState.resendAvailableAt = Date.now() + (seconds * 1000);
@@ -303,6 +315,7 @@ function updatePasswordResetResendButton() {
     clearPasswordResetResendTimer();
 }
 
+/** Bloquea temporalmente el reenvío de código de recuperación. */
 function startPasswordResetResendCooldown(seconds = passwordResetState.resendCooldownSeconds) {
     passwordResetState.resendCooldownSeconds = seconds;
     passwordResetState.resendAvailableAt = Date.now() + (seconds * 1000);
@@ -311,6 +324,7 @@ function startPasswordResetResendCooldown(seconds = passwordResetState.resendCoo
     passwordResetState.resendTimer = window.setInterval(updatePasswordResetResendButton, 1000);
 }
 
+/** Persiste en sessionStorage los datos mínimos del registro pendiente. */
 function savePendingRegistration(flowToken, email, maskedEmail, resendCooldownSeconds = registerState.resendCooldownSeconds) {
     registerState.flowToken = flowToken;
     registerState.email = email;
@@ -325,6 +339,7 @@ function savePendingRegistration(flowToken, email, maskedEmail, resendCooldownSe
     }));
 }
 
+/** Limpia el registro pendiente y sus temporizadores. */
 function clearPendingRegistrationState() {
     registerState.flowToken = null;
     registerState.email = null;
@@ -336,6 +351,7 @@ function clearPendingRegistrationState() {
     updateRegisterResendButton();
 }
 
+/** Persiste en sessionStorage los datos mínimos de la recuperación pendiente. */
 function savePendingPasswordReset(flowToken, maskedEmail, resendCooldownSeconds = passwordResetState.resendCooldownSeconds) {
     passwordResetState.flowToken = flowToken;
     passwordResetState.maskedEmail = maskedEmail;
@@ -348,6 +364,7 @@ function savePendingPasswordReset(flowToken, maskedEmail, resendCooldownSeconds 
     }));
 }
 
+/** Limpia la recuperación pendiente y sus temporizadores. */
 function clearPendingPasswordResetState() {
     passwordResetState.flowToken = null;
     passwordResetState.maskedEmail = null;
@@ -424,6 +441,7 @@ function getPasswordResetCancelBeaconPayload() {
     return JSON.stringify({ flow_token: passwordResetState.flowToken });
 }
 
+/** Cancela el registro pendiente en backend y limpia la interfaz local. */
 async function cancelPendingRegistration(options = {}) {
     const { useBeacon = false, silent = false, resetForm = false } = options;
     const payload = getCancelBeaconPayload();
@@ -484,6 +502,7 @@ async function cancelPendingRegistration(options = {}) {
     }
 }
 
+/** Cancela la recuperación pendiente en backend y limpia la interfaz local. */
 async function cancelPendingPasswordReset(options = {}) {
     const { useBeacon = false, silent = false, resetForm = false } = options;
     const payload = getPasswordResetCancelBeaconPayload();
@@ -544,6 +563,7 @@ async function cancelPendingPasswordReset(options = {}) {
     }
 }
 
+/** Envía los datos iniciales de registro y cambia al paso de verificación. */
 async function register(event) {
     event.preventDefault();
 
@@ -603,6 +623,7 @@ async function register(event) {
     }
 }
 
+/** Verifica el código de registro y finaliza la creación de cuenta. */
 async function verifyRegistration(event) {
     event.preventDefault();
 
@@ -645,6 +666,7 @@ async function verifyRegistration(event) {
     }
 }
 
+/** Solicita un nuevo código para el registro pendiente. */
 async function resendRegistrationCode() {
     const form = document.getElementById('registerVerifyForm');
     const button = getRegisterResendButton();
@@ -699,6 +721,7 @@ async function cancelRegistrationFlow() {
     await cancelPendingRegistration({ resetForm: true });
 }
 
+/** Inicia la recuperación de contraseña y muestra el paso de código. */
 async function startPasswordReset(event) {
     event.preventDefault();
 
@@ -765,6 +788,7 @@ async function startPasswordReset(event) {
     }
 }
 
+/** Valida el código de recuperación y guarda la nueva contraseña. */
 async function completePasswordReset(event) {
     event.preventDefault();
 
@@ -833,6 +857,7 @@ async function completePasswordReset(event) {
     }
 }
 
+/** Solicita un nuevo código de recuperación respetando bloqueos y cooldown. */
 async function resendPasswordResetCode() {
     const form = document.getElementById('passwordResetVerifyForm');
     const button = getPasswordResetResendButton();
@@ -896,6 +921,7 @@ async function cancelPasswordResetFlow() {
     await cancelPendingPasswordReset({ resetForm: true });
 }
 
+/** Valida ALTCHA e inicia sesión guardando token y usuario en localStorage. */
 async function login(event) {
     event.preventDefault();
 
@@ -919,6 +945,7 @@ async function login(event) {
     }
 }
 
+/** Ejecuta el login contra la API y redirige al destino solicitado. */
 async function autoLogin(email, password, altchaPayload = '') {
     const res = await fetch(getApiUrl('/login'), {
         method: 'POST',
@@ -940,6 +967,7 @@ async function autoLogin(email, password, altchaPayload = '') {
     window.location.href = getRedirectUrl();
 }
 
+/** Sincroniza enlaces entre login, registro y recuperación conservando redirect. */
 function wireAuthLinks() {
     const redirect = getRedirectUrl();
     const registerLink = document.getElementById('register-link');
@@ -970,6 +998,7 @@ function wireAuthLinks() {
     }
 }
 
+/** Traduce cambios de estado de ALTCHA a mensajes visibles en cada formulario. */
 async function bindAltchaStatus() {
     await waitForAltchaDefinition();
 
@@ -1004,6 +1033,7 @@ async function bindAltchaStatus() {
     });
 }
 
+/** Restaura email, mensajes flash y avisos tras registro o recuperación. */
 function restoreAuthContext() {
     const params = new URLSearchParams(window.location.search);
     const email = params.get('email');
@@ -1082,6 +1112,7 @@ function bindPasswordResetPageLifecycle() {
     });
 }
 
+/** Inicializa la página de autenticación actual y sus ciclos de vida. */
 async function initializeAuth() {
     wireAuthLinks();
     restoreAuthContext();

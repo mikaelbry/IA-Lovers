@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Perfil público de otro usuario, con seguimiento, métricas y publicaciones. -->
 <html>
     <head>
         <meta charset="UTF-8">
@@ -25,6 +26,11 @@
         <script src="assets/js/header.js?v=20260326-2"></script>
         <script src="assets/js/posts.js?v=20260326-2"></script>
         <script>
+/**
+ * Controlador del perfil público.
+ * Resuelve el usuario desde la URL, carga perfil público y relaciones sociales,
+ * y sincroniza el seguimiento del usuario autenticado.
+ */
 const token = localStorage.getItem("token");
 const profileEl = document.getElementById("profile");
 const modal = document.getElementById("followModal");
@@ -43,6 +49,7 @@ const state = {
     modalType: null
 };
 
+/** Extrae el nombre de usuario desde query string o ruta amigable. */
 function getUsernameFromLocation() {
     const params = new URLSearchParams(window.location.search);
     return params.get("username");
@@ -142,6 +149,7 @@ function getCurrentModalUsers() {
     return state.modalType === "followers" ? state.viewedFollowers : state.viewedFollowing;
 }
 
+/** Renderiza el perfil público, botón de seguimiento y publicaciones. */
 function renderProfile() {
     if (!state.viewedUser) {
         return;
@@ -223,6 +231,7 @@ function closeModal() {
     document.body.style.overflow = "";
 }
 
+/** Sincroniza contadores y listas locales tras seguir o dejar de seguir. */
 function syncFollowState(username, following) {
     if (following) {
         upsertUser(state.myFollowing, { username });
@@ -243,6 +252,7 @@ function syncFollowState(username, following) {
     }
 }
 
+/** Alterna seguimiento de un usuario evitando peticiones duplicadas. */
 async function toggleFollow(targetUsername) {
     if (!token || pendingFollows.has(targetUsername)) {
         return;
@@ -310,6 +320,7 @@ if (!username) {
     window.location.href = publicUrl("index.html");
 }
 
+/** Carga los datos necesarios para mostrar el perfil público. */
 async function loadUserPage() {
     if (token) {
         try {
