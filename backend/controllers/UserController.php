@@ -41,6 +41,15 @@ class UserController {
         ];
     }
 
+    /** Agrega la URL publica del avatar del autor a un registro de post. */
+    private static function withPostAuthorAvatarUrl(array $post) {
+        $post['avatar_url'] = !empty($post['avatar_path']) && !empty($post['user_id'])
+            ? Storage::publicUrl($post['user_id'], $post['avatar_path'])
+            : null;
+
+        return $post;
+    }
+
     /** Devuelve la extension de archivo segun el MIME type del avatar. */
     private static function avatarExtension($mime) {
         return match ($mime) {
@@ -112,6 +121,7 @@ class UserController {
             SELECT
                 posts.*,
                 users.username,
+                users.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -138,6 +148,7 @@ class UserController {
 
         $stmt->execute([$user['id'], $user['id']]);
         $posts = Storage::mapPosts($stmt->fetchAll());
+        $posts = array_map(fn($post) => self::withPostAuthorAvatarUrl($post), $posts);
 
         Response::json([
             'user' => $user,
@@ -225,6 +236,7 @@ class UserController {
             SELECT
                 posts.*,
                 users.username,
+                users.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
                 (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
@@ -250,6 +262,7 @@ class UserController {
 
         $postsStmt->execute([$viewer_id, $user_id]);
         $posts = Storage::mapPosts($postsStmt->fetchAll());
+        $posts = array_map(fn($post) => self::withPostAuthorAvatarUrl($post), $posts);
 
         Response::json([
             'user' => $user,
@@ -339,6 +352,7 @@ class UserController {
             SELECT
                 posts.*,
                 users.username,
+                users.avatar_path,
 
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.id) as likes_count,
 
@@ -365,6 +379,7 @@ class UserController {
 
         $postsStmt->execute([$viewer_id, $user_id]);
         $posts = Storage::mapPosts($postsStmt->fetchAll());
+        $posts = array_map(fn($post) => self::withPostAuthorAvatarUrl($post), $posts);
 
         Response::json([
             'user' => $user,
